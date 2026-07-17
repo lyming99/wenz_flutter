@@ -1,0 +1,14 @@
+已完成 P002，未修改 plan 文件、未勾选 checkbox。
+
+**变更**
+- 在 `lib/src/controller/outline_controller.dart:41` 为 `OutlineItem` 增加覆盖数量、隐藏数量和只读折叠状态快照。
+- 新增 `OutlineCollapseState` 状态模型：`lib/src/controller/outline_controller.dart:171`。
+- 增加 controller 级隐藏数量与状态查询 API：`lib/src/controller/outline_controller.dart:392`、`lib/src/controller/outline_controller.dart:521`。
+- 补充最小相关测试，覆盖只读状态、覆盖范围和隐藏数量：`test/controller/outline_controller_test.dart:58`。
+
+**验证**
+- 已运行：`flutter test test/controller/outline_controller_test.dart test/core/controller_test.dart`
+- 结果：通过，`All tests passed!`
+
+**备注**
+- `lib/src/controller/wenz_rich_text_controller.dart:1335` 已存在未提交改动，我未修改该文件。

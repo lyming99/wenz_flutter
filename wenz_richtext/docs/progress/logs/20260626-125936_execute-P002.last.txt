@@ -1,0 +1,11 @@
+P002 已完成；未修改 plan 文件，未运行测试/构建/分析/格式化命令。
+
+**变更**
+- 在 `lib/src/input/shortcut_manager.dart:38` 新增快捷键配置模型：修饰键、平台、组合键、绑定、配置、校验问题类型。
+- 在 `lib/src/input/shortcut_manager.dart:137` 实现配置合并与校验：重复组合键、空平台、无效字符键。
+- 在 `lib/src/input/shortcut_manager.dart:255` 接入 `EditorShortcutManager` 配置解析：用户配置覆盖默认映射、禁用 intent、透传组合键、平台/主修饰键/精确修饰键匹配、只读态和 IME 边界。
+- 在 `test/input/shortcut_manager_test.dart:59` 补充必要测试用例，覆盖覆盖默认、追加绑定、禁用、透传、平台主修饰键、只读/IME、防冲突与合并校验。
+
+**说明**
+- 当前工作区存在多处既有未提交变更；本次 P002 只改了 scope 内的 `lib/src/input/shortcut_manager.dart` 和 `test/input/shortcut_manager_test.dart`。
+- 按你的要求，本阶段未执行 `flutter test`、`dart analyze` 等验证命令，留给 AutoPlan 最终验收。

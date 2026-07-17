@@ -1,0 +1,10 @@
+**完成**
+- 在 `lib/src/widgets/wenz_rich_text_editor.dart:3424` 为 block 拖拽把手增加 pointer 状态机：短点击/键盘打开菜单，超过 `dragStartSlop` 后进入拖拽态并抑制菜单。
+- 在 `lib/src/widgets/wenz_rich_text_editor.dart:3490` 改为手动 `showMenu`，避免拖拽释放时误触发 `PopupMenuButton`。
+- 在 `lib/src/widgets/selection_gesture_overlay.dart:70` 记录排除区 pointer 序列，确保把手拖拽不触发文本选区逻辑。
+- 补充测试：`test/widgets/wenz_rich_text_editor_test.dart:1314`、`test/widgets/wenz_rich_text_editor_test.dart:1374`、`test/widgets/wenz_rich_text_editor_test.dart:1433`、`test/widgets/block_geometry_registry_test.dart:9`。
+- 未修改 plan 文件，也未勾选 checkbox。
+
+**验证**
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "block drag handles"` 通过
+- `flutter test test/widgets/block_geometry_registry_test.dart --plain-name "selection exclusions"` 通过

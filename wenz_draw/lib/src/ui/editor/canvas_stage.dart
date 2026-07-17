@@ -1,0 +1,123 @@
+import 'package:flutter/material.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+import 'package:wenz_draw/wenz_draw_mindmap.dart';
+
+import '../theme/editor_theme.dart';
+import '../theme/ui_colors.dart';
+import '../widgets/floating_pill.dart';
+
+class CanvasStage extends StatelessWidget {
+  const CanvasStage({
+    required this.canvasController,
+    required this.viewController,
+    this.canvasConfig,
+  });
+
+  final CanvasController canvasController;
+  final InfiniteCanvasController viewController;
+
+  /// Optional override for the canvas config. When null, a sensible default
+  /// (low-contrast dot grid, themed background) is used. Pass an
+  /// [InfiniteCanvasConfig] to tune gesture flags
+  /// (pinch/wheel/keyboard/double-tap/fling) or grid styling.
+  final InfiniteCanvasConfig? canvasConfig;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = EditorThemeScope.of(context);
+    final config = canvasConfig ??
+        InfiniteCanvasConfig(
+          backgroundColor: theme.canvasBackground,
+        );
+    return ColoredBox(
+      color: config.backgroundColor,
+      child: MindmapDragOverlay(
+        canvasController: canvasController,
+        viewController: viewController,
+        child: Stack(
+          children: [
+            InfiniteCanvasWidget(
+              controller: viewController,
+              config: config,
+              elementOverlayAnchorPredicate: _isMindmapRoot,
+              elementOverlayBuilder: (context, element) {
+                if (!_isMindmapRoot(element)) return null;
+                return Positioned.fill(
+                  child: MindmapConnectionLayer(
+                    key: ValueKey('mindmap-connection-${element.id}'),
+                    canvasController: canvasController,
+                    viewController: viewController,
+                    rootId: element.id,
+                  ),
+                );
+              },
+            ),
+            Positioned.fill(
+              child: MindmapEditingLayer(
+                canvasController: canvasController,
+                viewController: viewController,
+              ),
+            ),
+            Positioned(
+              left: 18,
+              top: 14,
+              child: AnimatedBuilder(
+                animation: Listenable.merge([canvasController, viewController]),
+                builder: (context, _) {
+                  return FloatingPill(
+                    child: Text(
+                      '${canvasController.currentTool?.name ?? 'Select'}  '
+                      '${canvasController.selectedIds.length} 个对象  '
+                      '${canvasController.elements.length} 个元素',
+                      style: const TextStyle(
+                        color: Color(0xFF405164),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Positioned(
+              left: 18,
+              bottom: 18,
+              child: ZoomPill(viewController: viewController),
+            ),
+            Positioned(
+              right: 18,
+              bottom: 18,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: UiColors.panel.withValues(alpha: 0.9),
+                  border: Border.all(color: UiColors.line),
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x1418232E),
+                      blurRadius: 24,
+                      offset: Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: MinimapWidget(controller: viewController),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static bool _isMindmapRoot(CanvasElement element) {
+    if (element is! CanvasWidgetElement ||
+        element.widgetType != kMindmapNodeWidgetType) {
+      return false;
+    }
+    final data = MindmapNodeData.fromWidgetData(element.widgetData);
+    return data.isRoot;
+  }
+}

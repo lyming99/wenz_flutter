@@ -1,0 +1,2205 @@
+OpenAI Codex v0.144.1
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_draw
+model: gpt-5.6-sol
+provider: openai
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f4cf0-f91f-7832-a1bf-3eb05051faaf
+--------
+user
+你是开发执行者，在无人值守模式下工作：禁止反问用户、禁止请求确认或补充信息、禁止输出“请告诉我…/是否需要…”之类等待回复的话；遇到不确定一律自行从代码推断，按最合理的工程方案直接推进，不要停下来等待输入。
+请只执行指定任务 P001，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_draw\docs\plan\plan_requirement_3_20260711-003151.md
+指定任务：- [ ] P001: 在顶部工具栏接入可拖拽绘制的标识箭头图形入口 <!-- scope: lib/src/ui/toolbar/toolbar.dart -->
+任务 scope：lib/src/ui/toolbar/toolbar.dart
+
+完成后必须：
+- 这是无人值守执行：不要提问、不要请求确认、不要等待用户输入，所有不确定项自行基于代码推断并直接落地修改
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 当前阶段只做开发修改，不运行测试、回归、验收、构建、lint/analyze、coverage、e2e 或 benchmark 命令；AutoPlan 会在所有任务完成后统一执行最终验收命令
+- 即使任务验收要点提到测试，也只补充或调整必要代码/测试文件，不在当前任务内启动测试进程；除非当前任务或 plan 总体说明明确写着“本任务必须执行某命令”
+- 若识别到 Flutter/Dart 项目，可遵循其代码组织、格式和测试文件约定，但当前任务内不要运行 flutter test、dart test、flutter analyze 或 dart analyze
+- 如果工具链命令因 PathAccessException、Permission denied、拒绝访问或超时失败，停止重试并说明环境阻塞，把验证留给最终验收阶段
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+2026-07-10T16:51:33.665667Z ERROR codex_models_manager::manager: failed to refresh available models: timeout waiting for child process to exit
+codex
+我会严格只处理 P001：先读取只读计划上下文与工具栏现状，再仅修改 `lib/src/ui/toolbar/toolbar.dart`；本阶段不运行测试、构建、lint 或 analyze。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$plan = '"'docs\\plan\\plan_requirement_3_20260711-003151.md'; "'$target = '"'lib\\src\\ui\\toolbar\\toolbar.dart'; Write-Output '---PLAN---'; Get-Content -LiteralPath "'$plan -Encoding UTF8; Write-Output '"'---TARGET---'; Get-Content -LiteralPath "'$target -Encoding UTF8; Write-Output '"'---STATUS---'; git status --short -- "'$target $plan; Write-Output '"'---AGENTS---'; Get-ChildItem -Path . -Filter AGENTS.md -Recurse -File | Select-Object -ExpandProperty FullName" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 438ms:
+---PLAN---
+# 顶部工具栏增加标识箭头图形
+
+## 需求概要
+
+当前项目已经通过 ArrowStencils 提供向右、向左、转弯等实心标识箭头，并由 ShapeTool 动态创建可编辑、可序列化的 DrawioShapeElement；左侧形状面板已有这些箭头，但顶部工具栏没有直接入口。需要在顶部工具栏增加一个与连线类工具语义区分明确的标识箭头按钮，默认选择 arrows.arrowRight 进行拖拽绘制，复用现有画笔描边、填充、选择编辑、保存加载和导出链路，同时处理与通用“图形”按钮的选中态及窄窗口横向布局。
+
+## 任务拆解
+
+- [ ] P001: 在顶部工具栏接入可拖拽绘制的标识箭头图形入口 <!-- scope: lib/src/ui/toolbar/toolbar.dart -->
+  - 验收要点：顶部工具栏在线条工具与通用图形工具附近提供名称和图标语义清晰的标识箭头按钮，视觉上表达实心指示箭头，不与直线、折线、曲线或连接线箭头混淆。
+  - 验收要点：点击按钮后激活 ShapeTool.idFor('arrows.arrowRight')，在画布拖拽时预览并创建 shapeKey 为 arrows.arrowRight 的 DrawioShapeElement，而不是 ArrowElement 或带端点箭头的连接线。
+  - 验收要点：新建标识箭头沿用当前描边与填充设置，并继续具备现有 DrawioShapeElement 的选择、移动、缩放、旋转、撤销重做、保存加载及导出能力，不新增重复的箭头元素模型。
+  - 验收要点：标识箭头工具激活时仅对应按钮呈现选中态；通用“图形”入口不会与其重复高亮，其他 ShapeTool、RectTool 和 EllipseTool 的原有选中反馈保持正确。
+  - 验收要点：增加按钮后工具栏在常规和较窄视口中仍可通过现有横向滚动访问全部操作，不出现布局溢出或遮挡。
+- [ ] P002: 补充顶部工具栏标识箭头入口的交互回归覆盖 <!-- scope: test/toolbar_test.dart -->
+  - 验收要点：覆盖工具栏显示独立标识箭头按钮并可通过提示文本或稳定标识定位的场景。
+  - 验收要点：覆盖点击标识箭头按钮后当前工具精确切换为 ShapeTool.idFor('arrows.arrowRight')，且标识箭头按钮与通用“图形”按钮不会同时显示选中态。
+  - 验收要点：覆盖激活入口后在画布完成拖拽可创建 arrows.arrowRight 的 DrawioShapeElement，并验证该元素使用当前描边和填充配置。
+  - 验收要点：覆盖从标识箭头切换到选择、线条或其他图形工具时工具状态和按钮高亮同步更新，现有工具栏按钮与特殊组件菜单行为不回退。
+  - 验收要点：覆盖窄视口下工具栏可横向滚动访问标识箭头及后续按钮且无渲染溢出的场景。
+- [ ] P003: 完整验收 <!-- scope: validation -->
+  - 验收要点：最终验收命令为 flutter analyze && flutter test
+  - 验收要点：Flutter 静态分析无新增错误或警告，完整测试套件全部通过。
+  - 验收要点：顶部工具栏可直接激活实心标识箭头图形工具，拖拽生成 shapeKey 为 arrows.arrowRight 的 DrawioShapeElement，而不会误生成连接线箭头。
+  - 验收要点：新建标识箭头正确继承当前描边和填充设置，并可执行选择、移动、缩放、旋转、撤销重做、JSON 保存加载以及 SVG/PNG 导出等既有图形操作。
+  - 验收要点：标识箭头、通用图形、直线、折线、曲线和选择工具之间切换时仅正确入口高亮，现有工具与特殊组件菜单交互不回退。
+  - 验收要点：常规及窄窗口下工具栏无布局溢出，所有按钮均可通过横向滚动访问。
+
+## 总体验收标准
+
+- 最终验收命令：flutter analyze && flutter test
+- 验收范围：lib/src/ui/toolbar/toolbar.dart、test/toolbar_test.dart、validation
+- 通过标准：所有总体验收标准均满足。
+- Flutter 静态分析无新增错误或警告，完整测试套件全部通过。
+- 顶部工具栏可直接激活实心标识箭头图形工具，拖拽生成 shapeKey 为 arrows.arrowRight 的 DrawioShapeElement，而不会误生成连接线箭头。
+- 新建标识箭头正确继承当前描边和填充设置，并可执行选择、移动、缩放、旋转、撤销重做、JSON 保存加载以及 SVG/PNG 导出等既有图形操作。
+- 标识箭头、通用图形、直线、折线、曲线和选择工具之间切换时仅正确入口高亮，现有工具与特殊组件菜单交互不回退。
+- 常规及窄窗口下工具栏无布局溢出，所有按钮均可通过横向滚动访问。
+
+## 进度区
+---TARGET---
+import 'dart:convert';
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+
+import '../theme/ui_colors.dart';
+import '../editor/editor_actions.dart';
+import '../editor/editor_config.dart';
+import '../widgets/spectrum_icon.dart';
+import 'line_tool_icon.dart';
+import 'tool_button.dart';
+import 'toolbar_divider.dart';
+
+class Toolbar extends StatelessWidget {
+  const Toolbar({
+    required this.canvasController,
+    required this.viewController,
+    required this.onAddStickyNote,
+    required this.onAddCounter,
+    required this.onAddMindmap,
+    required this.onInsertImage,
+    this.documentStore,
+    this.onExportPng,
+    this.metadata,
+    this.actions = const [],
+  });
+
+  final CanvasController canvasController;
+  final InfiniteCanvasController viewController;
+  final VoidCallback onAddStickyNote;
+  final VoidCallback onAddCounter;
+  final VoidCallback onAddMindmap;
+  final VoidCallback onInsertImage;
+
+  /// Optional persistence backend. When provided, 保存/加载 menu items route
+  /// through it; otherwise they fall back to in-memory snapshots.
+  final DocumentStore? documentStore;
+
+  /// Optional PNG export override. When null the bundled [PngExporter] is used.
+  final Future<void> Function(BuildContext, CanvasController, InfiniteCanvasController)?
+      onExportPng;
+
+  /// Optional metadata embedded into saved documents.
+  final DocumentMetadata? metadata;
+
+  /// Host-contributed actions rendered in the toolbar's trailing cluster.
+  final List<EditorToolbarAction> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([canvasController, viewController]),
+      builder: (context, _) {
+        final activeTool = canvasController.currentTool?.id;
+
+        return Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: const BoxDecoration(
+            color: UiColors.panel,
+            border: Border(bottom: BorderSide(color: UiColors.line)),
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: math.max(MediaQuery.sizeOf(context).width - 24, 760),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ToolButton(
+                    label: '菜单',
+                    icon: Icons.menu,
+                    selected: false,
+                    onPressed: () => showFileMenu(context),
+                  ),
+                  const ToolbarDivider(),
+                  ToolButton(
+                    label: '选择',
+                    icon: Icons.near_me_outlined,
+                    selected: activeTool == SelectTool.idValue,
+                    onPressed: () =>
+                        canvasController.setTool(SelectTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '拖拽',
+                    icon: Icons.open_with,
+                    selected: activeTool == PanTool.idValue,
+                    onPressed: () => canvasController.setTool(PanTool.idValue),
+                  ),
+                  const ToolbarDivider(),
+                  ToolButton(
+                    label: '画笔',
+                    icon: Icons.edit_outlined,
+                    selected: activeTool == PenTool.idValue,
+                    onPressed: () => canvasController.setTool(PenTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '荧光笔',
+                    icon: Icons.border_color_outlined,
+                    selected: activeTool == HighlighterTool.idValue,
+                    onPressed: () =>
+                        canvasController.setTool(HighlighterTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '直线',
+                    iconWidget: const LineToolIcon(polyline: false),
+                    selected: activeTool == LineTool.idValue,
+                    onPressed: () => canvasController.setTool(LineTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '折线',
+                    iconWidget: const LineToolIcon(polyline: true),
+                    selected: activeTool == PolylineTool.idValue,
+                    onPressed: () =>
+                        canvasController.setTool(PolylineTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '曲线',
+                    icon: Icons.timeline,
+                    selected: activeTool == CurveTool.idValue,
+                    onPressed: () =>
+                        canvasController.setTool(CurveTool.idValue),
+                  ),
+                  const ToolbarDivider(),
+                  ToolButton(
+                    label: '图形',
+                    icon: Icons.category_outlined,
+                    selected:
+                        activeTool == RectTool.idValue ||
+                        activeTool == EllipseTool.idValue ||
+                        (activeTool?.startsWith(ShapeTool.idPrefix) ?? false),
+                    onPressed: () => canvasController.setTool(RectTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '文字',
+                    icon: Icons.text_fields,
+                    selected: activeTool == TextTool.idValue,
+                    onPressed: () => canvasController.setTool(TextTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '橡皮擦',
+                    icon: Icons.cleaning_services_outlined,
+                    selected: activeTool == EraserTool.idValue,
+                    onPressed: () =>
+                        canvasController.setTool(EraserTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '颜色选择器',
+                    selected: false,
+                    iconWidget: const SpectrumIcon(size: 18),
+                    onPressed: () => showColorMenu(context, canvasController),
+                  ),
+                  const ToolbarDivider(),
+                  ToolButton(
+                    label: '撤销',
+                    icon: Icons.undo,
+                    selected: false,
+                    enabled: canvasController.canUndo,
+                    onPressed: canvasController.undo,
+                  ),
+                  ToolButton(
+                    label: '重做',
+                    icon: Icons.redo,
+                    selected: false,
+                    enabled: canvasController.canRedo,
+                    onPressed: canvasController.redo,
+                  ),
+                  const ToolbarDivider(),
+                  ToolButton(
+                    label: '特殊组件创建',
+                    icon: Icons.add,
+                    selected: false,
+                    onPressed: () => showComponentMenu(context),
+                  ),
+                  ToolButton(
+                    label: '图层',
+                    icon: Icons.layers_outlined,
+                    selected: false,
+                    onPressed: () => canvasController.addLayer(),
+                  ),
+                  if (actions.isNotEmpty) const ToolbarDivider(),
+                  for (final action in actions)
+                    ToolButton(
+                      label: action.label,
+                      icon: action.icon,
+                      selected: false,
+                      onPressed: () =>
+                          action.onPressed(canvasController, viewController),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void showFileMenu(BuildContext context) {
+    final store = documentStore;
+    showAnchoredMenu<String>(
+      context: context,
+      items: [
+        const PopupMenuItem(value: 'insert-image', child: Text('Insert image')),
+        const PopupMenuDivider(),
+        const PopupMenuItem(value: 'import-json', child: Text('导入 JSON')),
+        const PopupMenuItem(value: 'import-drawio', child: Text('导入 draw.io')),
+        const PopupMenuDivider(),
+        const PopupMenuItem(value: 'export-json', child: Text('导出 JSON')),
+        const PopupMenuItem(value: 'export-svg', child: Text('导出 SVG')),
+        const PopupMenuItem(value: 'export-png', child: Text('导出 PNG')),
+        const PopupMenuDivider(),
+        if (store != null)
+          const PopupMenuItem(value: 'save', child: Text('保存')),
+        if (store != null)
+          const PopupMenuItem(value: 'load', child: Text('加载')),
+      ],
+    ).then((value) {
+      if (value == null) return;
+      switch (value) {
+        case 'insert-image':
+          onInsertImage();
+        case 'import-json':
+          showImportDialog(context, canvasController, importDrawio: false);
+        case 'import-drawio':
+          showImportDialog(context, canvasController, importDrawio: true);
+        case 'export-json':
+          showExportDialog(
+            context,
+            'JSON',
+            prettyJson(
+              CanvasSerializer.toJsonWithView(
+                viewController,
+                viewport: viewController.currentViewport,
+                metadata: metadata,
+              ),
+            ),
+          );
+        case 'export-svg':
+          showExportDialog(
+            context,
+            'SVG',
+            SvgExporter.exportElements(elements: canvasController.elements),
+          );
+        case 'export-png':
+          _exportPng(context);
+        case 'save':
+          if (store != null) _saveToStore(context, store);
+        case 'load':
+          if (store != null) _loadFromStore(context, store);
+      }
+    });
+  }
+
+  Future<void> _saveToStore(BuildContext context, DocumentStore store) async {
+    try {
+      final json = CanvasSerializer.toJsonWithView(
+        viewController,
+        viewport: viewController.currentViewport,
+        metadata: metadata,
+      );
+      await store.save(json);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('已保存')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('保存失败：$error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadFromStore(BuildContext context, DocumentStore store) async {
+    try {
+      final json = await store.load();
+      if (json == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('没有可加载的文档')),
+          );
+        }
+        return;
+      }
+      CanvasSerializer.loadDocument(viewController, json);
+      // The viewport cannot be applied until the canvas has a size; defer one
+      // frame so the freshly-loaded elements are laid out first.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final document = CanvasSerializer.fromJson(json);
+        viewController.applyViewport(document.viewport);
+      });
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('已加载')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载失败：$error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportPng(BuildContext context) async {
+    if (onExportPng != null) {
+      await onExportPng!(context, canvasController, viewController);
+      return;
+    }
+    try {
+      final bytes = await PngExporter.exportElements(
+        elements: canvasController.elements,
+      );
+      if (context.mounted) {
+        showExportDialog(
+          context,
+          'PNG (base64)',
+          prettyJson({'png': base64Encode(bytes)}),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('导出 PNG 失败：$error')),
+        );
+      }
+    }
+  }
+
+  void showComponentMenu(BuildContext context) {
+    showAnchoredMenu<String>(
+      context: context,
+      items: const [
+        PopupMenuItem(value: 'note', child: Text('便签')),
+        PopupMenuItem(value: 'counter', child: Text('计数器')),
+        PopupMenuItem(
+          value: 'mindmap',
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.account_tree_outlined, size: 18),
+              SizedBox(width: 8),
+              Text('思维导图'),
+            ],
+          ),
+        ),
+      ],
+    ).then((value) {
+      if (value == 'counter') {
+        onAddCounter();
+      } else if (value == 'note') {
+        onAddStickyNote();
+      } else if (value == 'mindmap') {
+        onAddMindmap();
+      }
+    });
+  }
+}
+---STATUS---
+ M lib/src/ui/toolbar/toolbar.dart
+?? docs/plan/plan_requirement_3_20260711-003151.md
+---AGENTS---
+
+codex
+计划要求明确：新增独立“标识箭头”入口，精确激活 `ShapeTool.idFor('arrows.arrowRight')`，并从通用“图形”的 ShapeTool 高亮范围中排除该入口。目标文件已有未提交改动，我会先辨认并保留这些现有改动后再做最小补丁。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Write-Output '---TARGET DIFF---'; git diff -- lib/src/ui/toolbar/toolbar.dart; Write-Output '---SHAPE TOOL---'; rg -n \"class ShapeTool|idFor\\(|idPrefix|arrows\\.arrowRight|arrowRight\" lib test; Write-Output '---TOOL BUTTON---'; Get-Content -LiteralPath 'lib\\src\\ui\\toolbar\\tool_button.dart' -Encoding UTF8; Write-Output '---PUBSPEC SDK---'; rg -n \"environment:|sdk:\" pubspec.yaml" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 438ms:
+---TARGET DIFF---
+diff --git a/wenz_draw/lib/src/ui/toolbar/toolbar.dart b/wenz_draw/lib/src/ui/toolbar/toolbar.dart
+index 831139c..05d7a7c 100644
+--- a/wenz_draw/lib/src/ui/toolbar/toolbar.dart
++++ b/wenz_draw/lib/src/ui/toolbar/toolbar.dart
+@@ -338,7 +338,17 @@ class Toolbar extends StatelessWidget {
+       items: const [
+         PopupMenuItem(value: 'note', child: Text('便签')),
+         PopupMenuItem(value: 'counter', child: Text('计数器')),
+-        PopupMenuItem(value: 'mindmap', child: Text('思维导图')),
++        PopupMenuItem(
++          value: 'mindmap',
++          child: Row(
++            mainAxisSize: MainAxisSize.min,
++            children: [
++              Icon(Icons.account_tree_outlined, size: 18),
++              SizedBox(width: 8),
++              Text('思维导图'),
++            ],
++          ),
++        ),
+       ],
+     ).then((value) {
+       if (value == 'counter') {
+---SHAPE TOOL---
+lib\src\infinite_canvas\infinite_canvas_widget.dart:810:    if (key == LogicalKeyboardKey.arrowRight) {
+test\drawio_shape_element_test.dart:302:      ShapeDefinitionRegistry.contains('mxgraph.arrows.arrowRight'),
+test\drawio_shape_element_test.dart:317:      style: 'shape=mxgraph.arrows.arrowRight;',
+test\drawio_shape_element_test.dart:319:    expect(camel.shapeKey, 'arrows.arrowRight');
+test\canvas_controller_test.dart:18:        ..setTool(ShapeTool.idFor('rhombus'));
+test\stencil_parser_test.dart:132:      expect(ShapeDefinitionRegistry.contains('arrows.arrowRight'), isTrue);
+lib\src\ui\toolbar\toolbar.dart:132:                        (activeTool?.startsWith(ShapeTool.idPrefix) ?? false),
+lib\src\ui\panels\left_shape_panel.dart:105:                      selected: activeTool == ShapeTool.idFor('rhombus'),
+lib\src\ui\panels\left_shape_panel.dart:107:                          .setTool(ShapeTool.idFor('rhombus')),
+lib\src\ui\panels\shape_palette_data.dart:14:  String get toolId => ShapeTool.idFor(shapeKey);
+lib\src\stencils\libraries\arrow_stencils.dart:63:<shape aspect="variable" h="70" name="arrows.arrowRight" strokewidth="inherit" w="97.5">
+lib\src\stencils\libraries\arrow_stencils.dart:1037:    'arrows.arrowRight': <String>[
+lib\src\stencils\libraries\arrow_stencils.dart:1038:      'mxgraph.arrows.arrowRight',
+lib\src\stencils\libraries\arrow_stencils.dart:1234:    'arrows.arrowRight',
+lib\src\stencils\libraries\arrow_stencils.dart:1271:    'arrows.arrowRight': '向右箭头',
+lib\src\tools\shape_tool.dart:10:class ShapeTool extends CanvasTool {
+lib\src\tools\shape_tool.dart:17:  }) : _id = id ?? idFor(shapeKey),
+lib\src\tools\shape_tool.dart:21:  static const idPrefix = 'shape:';
+lib\src\tools\shape_tool.dart:23:  static String idFor(String shapeKey) => '$idPrefix$shapeKey';
+lib\src\tools\tool_manager.dart:26:    if (next == null && toolId.startsWith(ShapeTool.idPrefix)) {
+lib\src\tools\tool_manager.dart:27:      final shapeKey = toolId.substring(ShapeTool.idPrefix.length);
+---TOOL BUTTON---
+import 'package:flutter/material.dart';
+
+import '../theme/ui_colors.dart';
+
+class ToolButton extends StatelessWidget {
+  const ToolButton({
+    required this.label,
+    required this.selected,
+    required this.onPressed,
+    this.icon,
+    this.iconWidget,
+    this.enabled = true,
+  });
+
+  final String label;
+  final IconData? icon;
+  final Widget? iconWidget;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = !enabled
+        ? const Color(0xFFB8C2CC)
+        : selected
+            ? UiColors.accent
+            : UiColors.muted;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Tooltip(
+        message: label,
+        child: Material(
+          color: selected ? UiColors.accentSoft : Colors.transparent,
+          shape: RoundedRectangleBorder(
+            side: BorderSide(
+              color: selected ? const Color(0xFFC7DDF2) : Colors.transparent,
+            ),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(6),
+            onTap: enabled ? onPressed : null,
+            child: SizedBox(
+              width: 30,
+              height: 30,
+              child: Center(
+                child: IconTheme(
+                  data: IconThemeData(size: 16, color: foreground),
+                  child: iconWidget ?? Icon(icon),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+---PUBSPEC SDK---
+7:environment:
+8:  sdk: ^3.8.0
+13:    sdk: flutter
+19:    sdk: flutter
+warning: in the working copy of 'wenz_draw/lib/src/ui/toolbar/toolbar.dart', LF will be replaced by CRLF the next time Git touches it
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Write-Output '---PALETTE UI---'; Get-Content -LiteralPath 'lib\\src\\ui\\panels\\left_shape_panel.dart' -Encoding UTF8; Write-Output '---SHAPE PALETTE FILES---'; rg -n \"ShapeThumbnail|ShapePreview|shapeKey|CustomPaint|Arrow\" lib/src/ui/panels lib/src/ui/widgets lib/src | Select-Object -First 160" in D:\project\GitHub\wenz_flutter\wenz_draw
+2026-07-10T16:52:30.531568Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.4 seconds
+Output:
+---PALETTE UI---
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+
+import '../theme/ui_colors.dart';
+import '../widgets/search_box.dart';
+import '../widgets/shape_preview_icon.dart';
+import '../widgets/shape_tile.dart';
+import 'panel_section.dart';
+import 'palette_subhead.dart';
+import 'shape_palette_data.dart';
+import 'shape_palette_group.dart';
+
+class LeftShapePanel extends StatefulWidget {
+  const LeftShapePanel({
+    required this.canvasController,
+    required this.onAddStickyNote,
+  });
+
+  final CanvasController canvasController;
+  final VoidCallback onAddStickyNote;
+
+  @override
+  State<LeftShapePanel> createState() => _LeftShapePanelState();
+}
+
+class _LeftShapePanelState extends State<LeftShapePanel> {
+  String _searchQuery = '';
+  bool _basicToolsExpanded = true;
+
+  List<DrawioShapePaletteEntry> get _allStencilEntries {
+    return [
+      ...basicSymbolShapePalette,
+      ...flowchartShapePalette,
+      ...arrowShapePalette,
+      ...drawioShapePalette,
+    ];
+  }
+
+  List<DrawioShapePaletteEntry> get _filteredEntries {
+    if (_searchQuery.isEmpty) return const [];
+    final q = _searchQuery.toLowerCase();
+    return _allStencilEntries
+        .where((e) =>
+            e.label.toLowerCase().contains(q) ||
+            e.shapeKey.toLowerCase().contains(q))
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final activeTool = widget.canvasController.currentTool?.id;
+    return Container(
+      width: 244,
+      color: UiColors.panel,
+      child: SingleChildScrollView(
+        child: PanelSection(
+          title: '图形',
+          actionLabel: '管理',
+          children: [
+            SearchBox(
+              onChanged: (value) => setState(() => _searchQuery = value),
+            ),
+            if (_searchQuery.isEmpty) ...[
+              PaletteSubhead(
+                '基本工具',
+                onTap: () => setState(
+                    () => _basicToolsExpanded = !_basicToolsExpanded),
+                isExpanded: _basicToolsExpanded,
+              ),
+              AnimatedCrossFade(
+                duration: const Duration(milliseconds: 200),
+                crossFadeState: _basicToolsExpanded
+                    ? CrossFadeState.showFirst
+                    : CrossFadeState.showSecond,
+                firstChild: GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  childAspectRatio: 1.35,
+                  children: [
+                    ShapeTile(
+                      label: '矩形',
+                      icon: Icons.crop_square,
+                      selected: activeTool == RectTool.idValue,
+                      onPressed: () =>
+                          widget.canvasController.setTool(RectTool.idValue),
+                    ),
+                    ShapeTile(
+                      label: '圆形',
+                      icon: Icons.circle_outlined,
+                      selected: activeTool == EllipseTool.idValue,
+                      onPressed: () =>
+                          widget.canvasController.setTool(EllipseTool.idValue),
+                    ),
+                    ShapeTile(
+                      label: '菱形',
+                      iconWidget: Transform.rotate(
+                        angle: math.pi / 4,
+                        child: const Icon(Icons.crop_square, size: 32),
+                      ),
+                      selected: activeTool == ShapeTool.idFor('rhombus'),
+                      onPressed: () => widget.canvasController
+                          .setTool(ShapeTool.idFor('rhombus')),
+                    ),
+                    ShapeTile(
+                      label: '箭头',
+                      icon: Icons.arrow_forward,
+                      selected: activeTool == ArrowTool.idValue,
+                      onPressed: () =>
+                          widget.canvasController.setTool(ArrowTool.idValue),
+                    ),
+                    ShapeTile(
+                      label: '便签',
+                      icon: Icons.sticky_note_2_outlined,
+                      selected: false,
+                      onPressed: widget.onAddStickyNote,
+                    ),
+                    ShapeTile(
+                      label: '文本',
+                      icon: Icons.text_fields,
+                      selected: activeTool == TextTool.idValue,
+                      onPressed: () =>
+                          widget.canvasController.setTool(TextTool.idValue),
+                    ),
+                  ],
+                ),
+                secondChild: const SizedBox(width: double.infinity),
+              ),
+              ShapePaletteGroup(
+                title: '基本形状',
+                entries: drawioShapePalette
+                    .where((entry) => entry.group == 'basic')
+                    .toList(growable: false),
+                activeTool: activeTool,
+                onSelect: widget.canvasController.setTool,
+              ),
+              ShapePaletteGroup(
+                title: '基本符号',
+                entries: basicSymbolShapePalette,
+                activeTool: activeTool,
+                onSelect: widget.canvasController.setTool,
+              ),
+              ShapePaletteGroup(
+                title: '流程图',
+                entries: flowchartShapePalette,
+                activeTool: activeTool,
+                onSelect: widget.canvasController.setTool,
+              ),
+              ShapePaletteGroup(
+                title: '箭头',
+                entries: arrowShapePalette,
+                activeTool: activeTool,
+                onSelect: widget.canvasController.setTool,
+              ),
+              ShapePaletteGroup(
+                title: '容器',
+                entries: drawioShapePalette
+                    .where((entry) => entry.group == 'container')
+                    .toList(growable: false),
+                activeTool: activeTool,
+                onSelect: widget.canvasController.setTool,
+              ),
+            ] else ...[
+              PaletteSubhead('搜索结果 (${_filteredEntries.length})'),
+              if (_filteredEntries.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text(
+                      '未找到匹配的图形',
+                      style: TextStyle(color: UiColors.muted, fontSize: 13),
+                    ),
+                  ),
+                )
+              else
+                GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  childAspectRatio: 1.35,
+                  children: [
+                    for (final entry in _filteredEntries)
+                      ShapeTile(
+                        label: entry.label,
+                        iconWidget:
+                            ShapePreviewIcon(shapeKey: entry.shapeKey),
+                        selected: activeTool == entry.toolId,
+                        onPressed: () =>
+                            widget.canvasController.setTool(entry.toolId),
+                      ),
+                  ],
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+---SHAPE PALETTE FILES---
+lib/src/ui/widgets\spectrum_icon.dart:10:    return CustomPaint(size: Size.square(size), painter: SpectrumPainter());
+lib/src/ui/widgets\spectrum_icon.dart:14:class SpectrumPainter extends CustomPainter {
+lib/src/ui/widgets\spectrum_icon.dart:55:  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+lib/src/ui/widgets\shape_preview_icon.dart:4:class ShapePreviewIcon extends StatelessWidget {
+lib/src/ui/widgets\shape_preview_icon.dart:5:  const ShapePreviewIcon({required this.shapeKey});
+lib/src/ui/widgets\shape_preview_icon.dart:7:  final String shapeKey;
+lib/src/ui/widgets\shape_preview_icon.dart:11:    return CustomPaint(
+lib/src/ui/widgets\shape_preview_icon.dart:13:      painter: ShapePreviewPainter(shapeKey),
+lib/src/ui/widgets\shape_preview_icon.dart:18:class ShapePreviewPainter extends CustomPainter {
+lib/src/ui/widgets\shape_preview_icon.dart:19:  const ShapePreviewPainter(this.shapeKey);
+lib/src/ui/widgets\shape_preview_icon.dart:21:  final String shapeKey;
+lib/src/ui/widgets\shape_preview_icon.dart:29:      shapeKey: shapeKey,
+lib/src/ui/widgets\shape_preview_icon.dart:38:  bool shouldRepaint(covariant ShapePreviewPainter oldDelegate) {
+lib/src/ui/widgets\shape_preview_icon.dart:39:    return oldDelegate.shapeKey != shapeKey;
+lib/src/ui/panels\shape_palette_group.dart:54:                  iconWidget: ShapePreviewIcon(shapeKey: entry.shapeKey),
+lib/src\widgets\canvas_widget_layer.dart:89:          child: CustomPaint(
+lib/src\widgets\canvas_widget_layer.dart:153:            child: CustomPaint(
+lib/src\widgets\canvas_widget_layer.dart:167:          child: CustomPaint(
+lib/src\widgets\canvas_widget_layer.dart:372:            child: CustomPaint(
+lib/src\widgets\canvas_widget_layer.dart:657:class _CanvasBackgroundPainter extends CustomPainter {
+lib/src\widgets\canvas_widget_layer.dart:678:class _CanvasElementSegmentPainter extends CustomPainter {
+lib/src\widgets\canvas_widget_layer.dart:731:class _CanvasSelectionPainter extends CustomPainter {
+lib/src/ui/widgets\rgb_spectrum_picker.dart:32:            child: CustomPaint(
+lib/src/ui/widgets\rgb_spectrum_picker.dart:48:            child: CustomPaint(
+lib/src/ui/panels\shape_palette_data.dart:6:    required this.shapeKey,
+lib/src/ui/panels\shape_palette_data.dart:11:  final String shapeKey;
+lib/src/ui/panels\shape_palette_data.dart:14:  String get toolId => ShapeTool.idFor(shapeKey);
+lib/src/ui/panels\shape_palette_data.dart:21:      shapeKey: key,
+lib/src/ui/panels\shape_palette_data.dart:30:      shapeKey: key,
+lib/src/ui/panels\shape_palette_data.dart:36:  for (final key in ArrowStencils.keys)
+lib/src/ui/panels\shape_palette_data.dart:38:      label: ArrowStencils.labels[key] ?? key,
+lib/src/ui/panels\shape_palette_data.dart:39:      shapeKey: key,
+lib/src/ui/panels\shape_palette_data.dart:45:  DrawioShapePaletteEntry(label: '菱形', shapeKey: 'rhombus', group: 'basic'),
+lib/src/ui/panels\shape_palette_data.dart:46:  DrawioShapePaletteEntry(label: '三角形', shapeKey: 'triangle', group: 'basic'),
+lib/src/ui/panels\shape_palette_data.dart:47:  DrawioShapePaletteEntry(label: '六边形', shapeKey: 'hexagon', group: 'basic'),
+lib/src/ui/panels\shape_palette_data.dart:48:  DrawioShapePaletteEntry(label: '加号', shapeKey: 'plus', group: 'basic'),
+lib/src/ui/panels\shape_palette_data.dart:49:  DrawioShapePaletteEntry(label: '交叉', shapeKey: 'cross', group: 'basic'),
+lib/src/ui/panels\shape_palette_data.dart:52:    shapeKey: 'parallelogram',
+lib/src/ui/panels\shape_palette_data.dart:57:    shapeKey: 'trapezoid',
+lib/src/ui/panels\shape_palette_data.dart:62:    shapeKey: 'document',
+lib/src/ui/panels\shape_palette_data.dart:65:  DrawioShapePaletteEntry(label: '步骤', shapeKey: 'step', group: 'flowchart'),
+lib/src/ui/panels\shape_palette_data.dart:68:    shapeKey: 'cylinder',
+lib/src/ui/panels\shape_palette_data.dart:73:    shapeKey: 'swimlane',
+lib/src/ui/panels\shape_palette_data.dart:76:  DrawioShapePaletteEntry(label: '便签形', shapeKey: 'note', group: 'container'),
+lib/src/ui/panels\shape_palette_data.dart:79:    shapeKey: 'callout',
+lib/src/ui/panels\shape_palette_data.dart:84:    shapeKey: 'doubleEllipse',
+lib/src/ui/panels\shape_palette_data.dart:89:    shapeKey: 'actor',
+lib/src/ui/panels\shape_palette_data.dart:92:  DrawioShapePaletteEntry(label: '云', shapeKey: 'cloud', group: 'container'),
+lib/src/ui/panels\shape_palette_data.dart:93:  DrawioShapePaletteEntry(label: '立方体', shapeKey: 'cube', group: 'container'),
+lib/src\rendering\selection_renderer.dart:94:        final ArrowElement e => [e.start, e.end],
+lib/src/ui/panels\right_inspector_panel.dart:32:        final selectedArrowStyle = lineArrowStyleOf(selected);
+lib/src/ui/panels\right_inspector_panel.dart:97:                if (selectedArrowStyle != null)
+lib/src/ui/panels\right_inspector_panel.dart:101:                      LineArrowModeControl(
+lib/src/ui/panels\right_inspector_panel.dart:102:                        value: selectedArrowStyle.mode,
+lib/src/ui/panels\right_inspector_panel.dart:104:                            .updateLineArrowMode(selected!.id, mode),
+lib/src/ui/widgets\color_picker_painters.dart:3:class RgbSpectrumPainter extends CustomPainter {
+lib/src/ui/widgets\color_picker_painters.dart:41:class SpectrumThumbPainter extends CustomPainter {
+lib/src/ui/widgets\color_picker_painters.dart:74:class HueBarPainter extends CustomPainter {
+lib/src/ui/widgets\color_picker_painters.dart:106:class HueThumbPainter extends CustomPainter {
+lib/src/ui/panels\inspector_utils.dart:12:LineArrowStyle? lineArrowStyleOf(CanvasElement? element) {
+lib/src/ui/panels\inspector_utils.dart:111:    final ArrowElement e => e.labelStyle.color,
+lib/src/ui/panels\inspector_fields.dart:6:class LineArrowModeControl extends StatelessWidget {
+lib/src/ui/panels\inspector_fields.dart:7:  const LineArrowModeControl({
+lib/src/ui/panels\inspector_fields.dart:13:  final LineArrowMode value;
+lib/src/ui/panels\inspector_fields.dart:14:  final ValueChanged<LineArrowMode>? onChanged;
+lib/src/ui/panels\inspector_fields.dart:16:  static const _options = <(LineArrowMode, IconData, String)>[
+lib/src/ui/panels\inspector_fields.dart:17:    (LineArrowMode.none, Icons.horizontal_rule, '\u65e0\u7bad\u5934'),
+lib/src/ui/panels\inspector_fields.dart:18:    (LineArrowMode.single, Icons.arrow_right_alt, '\u5355\u5411\u7bad\u5934'),
+lib/src/ui/panels\inspector_fields.dart:19:    (LineArrowMode.both, Icons.compare_arrows, '\u53cc\u5411\u7bad\u5934'),
+lib/src/ui/panels\inspector_fields.dart:36:              child: _LineArrowModeOption(
+lib/src/ui/panels\inspector_fields.dart:50:class _LineArrowModeOption extends StatelessWidget {
+lib/src/ui/panels\inspector_fields.dart:51:  const _LineArrowModeOption({
+lib/src/ui/panels\inspector_fields.dart:59:  final LineArrowMode mode;
+lib/src/ui/panels\inspector_fields.dart:403:      final ArrowElement e => e.label ?? '',
+lib/src/ui/panels\inspector_fields.dart:524:      final ArrowElement e => e.labelStyle,
+lib/src/ui/panels\left_shape_panel.dart:47:            e.shapeKey.toLowerCase().contains(q))
+lib/src/ui/panels\left_shape_panel.dart:112:                      selected: activeTool == ArrowTool.idValue,
+lib/src/ui/panels\left_shape_panel.dart:114:                          widget.canvasController.setTool(ArrowTool.idValue),
+lib/src/ui/panels\left_shape_panel.dart:192:                            ShapePreviewIcon(shapeKey: entry.shapeKey),
+lib/src\canvas\canvas_controller.dart:284:    if (element is ArrowElement) {
+lib/src\canvas\canvas_controller.dart:1261:  void updateLineArrowStyle(
+lib/src\canvas\canvas_controller.dart:1263:    LineArrowStyle? arrowStyle,
+lib/src\canvas\canvas_controller.dart:1264:    LineArrowMode? mode,
+lib/src\canvas\canvas_controller.dart:1265:    LineArrowType? startArrowStyle,
+lib/src\canvas\canvas_controller.dart:1266:    LineArrowType? endArrowStyle,
+lib/src\canvas\canvas_controller.dart:1267:    bool? endArrow,
+lib/src\canvas\canvas_controller.dart:1286:      startArrowStyle: startArrowStyle,
+lib/src\canvas\canvas_controller.dart:1287:      endArrowStyle:
+lib/src\canvas\canvas_controller.dart:1288:          endArrowStyle ??
+lib/src\canvas\canvas_controller.dart:1289:          (endArrow == null
+lib/src\canvas\canvas_controller.dart:1291:              : endArrow
+lib/src\canvas\canvas_controller.dart:1292:              ? LineArrowType.normal
+lib/src\canvas\canvas_controller.dart:1293:              : LineArrowType.none),
+lib/src\canvas\canvas_controller.dart:1311:  void updateLineArrowMode(
+lib/src\canvas\canvas_controller.dart:1313:    LineArrowMode mode, {
+lib/src\canvas\canvas_controller.dart:1316:    updateLineArrowStyle(id, mode: mode, record: record);
+lib/src\canvas\canvas_controller.dart:1320:  void updatePolylineArrow(
+lib/src\canvas\canvas_controller.dart:1322:    bool? endArrow,
+lib/src\canvas\canvas_controller.dart:1329:    updateLineArrowStyle(
+lib/src\canvas\canvas_controller.dart:1331:      endArrow: endArrow,
+lib/src\canvas\canvas_controller.dart:1338:  void updateCurveArrow(
+lib/src\canvas\canvas_controller.dart:1340:    bool? endArrow,
+lib/src\canvas\canvas_controller.dart:1347:    updateLineArrowStyle(
+lib/src\canvas\canvas_controller.dart:1349:      endArrow: endArrow,
+lib/src\canvas\canvas_controller.dart:1370:        element is! ArrowElement &&
+lib/src\canvas\canvas_controller.dart:1379:      final ArrowElement e => e.labelStyle,
+lib/src\canvas\canvas_controller.dart:1423:      case final ArrowElement e:
+lib/src\canvas\canvas_controller.dart:1567:        element is! ArrowElement &&
+lib/src\canvas\canvas_controller.dart:1649:    if (element is ArrowElement) {
+lib/src\canvas\canvas_controller.dart:1703:      ..registerTool(PolylineArrowTool())
+lib/src\canvas\canvas_controller.dart:1706:      ..registerTool(ShapeTool(shapeKey: 'rhombus', name: 'Rhombus'))
+lib/src\canvas\canvas_controller.dart:1707:      ..registerTool(ShapeTool(shapeKey: 'triangle', name: 'Triangle'))
+lib/src\canvas\canvas_controller.dart:1708:      ..registerTool(ShapeTool(shapeKey: 'hexagon', name: 'Hexagon'))
+lib/src\canvas\canvas_controller.dart:1710:        ShapeTool(shapeKey: 'parallelogram', name: 'Parallelogram'),
+lib/src\canvas\canvas_controller.dart:1712:      ..registerTool(ShapeTool(shapeKey: 'trapezoid', name: 'Trapezoid'))
+lib/src\canvas\canvas_controller.dart:1713:      ..registerTool(ShapeTool(shapeKey: 'cylinder', name: 'Cylinder'))
+lib/src\canvas\canvas_controller.dart:1715:        ShapeTool(shapeKey: 'doubleEllipse', name: 'Double Ellipse'),
+lib/src\canvas\canvas_controller.dart:1717:      ..registerTool(ShapeTool(shapeKey: 'actor', name: 'Actor'))
+lib/src\canvas\canvas_controller.dart:1718:      ..registerTool(ShapeTool(shapeKey: 'cloud', name: 'Cloud'))
+lib/src\canvas\canvas_controller.dart:1719:      ..registerTool(ShapeTool(shapeKey: 'swimlane', name: 'Swimlane'))
+lib/src\canvas\canvas_controller.dart:1720:      ..registerTool(ShapeTool(shapeKey: 'document', name: 'Document'))
+lib/src\canvas\canvas_controller.dart:1721:      ..registerTool(ShapeTool(shapeKey: 'note', name: 'Note'))
+lib/src\canvas\canvas_controller.dart:1722:      ..registerTool(ShapeTool(shapeKey: 'callout', name: 'Callout'))
+lib/src\canvas\canvas_controller.dart:1723:      ..registerTool(ShapeTool(shapeKey: 'plus', name: 'Plus'))
+lib/src\canvas\canvas_controller.dart:1724:      ..registerTool(ShapeTool(shapeKey: 'cross', name: 'Cross'))
+lib/src\canvas\canvas_controller.dart:1725:      ..registerTool(ShapeTool(shapeKey: 'step', name: 'Step'))
+lib/src\canvas\canvas_controller.dart:1726:      ..registerTool(ShapeTool(shapeKey: 'cube', name: 'Cube'))
+lib/src\canvas\canvas_controller.dart:1727:      ..registerTool(ArrowTool())
+lib/src\layers\auto_layering.dart:95:    if (element is LineElement || element is ArrowElement) {
+lib/src\ui\widgets\spectrum_icon.dart:10:    return CustomPaint(size: Size.square(size), painter: SpectrumPainter());
+lib/src\ui\widgets\spectrum_icon.dart:14:class SpectrumPainter extends CustomPainter {
+lib/src\ui\widgets\spectrum_icon.dart:55:  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+lib/src\drawio\drawio_shape_adapter.dart:39:    final shapeKey = _shapeKey(style);
+lib/src\drawio\drawio_shape_adapter.dart:55:      shapeKey: shapeKey,
+lib/src\drawio\drawio_shape_adapter.dart:80:  static String _shapeKey(DrawioStyle style) {
+lib/src\mindmap\mindmap_connection_layer.dart:114:            child: CustomPaint(
+lib/src\mindmap\mindmap_connection_layer.dart:1018:              child: CustomPaint(
+lib/src\mindmap\mindmap_connection_layer.dart:1131:        child: CustomPaint(
+lib/src\mindmap\mindmap_connection_layer.dart:1143:class _DashedBoxPainter extends CustomPainter {
+lib/src\mindmap\mindmap_connection_layer.dart:1184:class _PreviewLinePainter extends CustomPainter {
+lib/src\elements\arrow_element.dart:14:class ArrowElement extends CanvasElement {
+lib/src\elements\arrow_element.dart:15:  const ArrowElement({
+lib/src\elements\arrow_element.dart:89:  ArrowElement copyWith({
+lib/src\elements\arrow_element.dart:108:    return ArrowElement(
+lib/src\elements\arrow_element.dart:138:  ArrowElement translate(Offset delta) {
+lib/src\elements\arrow_element.dart:143:  ArrowElement scaleElement(double factor, {Offset? pivot}) {
+lib/src\elements\arrow_element.dart:185:class ArrowElementRenderer extends ElementRenderer<ArrowElement> {
+lib/src\elements\arrow_element.dart:186:  const ArrowElementRenderer();
+lib/src\elements\arrow_element.dart:189:  void render(Canvas canvas, ArrowElement element) {
+lib/src\elements\arrow_element.dart:247:  bool hitTest(ArrowElement element, Offset worldPoint, double tolerance) {
+lib/src\ui\widgets\shape_preview_icon.dart:4:class ShapePreviewIcon extends StatelessWidget {
+lib/src\ui\widgets\shape_preview_icon.dart:5:  const ShapePreviewIcon({required this.shapeKey});
+lib/src\ui\widgets\shape_preview_icon.dart:7:  final String shapeKey;
+lib/src\ui\widgets\shape_preview_icon.dart:11:    return CustomPaint(
+lib/src\ui\widgets\shape_preview_icon.dart:13:      painter: ShapePreviewPainter(shapeKey),
+lib/src\ui\widgets\shape_preview_icon.dart:18:class ShapePreviewPainter extends CustomPainter {
+lib/src\ui\widgets\shape_preview_icon.dart:19:  const ShapePreviewPainter(this.shapeKey);
+lib/src\ui\widgets\shape_preview_icon.dart:21:  final String shapeKey;
+lib/src\ui\widgets\shape_preview_icon.dart:29:      shapeKey: shapeKey,
+lib/src\ui\widgets\shape_preview_icon.dart:38:  bool shouldRepaint(covariant ShapePreviewPainter oldDelegate) {
+
+ exited 1 in 381ms:
+---PALETTE UI---
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+
+import '../theme/ui_colors.dart';
+import '../widgets/search_box.dart';
+import '../widgets/shape_preview_icon.dart';
+import '../widgets/shape_tile.dart';
+import 'panel_section.dart';
+import 'palette_subhead.dart';
+import 'shape_palette_data.dart';
+import 'shape_palette_group.dart';
+
+class LeftShapePanel extends StatefulWidget {
+  const LeftShapePanel({
+    required this.canvasController,
+    required this.onAddStickyNote,
+  });
+
+  final CanvasController canvasController;
+  final VoidCallback onAddStickyNote;
+
+  @override
+  State<LeftShapePanel> createState() => _LeftShapePanelState();
+}
+
+class _LeftShapePanelState extends State<LeftShapePanel> {
+  String _searchQuery = '';
+  bool _basicToolsExpanded = true;
+
+  List<DrawioShapePaletteEntry> get _allStencilEntries {
+    return [
+      ...basicSymbolShapePalette,
+      ...flowchartShapePalette,
+      ...arrowShapePalette,
+      ...drawioShapePalette,
+    ];
+  }
+
+  List<DrawioShapePaletteEntry> get _filteredEntries {
+    if (_searchQuery.isEmpty) return const [];
+    final q = _searchQuery.toLowerCase();
+    return _allStencilEntries
+        .where((e) =>
+            e.label.toLowerCase().contains(q) ||
+            e.shapeKey.toLowerCase().contains(q))
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final activeTool = widget.canvasController.currentTool?.id;
+    return Container(
+      width: 244,
+      color: UiColors.panel,
+      child: SingleChildScrollView(
+        child: PanelSection(
+          title: '图形',
+          actionLabel: '管理',
+          children: [
+            SearchBox(
+              onChanged: (value) => setState(() => _searchQuery = value),
+            ),
+            if (_searchQuery.isEmpty) ...[
+              PaletteSubhead(
+                '基本工具',
+                onTap: () => setState(
+                    () => _basicToolsExpanded = !_basicToolsExpanded),
+                isExpanded: _basicToolsExpanded,
+              ),
+              AnimatedCrossFade(
+                duration: const Duration(milliseconds: 200),
+                crossFadeState: _basicToolsExpanded
+                    ? CrossFadeState.showFirst
+                    : CrossFadeState.showSecond,
+                firstChild: GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  childAspectRatio: 1.35,
+                  children: [
+                    ShapeTile(
+                      label: '矩形',
+                      icon: Icons.crop_square,
+                      selected: activeTool == RectTool.idValue,
+                      onPressed: () =>
+                          widget.canvasController.setTool(RectTool.idValue),
+                    ),
+                    ShapeTile(
+                      label: '圆形',
+                      icon: Icons.circle_outlined,
+                      selected: activeTool == EllipseTool.idValue,
+                      onPressed: () =>
+                          widget.canvasController.setTool(EllipseTool.idValue),
+                    ),
+                    ShapeTile(
+                      label: '菱形',
+                      iconWidget: Transform.rotate(
+                        angle: math.pi / 4,
+                        child: const Icon(Icons.crop_square, size: 32),
+                      ),
+                      selected: activeTool == ShapeTool.idFor('rhombus'),
+                      onPressed: () => widget.canvasController
+                          .setTool(ShapeTool.idFor('rhombus')),
+                    ),
+                    ShapeTile(
+                      label: '箭头',
+                      icon: Icons.arrow_forward,
+                      selected: activeTool == ArrowTool.idValue,
+                      onPressed: () =>
+                          widget.canvasController.setTool(ArrowTool.idValue),
+                    ),
+                    ShapeTile(
+                      label: '便签',
+                      icon: Icons.sticky_note_2_outlined,
+                      selected: false,
+                      onPressed: widget.onAddStickyNote,
+                    ),
+                    ShapeTile(
+                      label: '文本',
+                      icon: Icons.text_fields,
+                      selected: activeTool == TextTool.idValue,
+                      onPressed: () =>
+                          widget.canvasController.setTool(TextTool.idValue),
+                    ),
+                  ],
+                ),
+                secondChild: const SizedBox(width: double.infinity),
+              ),
+              ShapePaletteGroup(
+                title: '基本形状',
+                entries: drawioShapePalette
+                    .where((entry) => entry.group == 'basic')
+                    .toList(growable: false),
+                activeTool: activeTool,
+                onSelect: widget.canvasController.setTool,
+              ),
+              ShapePaletteGroup(
+                title: '基本符号',
+                entries: basicSymbolShapePalette,
+                activeTool: activeTool,
+                onSelect: widget.canvasController.setTool,
+              ),
+              ShapePaletteGroup(
+                title: '流程图',
+                entries: flowchartShapePalette,
+                activeTool: activeTool,
+                onSelect: widget.canvasController.setTool,
+              ),
+              ShapePaletteGroup(
+                title: '箭头',
+                entries: arrowShapePalette,
+                activeTool: activeTool,
+                onSelect: widget.canvasController.setTool,
+              ),
+              ShapePaletteGroup(
+                title: '容器',
+                entries: drawioShapePalette
+                    .where((entry) => entry.group == 'container')
+                    .toList(growable: false),
+                activeTool: activeTool,
+                onSelect: widget.canvasController.setTool,
+              ),
+            ] else ...[
+              PaletteSubhead('搜索结果 (${_filteredEntries.length})'),
+              if (_filteredEntries.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text(
+                      '未找到匹配的图形',
+                      style: TextStyle(color: UiColors.muted, fontSize: 13),
+                    ),
+                  ),
+                )
+              else
+                GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  childAspectRatio: 1.35,
+                  children: [
+                    for (final entry in _filteredEntries)
+                      ShapeTile(
+                        label: entry.label,
+                        iconWidget:
+                            ShapePreviewIcon(shapeKey: entry.shapeKey),
+                        selected: activeTool == entry.toolId,
+                        onPressed: () =>
+                            widget.canvasController.setTool(entry.toolId),
+                      ),
+                  ],
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+---SHAPE PALETTE FILES---
+lib/src/ui/widgets\spectrum_icon.dart:10:    return CustomPaint(size: Size.square(size), painter: SpectrumPainter());
+lib/src/ui/widgets\spectrum_icon.dart:14:class SpectrumPainter extends CustomPainter {
+lib/src/ui/widgets\spectrum_icon.dart:55:  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+lib/src/ui/widgets\shape_preview_icon.dart:4:class ShapePreviewIcon extends StatelessWidget {
+lib/src/ui/widgets\shape_preview_icon.dart:5:  const ShapePreviewIcon({required this.shapeKey});
+lib/src/ui/widgets\shape_preview_icon.dart:7:  final String shapeKey;
+lib/src/ui/widgets\shape_preview_icon.dart:11:    return CustomPaint(
+lib/src/ui/widgets\shape_preview_icon.dart:13:      painter: ShapePreviewPainter(shapeKey),
+lib/src/ui/widgets\shape_preview_icon.dart:18:class ShapePreviewPainter extends CustomPainter {
+lib/src/ui/widgets\shape_preview_icon.dart:19:  const ShapePreviewPainter(this.shapeKey);
+lib/src/ui/widgets\shape_preview_icon.dart:21:  final String shapeKey;
+lib/src/ui/widgets\shape_preview_icon.dart:29:      shapeKey: shapeKey,
+lib/src/ui/widgets\shape_preview_icon.dart:38:  bool shouldRepaint(covariant ShapePreviewPainter oldDelegate) {
+lib/src/ui/widgets\shape_preview_icon.dart:39:    return oldDelegate.shapeKey != shapeKey;
+lib/src/ui/panels\shape_palette_group.dart:54:                  iconWidget: ShapePreviewIcon(shapeKey: entry.shapeKey),
+lib/src\widgets\canvas_widget_layer.dart:89:          child: CustomPaint(
+lib/src\widgets\canvas_widget_layer.dart:153:            child: CustomPaint(
+lib/src\widgets\canvas_widget_layer.dart:167:          child: CustomPaint(
+lib/src\widgets\canvas_widget_layer.dart:372:            child: CustomPaint(
+lib/src\widgets\canvas_widget_layer.dart:657:class _CanvasBackgroundPainter extends CustomPainter {
+lib/src\widgets\canvas_widget_layer.dart:678:class _CanvasElementSegmentPainter extends CustomPainter {
+lib/src\widgets\canvas_widget_layer.dart:731:class _CanvasSelectionPainter extends CustomPainter {
+lib/src/ui/widgets\rgb_spectrum_picker.dart:32:            child: CustomPaint(
+lib/src/ui/widgets\rgb_spectrum_picker.dart:48:            child: CustomPaint(
+lib/src/ui/panels\shape_palette_data.dart:6:    required this.shapeKey,
+lib/src/ui/panels\shape_palette_data.dart:11:  final String shapeKey;
+lib/src/ui/panels\shape_palette_data.dart:14:  String get toolId => ShapeTool.idFor(shapeKey);
+lib/src/ui/panels\shape_palette_data.dart:21:      shapeKey: key,
+lib/src/ui/panels\shape_palette_data.dart:30:      shapeKey: key,
+lib/src/ui/panels\shape_palette_data.dart:36:  for (final key in ArrowStencils.keys)
+lib/src/ui/panels\shape_palette_data.dart:38:      label: ArrowStencils.labels[key] ?? key,
+lib/src/ui/panels\shape_palette_data.dart:39:      shapeKey: key,
+lib/src/ui/panels\shape_palette_data.dart:45:  DrawioShapePaletteEntry(label: '菱形', shapeKey: 'rhombus', group: 'basic'),
+lib/src/ui/panels\shape_palette_data.dart:46:  DrawioShapePaletteEntry(label: '三角形', shapeKey: 'triangle', group: 'basic'),
+lib/src/ui/panels\shape_palette_data.dart:47:  DrawioShapePaletteEntry(label: '六边形', shapeKey: 'hexagon', group: 'basic'),
+lib/src/ui/panels\shape_palette_data.dart:48:  DrawioShapePaletteEntry(label: '加号', shapeKey: 'plus', group: 'basic'),
+lib/src/ui/panels\shape_palette_data.dart:49:  DrawioShapePaletteEntry(label: '交叉', shapeKey: 'cross', group: 'basic'),
+lib/src/ui/panels\shape_palette_data.dart:52:    shapeKey: 'parallelogram',
+lib/src/ui/panels\shape_palette_data.dart:57:    shapeKey: 'trapezoid',
+lib/src/ui/panels\shape_palette_data.dart:62:    shapeKey: 'document',
+lib/src/ui/panels\shape_palette_data.dart:65:  DrawioShapePaletteEntry(label: '步骤', shapeKey: 'step', group: 'flowchart'),
+lib/src/ui/panels\shape_palette_data.dart:68:    shapeKey: 'cylinder',
+lib/src/ui/panels\shape_palette_data.dart:73:    shapeKey: 'swimlane',
+lib/src/ui/panels\shape_palette_data.dart:76:  DrawioShapePaletteEntry(label: '便签形', shapeKey: 'note', group: 'container'),
+lib/src/ui/panels\shape_palette_data.dart:79:    shapeKey: 'callout',
+lib/src/ui/panels\shape_palette_data.dart:84:    shapeKey: 'doubleEllipse',
+lib/src/ui/panels\shape_palette_data.dart:89:    shapeKey: 'actor',
+lib/src/ui/panels\shape_palette_data.dart:92:  DrawioShapePaletteEntry(label: '云', shapeKey: 'cloud', group: 'container'),
+lib/src/ui/panels\shape_palette_data.dart:93:  DrawioShapePaletteEntry(label: '立方体', shapeKey: 'cube', group: 'container'),
+lib/src\rendering\selection_renderer.dart:94:        final ArrowElement e => [e.start, e.end],
+lib/src/ui/panels\right_inspector_panel.dart:32:        final selectedArrowStyle = lineArrowStyleOf(selected);
+lib/src/ui/panels\right_inspector_panel.dart:97:                if (selectedArrowStyle != null)
+lib/src/ui/panels\right_inspector_panel.dart:101:                      LineArrowModeControl(
+lib/src/ui/panels\right_inspector_panel.dart:102:                        value: selectedArrowStyle.mode,
+lib/src/ui/panels\right_inspector_panel.dart:104:                            .updateLineArrowMode(selected!.id, mode),
+lib/src/ui/widgets\color_picker_painters.dart:3:class RgbSpectrumPainter extends CustomPainter {
+lib/src/ui/widgets\color_picker_painters.dart:41:class SpectrumThumbPainter extends CustomPainter {
+lib/src/ui/widgets\color_picker_painters.dart:74:class HueBarPainter extends CustomPainter {
+lib/src/ui/widgets\color_picker_painters.dart:106:class HueThumbPainter extends CustomPainter {
+lib/src/ui/panels\inspector_utils.dart:12:LineArrowStyle? lineArrowStyleOf(CanvasElement? element) {
+lib/src/ui/panels\inspector_utils.dart:111:    final ArrowElement e => e.labelStyle.color,
+lib/src/ui/panels\inspector_fields.dart:6:class LineArrowModeControl extends StatelessWidget {
+lib/src/ui/panels\inspector_fields.dart:7:  const LineArrowModeControl({
+lib/src/ui/panels\inspector_fields.dart:13:  final LineArrowMode value;
+lib/src/ui/panels\inspector_fields.dart:14:  final ValueChanged<LineArrowMode>? onChanged;
+lib/src/ui/panels\inspector_fields.dart:16:  static const _options = <(LineArrowMode, IconData, String)>[
+lib/src/ui/panels\inspector_fields.dart:17:    (LineArrowMode.none, Icons.horizontal_rule, '\u65e0\u7bad\u5934'),
+lib/src/ui/panels\inspector_fields.dart:18:    (LineArrowMode.single, Icons.arrow_right_alt, '\u5355\u5411\u7bad\u5934'),
+lib/src/ui/panels\inspector_fields.dart:19:    (LineArrowMode.both, Icons.compare_arrows, '\u53cc\u5411\u7bad\u5934'),
+lib/src/ui/panels\inspector_fields.dart:36:              child: _LineArrowModeOption(
+lib/src/ui/panels\inspector_fields.dart:50:class _LineArrowModeOption extends StatelessWidget {
+lib/src/ui/panels\inspector_fields.dart:51:  const _LineArrowModeOption({
+lib/src/ui/panels\inspector_fields.dart:59:  final LineArrowMode mode;
+lib/src/ui/panels\inspector_fields.dart:403:      final ArrowElement e => e.label ?? '',
+lib/src/ui/panels\inspector_fields.dart:524:      final ArrowElement e => e.labelStyle,
+lib/src/ui/panels\left_shape_panel.dart:47:            e.shapeKey.toLowerCase().contains(q))
+lib/src/ui/panels\left_shape_panel.dart:112:                      selected: activeTool == ArrowTool.idValue,
+lib/src/ui/panels\left_shape_panel.dart:114:                          widget.canvasController.setTool(ArrowTool.idValue),
+lib/src/ui/panels\left_shape_panel.dart:192:                            ShapePreviewIcon(shapeKey: entry.shapeKey),
+lib/src\canvas\canvas_controller.dart:284:    if (element is ArrowElement) {
+lib/src\canvas\canvas_controller.dart:1261:  void updateLineArrowStyle(
+lib/src\canvas\canvas_controller.dart:1263:    LineArrowStyle? arrowStyle,
+lib/src\canvas\canvas_controller.dart:1264:    LineArrowMode? mode,
+lib/src\canvas\canvas_controller.dart:1265:    LineArrowType? startArrowStyle,
+lib/src\canvas\canvas_controller.dart:1266:    LineArrowType? endArrowStyle,
+lib/src\canvas\canvas_controller.dart:1267:    bool? endArrow,
+lib/src\canvas\canvas_controller.dart:1286:      startArrowStyle: startArrowStyle,
+lib/src\canvas\canvas_controller.dart:1287:      endArrowStyle:
+lib/src\canvas\canvas_controller.dart:1288:          endArrowStyle ??
+lib/src\canvas\canvas_controller.dart:1289:          (endArrow == null
+lib/src\canvas\canvas_controller.dart:1291:              : endArrow
+lib/src\canvas\canvas_controller.dart:1292:              ? LineArrowType.normal
+lib/src\canvas\canvas_controller.dart:1293:              : LineArrowType.none),
+lib/src\canvas\canvas_controller.dart:1311:  void updateLineArrowMode(
+lib/src\canvas\canvas_controller.dart:1313:    LineArrowMode mode, {
+lib/src\canvas\canvas_controller.dart:1316:    updateLineArrowStyle(id, mode: mode, record: record);
+lib/src\canvas\canvas_controller.dart:1320:  void updatePolylineArrow(
+lib/src\canvas\canvas_controller.dart:1322:    bool? endArrow,
+lib/src\canvas\canvas_controller.dart:1329:    updateLineArrowStyle(
+lib/src\canvas\canvas_controller.dart:1331:      endArrow: endArrow,
+lib/src\canvas\canvas_controller.dart:1338:  void updateCurveArrow(
+lib/src\canvas\canvas_controller.dart:1340:    bool? endArrow,
+lib/src\canvas\canvas_controller.dart:1347:    updateLineArrowStyle(
+lib/src\canvas\canvas_controller.dart:1349:      endArrow: endArrow,
+lib/src\canvas\canvas_controller.dart:1370:        element is! ArrowElement &&
+lib/src\canvas\canvas_controller.dart:1379:      final ArrowElement e => e.labelStyle,
+lib/src\canvas\canvas_controller.dart:1423:      case final ArrowElement e:
+lib/src\canvas\canvas_controller.dart:1567:        element is! ArrowElement &&
+lib/src\canvas\canvas_controller.dart:1649:    if (element is ArrowElement) {
+lib/src\canvas\canvas_controller.dart:1703:      ..registerTool(PolylineArrowTool())
+lib/src\canvas\canvas_controller.dart:1706:      ..registerTool(ShapeTool(shapeKey: 'rhombus', name: 'Rhombus'))
+lib/src\canvas\canvas_controller.dart:1707:      ..registerTool(ShapeTool(shapeKey: 'triangle', name: 'Triangle'))
+lib/src\canvas\canvas_controller.dart:1708:      ..registerTool(ShapeTool(shapeKey: 'hexagon', name: 'Hexagon'))
+lib/src\canvas\canvas_controller.dart:1710:        ShapeTool(shapeKey: 'parallelogram', name: 'Parallelogram'),
+lib/src\canvas\canvas_controller.dart:1712:      ..registerTool(ShapeTool(shapeKey: 'trapezoid', name: 'Trapezoid'))
+lib/src\canvas\canvas_controller.dart:1713:      ..registerTool(ShapeTool(shapeKey: 'cylinder', name: 'Cylinder'))
+lib/src\canvas\canvas_controller.dart:1715:        ShapeTool(shapeKey: 'doubleEllipse', name: 'Double Ellipse'),
+lib/src\canvas\canvas_controller.dart:1717:      ..registerTool(ShapeTool(shapeKey: 'actor', name: 'Actor'))
+lib/src\canvas\canvas_controller.dart:1718:      ..registerTool(ShapeTool(shapeKey: 'cloud', name: 'Cloud'))
+lib/src\canvas\canvas_controller.dart:1719:      ..registerTool(ShapeTool(shapeKey: 'swimlane', name: 'Swimlane'))
+lib/src\canvas\canvas_controller.dart:1720:      ..registerTool(ShapeTool(shapeKey: 'document', name: 'Document'))
+lib/src\canvas\canvas_controller.dart:1721:      ..registerTool(ShapeTool(shapeKey: 'note', name: 'Note'))
+lib/src\canvas\canvas_controller.dart:1722:      ..registerTool(ShapeTool(shapeKey: 'callout', name: 'Callout'))
+lib/src\canvas\canvas_controller.dart:1723:      ..registerTool(ShapeTool(shapeKey: 'plus', name: 'Plus'))
+lib/src\canvas\canvas_controller.dart:1724:      ..registerTool(ShapeTool(shapeKey: 'cross', name: 'Cross'))
+lib/src\canvas\canvas_controller.dart:1725:      ..registerTool(ShapeTool(shapeKey: 'step', name: 'Step'))
+lib/src\canvas\canvas_controller.dart:1726:      ..registerTool(ShapeTool(shapeKey: 'cube', name: 'Cube'))
+lib/src\canvas\canvas_controller.dart:1727:      ..registerTool(ArrowTool())
+lib/src\layers\auto_layering.dart:95:    if (element is LineElement || element is ArrowElement) {
+lib/src\ui\widgets\spectrum_icon.dart:10:    return CustomPaint(size: Size.square(size), painter: SpectrumPainter());
+lib/src\ui\widgets\spectrum_icon.dart:14:class SpectrumPainter extends CustomPainter {
+lib/src\ui\widgets\spectrum_icon.dart:55:  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+lib/src\drawio\drawio_shape_adapter.dart:39:    final shapeKey = _shapeKey(style);
+lib/src\drawio\drawio_shape_adapter.dart:55:      shapeKey: shapeKey,
+lib/src\drawio\drawio_shape_adapter.dart:80:  static String _shapeKey(DrawioStyle style) {
+lib/src\mindmap\mindmap_connection_layer.dart:114:            child: CustomPaint(
+lib/src\mindmap\mindmap_connection_layer.dart:1018:              child: CustomPaint(
+lib/src\mindmap\mindmap_connection_layer.dart:1131:        child: CustomPaint(
+lib/src\mindmap\mindmap_connection_layer.dart:1143:class _DashedBoxPainter extends CustomPainter {
+lib/src\mindmap\mindmap_connection_layer.dart:1184:class _PreviewLinePainter extends CustomPainter {
+lib/src\elements\arrow_element.dart:14:class ArrowElement extends CanvasElement {
+lib/src\elements\arrow_element.dart:15:  const ArrowElement({
+lib/src\elements\arrow_element.dart:89:  ArrowElement copyWith({
+lib/src\elements\arrow_element.dart:108:    return ArrowElement(
+lib/src\elements\arrow_element.dart:138:  ArrowElement translate(Offset delta) {
+lib/src\elements\arrow_element.dart:143:  ArrowElement scaleElement(double factor, {Offset? pivot}) {
+lib/src\elements\arrow_element.dart:185:class ArrowElementRenderer extends ElementRenderer<ArrowElement> {
+lib/src\elements\arrow_element.dart:186:  const ArrowElementRenderer();
+lib/src\elements\arrow_element.dart:189:  void render(Canvas canvas, ArrowElement element) {
+lib/src\elements\arrow_element.dart:247:  bool hitTest(ArrowElement element, Offset worldPoint, double tolerance) {
+lib/src\ui\widgets\shape_preview_icon.dart:4:class ShapePreviewIcon extends StatelessWidget {
+lib/src\ui\widgets\shape_preview_icon.dart:5:  const ShapePreviewIcon({required this.shapeKey});
+lib/src\ui\widgets\shape_preview_icon.dart:7:  final String shapeKey;
+lib/src\ui\widgets\shape_preview_icon.dart:11:    return CustomPaint(
+lib/src\ui\widgets\shape_preview_icon.dart:13:      painter: ShapePreviewPainter(shapeKey),
+lib/src\ui\widgets\shape_preview_icon.dart:18:class ShapePreviewPainter extends CustomPainter {
+lib/src\ui\widgets\shape_preview_icon.dart:19:  const ShapePreviewPainter(this.shapeKey);
+lib/src\ui\widgets\shape_preview_icon.dart:21:  final String shapeKey;
+lib/src\ui\widgets\shape_preview_icon.dart:29:      shapeKey: shapeKey,
+lib/src\ui\widgets\shape_preview_icon.dart:38:  bool shouldRepaint(covariant ShapePreviewPainter oldDelegate) {
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'lib\\src\\ui\\widgets\\shape_preview_icon.dart' -Encoding UTF8; Write-Output '---TOOL MANAGER---'; Get-Content -LiteralPath 'lib\\src\\tools\\tool_manager.dart' -Encoding UTF8; Write-Output '---SHAPE TOOL---'; Get-Content -LiteralPath 'lib\\src\\tools\\shape_tool.dart' -Encoding UTF8; Write-Output '---CONTROLLER REGISTRATION AROUND TOOLS---'; "'$lines = Get-Content -LiteralPath '"'lib\\src\\canvas\\canvas_controller.dart' -Encoding UTF8; "'$lines[1688..1740]' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 327ms:
+import 'package:flutter/material.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+
+class ShapePreviewIcon extends StatelessWidget {
+  const ShapePreviewIcon({required this.shapeKey});
+
+  final String shapeKey;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: const Size(42, 30),
+      painter: ShapePreviewPainter(shapeKey),
+    );
+  }
+}
+
+class ShapePreviewPainter extends CustomPainter {
+  const ShapePreviewPainter(this.shapeKey);
+
+  final String shapeKey;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    ensureDrawioShapeDefinitionsRegistered();
+    final rect = Rect.fromLTWH(2, 2, size.width - 4, size.height - 4);
+    final element = DrawioShapeElement(
+      id: 'preview',
+      shapeKey: shapeKey,
+      rect: rect,
+      strokeStyle: const PaintStyle(color: Color(0xFF425264), strokeWidth: 1.6),
+      fillStyle: const PaintStyle(color: Color(0xFFFFFFFF), strokeWidth: 0),
+    );
+    ElementRendererRegistry.render(canvas, element);
+  }
+
+  @override
+  bool shouldRepaint(covariant ShapePreviewPainter oldDelegate) {
+    return oldDelegate.shapeKey != shapeKey;
+  }
+}
+---TOOL MANAGER---
+import 'package:flutter/foundation.dart';
+
+import '../canvas/canvas_controller.dart';
+import '../infinite_canvas/canvas_event.dart';
+import 'brush_settings.dart';
+import 'canvas_tool.dart';
+import 'shape_tool.dart';
+
+class ToolManager extends ChangeNotifier {
+  final Map<String, CanvasTool> _tools = {};
+  CanvasTool? _activeTool;
+  BrushSettings _brushSettings = const BrushSettings();
+
+  void registerTool(CanvasTool tool) {
+    _tools[tool.id] = tool;
+    _activeTool ??= tool;
+    notifyListeners();
+  }
+
+  void setActiveTool(String toolId, CanvasController controller) {
+    var next = _tools[toolId];
+
+    // Dynamically create ShapeTool for unregistered `shape:` toolIds.
+    // This supports stencil-library shapes (flowchart, basic, arrows, etc.)
+    // without requiring every shape key to be pre-registered.
+    if (next == null && toolId.startsWith(ShapeTool.idPrefix)) {
+      final shapeKey = toolId.substring(ShapeTool.idPrefix.length);
+      final tool = ShapeTool(shapeKey: shapeKey, name: shapeKey);
+      registerTool(tool);
+      next = tool;
+    }
+
+    if (next == null || identical(next, _activeTool)) {
+      return;
+    }
+    _activeTool?.onDeactivate(controller);
+    _activeTool = next;
+    _activeTool?.onActivate(controller);
+    notifyListeners();
+  }
+
+  CanvasTool? get activeTool => _activeTool;
+
+  List<CanvasTool> get tools => List<CanvasTool>.unmodifiable(_tools.values);
+
+  ToolResult dispatch(CanvasEvent event, CanvasController controller) {
+    return _activeTool?.handleEvent(event, controller) ??
+        const ToolResultNone();
+  }
+
+  void cancelActiveTool(CanvasController controller) {
+    _activeTool?.cancel(controller);
+  }
+
+  BrushSettings get brushSettings => _brushSettings;
+
+  void updateBrushSettings(BrushSettings settings) {
+    _brushSettings = settings;
+    notifyListeners();
+  }
+}
+---SHAPE TOOL---
+import 'package:flutter/material.dart';
+
+import '../canvas/canvas_controller.dart';
+import '../elements/drawio_shape_element.dart';
+import '../infinite_canvas/canvas_event.dart';
+import '../utils/math_utils.dart';
+import '../utils/uuid_generator.dart';
+import 'canvas_tool.dart';
+
+class ShapeTool extends CanvasTool {
+  ShapeTool({
+    required this.shapeKey,
+    String? id,
+    String? name,
+    IconData? icon,
+    this.defaultProperties = const <String, dynamic>{},
+  }) : _id = id ?? idFor(shapeKey),
+       _name = name ?? shapeKey,
+       _icon = icon ?? Icons.category_outlined;
+
+  static const idPrefix = 'shape:';
+
+  static String idFor(String shapeKey) => '$idPrefix$shapeKey';
+
+  final String shapeKey;
+  final Map<String, dynamic> defaultProperties;
+  final String _id;
+  final String _name;
+  final IconData _icon;
+
+  Offset? _start;
+  Offset? _current;
+
+  @override
+  String get id => _id;
+
+  @override
+  String get name => _name;
+
+  @override
+  IconData get icon => _icon;
+
+  @override
+  void cancel(CanvasController controller) {
+    _start = null;
+    _current = null;
+  }
+
+  @override
+  ToolResult handleEvent(CanvasEvent event, CanvasController controller) {
+    switch (event) {
+      case CanvasPointerDownEvent():
+        _start = event.worldPoint;
+        _current = event.worldPoint;
+        return ToolResultPreview(_buildPreview(controller));
+      case CanvasPointerMoveEvent():
+        if (_start == null) {
+          return const ToolResultNone();
+        }
+        _current = event.worldPoint;
+        return ToolResultPreview(_buildPreview(controller));
+      case CanvasPointerUpEvent():
+        final start = _start;
+        final end = event.worldPoint;
+        _start = null;
+        _current = null;
+        if (start == null || (start - end).distance < 1) {
+          return const ToolResultNone();
+        }
+        return ToolResultElement(
+          _buildElement(controller, UuidGenerator.create(), start, end),
+        );
+      default:
+        return const ToolResultNone();
+    }
+  }
+
+  DrawioShapeElement _buildPreview(CanvasController controller) {
+    final start = _start ?? Offset.zero;
+    return _buildElement(
+      controller,
+      '__preview_${shapeKey}_shape__',
+      start,
+      _current ?? start,
+      preview: true,
+    );
+  }
+
+  DrawioShapeElement _buildElement(
+    CanvasController controller,
+    String id,
+    Offset start,
+    Offset end, {
+    bool preview = false,
+  }) {
+    final strokeStyle = controller.brushSettings.strokeStyle;
+    return DrawioShapeElement(
+      id: id,
+      shapeKey: shapeKey,
+      rect: normalizedRectFromPoints(start, end),
+      strokeStyle: preview
+          ? strokeStyle.copyWith(opacity: strokeStyle.opacity * 0.72)
+          : strokeStyle,
+      fillStyle: controller.brushSettings.fillStyle,
+      properties: Map<String, dynamic>.unmodifiable(defaultProperties),
+    );
+  }
+}
+---CONTROLLER REGISTRATION AROUND TOOLS---
+  }
+
+  void _registerBuiltInTools() {
+    if (toolManager.tools.isNotEmpty) {
+      return;
+    }
+
+    toolManager
+      ..registerTool(SelectTool())
+      ..registerTool(PenTool())
+      ..registerTool(HighlighterTool())
+      ..registerTool(LineTool())
+      ..registerTool(CurveTool())
+      ..registerTool(PolylineTool())
+      ..registerTool(PolylineArrowTool())
+      ..registerTool(RectTool())
+      ..registerTool(EllipseTool())
+      ..registerTool(ShapeTool(shapeKey: 'rhombus', name: 'Rhombus'))
+      ..registerTool(ShapeTool(shapeKey: 'triangle', name: 'Triangle'))
+      ..registerTool(ShapeTool(shapeKey: 'hexagon', name: 'Hexagon'))
+      ..registerTool(
+        ShapeTool(shapeKey: 'parallelogram', name: 'Parallelogram'),
+      )
+      ..registerTool(ShapeTool(shapeKey: 'trapezoid', name: 'Trapezoid'))
+      ..registerTool(ShapeTool(shapeKey: 'cylinder', name: 'Cylinder'))
+      ..registerTool(
+        ShapeTool(shapeKey: 'doubleEllipse', name: 'Double Ellipse'),
+      )
+      ..registerTool(ShapeTool(shapeKey: 'actor', name: 'Actor'))
+      ..registerTool(ShapeTool(shapeKey: 'cloud', name: 'Cloud'))
+      ..registerTool(ShapeTool(shapeKey: 'swimlane', name: 'Swimlane'))
+      ..registerTool(ShapeTool(shapeKey: 'document', name: 'Document'))
+      ..registerTool(ShapeTool(shapeKey: 'note', name: 'Note'))
+      ..registerTool(ShapeTool(shapeKey: 'callout', name: 'Callout'))
+      ..registerTool(ShapeTool(shapeKey: 'plus', name: 'Plus'))
+      ..registerTool(ShapeTool(shapeKey: 'cross', name: 'Cross'))
+      ..registerTool(ShapeTool(shapeKey: 'step', name: 'Step'))
+      ..registerTool(ShapeTool(shapeKey: 'cube', name: 'Cube'))
+      ..registerTool(ArrowTool())
+      ..registerTool(const TextTool())
+      ..registerTool(EraserTool())
+      ..registerTool(const PanTool());
+  }
+
+  CanvasElement _prepareElementForInsert(
+    CanvasElement element, {
+    bool bringToFront = false,
+  }) {
+    final prepared = _autoLayeringResolver.resolve(
+      element: element,
+      existingElements: elements,
+      activeLayerId: activeLayerId,
+      layerExists: (layerId) => layerManager.layerById(layerId) != null,
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'lib\\src\\ui\\toolbar\\toolbar_divider.dart' -Encoding UTF8; Write-Output '---TOOLBAR TEST EXPECTATIONS---'; rg -n \"Toolbar|图形|直线|折线|曲线|特殊组件创建|760|SingleChildScrollView|find\\.byTooltip\" test/toolbar_test.dart test -g '*.dart' | Select-Object -First 240" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 326ms:
+import 'package:flutter/material.dart';
+
+import '../theme/ui_colors.dart';
+
+class ToolbarDivider extends StatelessWidget {
+  const ToolbarDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 18,
+      margin: const EdgeInsets.symmetric(horizontal: 5),
+      color: UiColors.line,
+    );
+  }
+}
+---TOOLBAR TEST EXPECTATIONS---
+test/toolbar_test.dart:7:  group('Toolbar component insert menu', () {
+test/toolbar_test.dart:11:      await _pumpToolbar(tester);
+test/toolbar_test.dart:15:      await tester.tap(find.byTooltip('特殊组件创建'));
+test/toolbar_test.dart:48:      final harness = await _pumpToolbar(tester);
+test/toolbar_test.dart:50:      await tester.tap(find.byTooltip('曲线'));
+test/toolbar_test.dart:56:      await tester.tap(find.byTooltip('特殊组件创建'));
+test/toolbar_test.dart:69:Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
+test/toolbar_test.dart:70:  final harness = _ToolbarHarness();
+test/toolbar_test.dart:78:          child: Toolbar(
+test/toolbar_test.dart:94:class _ToolbarHarness {
+test/toolbar_test.dart:95:  _ToolbarHarness() {
+test\toolbar_test.dart:7:  group('Toolbar component insert menu', () {
+test\toolbar_test.dart:11:      await _pumpToolbar(tester);
+test\toolbar_test.dart:15:      await tester.tap(find.byTooltip('特殊组件创建'));
+test\toolbar_test.dart:48:      final harness = await _pumpToolbar(tester);
+test\toolbar_test.dart:50:      await tester.tap(find.byTooltip('曲线'));
+test\toolbar_test.dart:56:      await tester.tap(find.byTooltip('特殊组件创建'));
+test\toolbar_test.dart:69:Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
+test\toolbar_test.dart:70:  final harness = _ToolbarHarness();
+test\toolbar_test.dart:78:          child: Toolbar(
+test\toolbar_test.dart:94:class _ToolbarHarness {
+test\toolbar_test.dart:95:  _ToolbarHarness() {
+test\routing\routing_test.dart:528:      // 椭圆和矩形的交点应该不同（因为曲线 vs 直线）
+test\infinite_canvas_text_editing_test.dart:33:          await _selectToolbarMenu(
+test\infinite_canvas_text_editing_test.dart:63:        await _selectToolbarMenu(
+test\infinite_canvas_text_editing_test.dart:68:        await _selectToolbarMenu(
+test\infinite_canvas_text_editing_test.dart:83:        await _selectToolbarMenu(
+test\infinite_canvas_text_editing_test.dart:92:        await _selectToolbarMenu(
+test\infinite_canvas_text_editing_test.dart:98:        await tester.tap(find.byTooltip('Font size'));
+test\infinite_canvas_text_editing_test.dart:107:        await tester.tap(find.byTooltip('Custom color'));
+test\infinite_canvas_text_editing_test.dart:118:        await tester.tap(find.byTooltip('Custom color'));
+test\infinite_canvas_text_editing_test.dart:163:      await _selectToolbarMenu(
+test\infinite_canvas_text_editing_test.dart:168:      await _selectToolbarMenu(
+test\infinite_canvas_text_editing_test.dart:207:        await _selectToolbarMenu(
+test\infinite_canvas_text_editing_test.dart:212:        await _selectToolbarMenu(
+test\infinite_canvas_text_editing_test.dart:282:Future<void> _selectToolbarMenu(
+test\infinite_canvas_text_editing_test.dart:287:  await tester.tap(find.byTooltip(tooltip));
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'test\\toolbar_test.dart' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 251ms:
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+
+void main() {
+  group('Toolbar component insert menu', () {
+    testWidgets('shows mindmap with an icon distinct from curve', (
+      tester,
+    ) async {
+      await _pumpToolbar(tester);
+
+      expect(find.byIcon(Icons.timeline), findsOneWidget);
+
+      await tester.tap(find.byTooltip('特殊组件创建'));
+      await tester.pumpAndSettle();
+
+      final mindmapText = find.text('思维导图');
+      expect(mindmapText, findsOneWidget);
+
+      final mindmapItem = find.ancestor(
+        of: mindmapText,
+        matching: find.byWidgetPredicate(
+          (widget) => widget is PopupMenuItem<String>,
+        ),
+      );
+      expect(mindmapItem, findsOneWidget);
+      expect(
+        find.descendant(
+          of: mindmapItem,
+          matching: find.byIcon(Icons.account_tree_outlined),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: mindmapItem,
+          matching: find.byIcon(Icons.timeline),
+        ),
+        findsNothing,
+      );
+      expect(find.byIcon(Icons.timeline), findsOneWidget);
+    });
+
+    testWidgets('selecting mindmap calls only the mindmap callback', (
+      tester,
+    ) async {
+      final harness = await _pumpToolbar(tester);
+
+      await tester.tap(find.byTooltip('曲线'));
+      await tester.pump();
+
+      expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+      expect(find.byIcon(Icons.timeline), findsOneWidget);
+
+      await tester.tap(find.byTooltip('特殊组件创建'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('思维导图'));
+      await tester.pumpAndSettle();
+
+      expect(harness.mindmapAdds, 1);
+      expect(harness.stickyNoteAdds, 0);
+      expect(harness.counterAdds, 0);
+      expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+    });
+  });
+}
+
+Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
+  final harness = _ToolbarHarness();
+  addTearDown(harness.dispose);
+
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: Align(
+          alignment: Alignment.topCenter,
+          child: Toolbar(
+            canvasController: harness.canvasController,
+            viewController: harness.viewController,
+            onAddStickyNote: () => harness.stickyNoteAdds++,
+            onAddCounter: () => harness.counterAdds++,
+            onAddMindmap: () => harness.mindmapAdds++,
+            onInsertImage: () => harness.imageInserts++,
+          ),
+        ),
+      ),
+    ),
+  );
+
+  return harness;
+}
+
+class _ToolbarHarness {
+  _ToolbarHarness() {
+    viewController = InfiniteCanvasController(
+      canvasController: canvasController,
+    );
+  }
+
+  final CanvasController canvasController = CanvasController();
+  late final InfiniteCanvasController viewController;
+  int stickyNoteAdds = 0;
+  int counterAdds = 0;
+  int mindmapAdds = 0;
+  int imageInserts = 0;
+
+  void dispose() {
+    viewController.dispose();
+    canvasController.dispose();
+  }
+}
+
+codex
+代码现状确认了动态 ShapeTool 会自动创建对应 stencil 工具，并天然复用当前描边、填充及 DrawioShapeElement 链路。接下来只需在工具栏增加精确入口与互斥选中态；图标采用实心块状前进箭头，避免与现有线段/端点箭头图标混淆。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_draw\lib\src\ui\toolbar\toolbar.dart
+diff --git a/lib/src/ui/toolbar/toolbar.dart b/lib/src/ui/toolbar/toolbar.dart
+index 05d7a7c2456951397b4bf4316cd4bb800fc72881..248e609ed5148004beb8116fe8e3af2231583d83
+--- a/lib/src/ui/toolbar/toolbar.dart
++++ b/lib/src/ui/toolbar/toolbar.dart
+@@ -13,6 +13,8 @@
+ import 'toolbar_divider.dart';
+ 
+ class Toolbar extends StatelessWidget {
++  static const _indicatorArrowShapeKey = 'arrows.arrowRight';
++
+   const Toolbar({
+     required this.canvasController,
+     required this.viewController,
+@@ -49,10 +51,15 @@
+ 
+   @override
+   Widget build(BuildContext context) {
++    final indicatorArrowToolId = ShapeTool.idFor(_indicatorArrowShapeKey);
++
+     return AnimatedBuilder(
+       animation: Listenable.merge([canvasController, viewController]),
+       builder: (context, _) {
+         final activeTool = canvasController.currentTool?.id;
++        final indicatorArrowSelected = activeTool == indicatorArrowToolId;
++        final shapeToolSelected =
++            activeTool?.startsWith(ShapeTool.idPrefix) ?? false;
+ 
+         return Container(
+           height: 44,
+@@ -124,12 +131,19 @@
+                   ),
+                   const ToolbarDivider(),
+                   ToolButton(
++                    label: '标识箭头',
++                    icon: Icons.forward,
++                    selected: indicatorArrowSelected,
++                    onPressed: () =>
++                        canvasController.setTool(indicatorArrowToolId),
++                  ),
++                  ToolButton(
+                     label: '图形',
+                     icon: Icons.category_outlined,
+                     selected:
+                         activeTool == RectTool.idValue ||
+                         activeTool == EllipseTool.idValue ||
+-                        (activeTool?.startsWith(ShapeTool.idPrefix) ?? false),
++                        (shapeToolSelected && !indicatorArrowSelected),
+                     onPressed: () => canvasController.setTool(RectTool.idValue),
+                   ),
+                   ToolButton(
+
+diff --git a/lib/src/ui/toolbar/toolbar.dart b/lib/src/ui/toolbar/toolbar.dart
+index 05d7a7c2456951397b4bf4316cd4bb800fc72881..248e609ed5148004beb8116fe8e3af2231583d83
+--- a/lib/src/ui/toolbar/toolbar.dart
++++ b/lib/src/ui/toolbar/toolbar.dart
+@@ -13,6 +13,8 @@
+ import 'toolbar_divider.dart';
+ 
+ class Toolbar extends StatelessWidget {
++  static const _indicatorArrowShapeKey = 'arrows.arrowRight';
++
+   const Toolbar({
+     required this.canvasController,
+     required this.viewController,
+@@ -49,10 +51,15 @@
+ 
+   @override
+   Widget build(BuildContext context) {
++    final indicatorArrowToolId = ShapeTool.idFor(_indicatorArrowShapeKey);
++
+     return AnimatedBuilder(
+       animation: Listenable.merge([canvasController, viewController]),
+       builder: (context, _) {
+         final activeTool = canvasController.currentTool?.id;
++        final indicatorArrowSelected = activeTool == indicatorArrowToolId;
++        final shapeToolSelected =
++            activeTool?.startsWith(ShapeTool.idPrefix) ?? false;
+ 
+         return Container(
+           height: 44,
+@@ -124,12 +131,19 @@
+                   ),
+                   const ToolbarDivider(),
+                   ToolButton(
++                    label: '标识箭头',
++                    icon: Icons.forward,
++                    selected: indicatorArrowSelected,
++                    onPressed: () =>
++                        canvasController.setTool(indicatorArrowToolId),
++                  ),
++                  ToolButton(
+                     label: '图形',
+                     icon: Icons.category_outlined,
+                     selected:
+                         activeTool == RectTool.idValue ||
+                         activeTool == EllipseTool.idValue ||
+-                        (activeTool?.startsWith(ShapeTool.idPrefix) ?? false),
++                        (shapeToolSelected && !indicatorArrowSelected),
+                     onPressed: () => canvasController.setTool(RectTool.idValue),
+                   ),
+                   ToolButton(
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Write-Output '---UPDATED TOOLBAR SECTION---'; "'$lines = Get-Content -LiteralPath '"'lib\\src\\ui\\toolbar\\toolbar.dart' -Encoding UTF8; "'$lines[8..155]; Write-Output '"'---FINAL DIFF---'; git diff -- lib/src/ui/toolbar/toolbar.dart; Write-Output '---SCOPED STATUS---'; git status --short -- lib/src/ui/toolbar/toolbar.dart docs/plan/plan_requirement_3_20260711-003151.md" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 552ms:
+---UPDATED TOOLBAR SECTION---
+import '../editor/editor_config.dart';
+import '../widgets/spectrum_icon.dart';
+import 'line_tool_icon.dart';
+import 'tool_button.dart';
+import 'toolbar_divider.dart';
+
+class Toolbar extends StatelessWidget {
+  static const _indicatorArrowShapeKey = 'arrows.arrowRight';
+
+  const Toolbar({
+    required this.canvasController,
+    required this.viewController,
+    required this.onAddStickyNote,
+    required this.onAddCounter,
+    required this.onAddMindmap,
+    required this.onInsertImage,
+    this.documentStore,
+    this.onExportPng,
+    this.metadata,
+    this.actions = const [],
+  });
+
+  final CanvasController canvasController;
+  final InfiniteCanvasController viewController;
+  final VoidCallback onAddStickyNote;
+  final VoidCallback onAddCounter;
+  final VoidCallback onAddMindmap;
+  final VoidCallback onInsertImage;
+
+  /// Optional persistence backend. When provided, 保存/加载 menu items route
+  /// through it; otherwise they fall back to in-memory snapshots.
+  final DocumentStore? documentStore;
+
+  /// Optional PNG export override. When null the bundled [PngExporter] is used.
+  final Future<void> Function(BuildContext, CanvasController, InfiniteCanvasController)?
+      onExportPng;
+
+  /// Optional metadata embedded into saved documents.
+  final DocumentMetadata? metadata;
+
+  /// Host-contributed actions rendered in the toolbar's trailing cluster.
+  final List<EditorToolbarAction> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    final indicatorArrowToolId = ShapeTool.idFor(_indicatorArrowShapeKey);
+
+    return AnimatedBuilder(
+      animation: Listenable.merge([canvasController, viewController]),
+      builder: (context, _) {
+        final activeTool = canvasController.currentTool?.id;
+        final indicatorArrowSelected = activeTool == indicatorArrowToolId;
+        final shapeToolSelected =
+            activeTool?.startsWith(ShapeTool.idPrefix) ?? false;
+
+        return Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: const BoxDecoration(
+            color: UiColors.panel,
+            border: Border(bottom: BorderSide(color: UiColors.line)),
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: math.max(MediaQuery.sizeOf(context).width - 24, 760),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ToolButton(
+                    label: '菜单',
+                    icon: Icons.menu,
+                    selected: false,
+                    onPressed: () => showFileMenu(context),
+                  ),
+                  const ToolbarDivider(),
+                  ToolButton(
+                    label: '选择',
+                    icon: Icons.near_me_outlined,
+                    selected: activeTool == SelectTool.idValue,
+                    onPressed: () =>
+                        canvasController.setTool(SelectTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '拖拽',
+                    icon: Icons.open_with,
+                    selected: activeTool == PanTool.idValue,
+                    onPressed: () => canvasController.setTool(PanTool.idValue),
+                  ),
+                  const ToolbarDivider(),
+                  ToolButton(
+                    label: '画笔',
+                    icon: Icons.edit_outlined,
+                    selected: activeTool == PenTool.idValue,
+                    onPressed: () => canvasController.setTool(PenTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '荧光笔',
+                    icon: Icons.border_color_outlined,
+                    selected: activeTool == HighlighterTool.idValue,
+                    onPressed: () =>
+                        canvasController.setTool(HighlighterTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '直线',
+                    iconWidget: const LineToolIcon(polyline: false),
+                    selected: activeTool == LineTool.idValue,
+                    onPressed: () => canvasController.setTool(LineTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '折线',
+                    iconWidget: const LineToolIcon(polyline: true),
+                    selected: activeTool == PolylineTool.idValue,
+                    onPressed: () =>
+                        canvasController.setTool(PolylineTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '曲线',
+                    icon: Icons.timeline,
+                    selected: activeTool == CurveTool.idValue,
+                    onPressed: () =>
+                        canvasController.setTool(CurveTool.idValue),
+                  ),
+                  const ToolbarDivider(),
+                  ToolButton(
+                    label: '标识箭头',
+                    icon: Icons.forward,
+                    selected: indicatorArrowSelected,
+                    onPressed: () =>
+                        canvasController.setTool(indicatorArrowToolId),
+                  ),
+                  ToolButton(
+                    label: '图形',
+                    icon: Icons.category_outlined,
+                    selected:
+                        activeTool == RectTool.idValue ||
+                        activeTool == EllipseTool.idValue ||
+                        (shapeToolSelected && !indicatorArrowSelected),
+                    onPressed: () => canvasController.setTool(RectTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '文字',
+                    icon: Icons.text_fields,
+                    selected: activeTool == TextTool.idValue,
+                    onPressed: () => canvasController.setTool(TextTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '橡皮擦',
+---FINAL DIFF---
+diff --git a/wenz_draw/lib/src/ui/toolbar/toolbar.dart b/wenz_draw/lib/src/ui/toolbar/toolbar.dart
+index 831139c..248e609 100644
+--- a/wenz_draw/lib/src/ui/toolbar/toolbar.dart
++++ b/wenz_draw/lib/src/ui/toolbar/toolbar.dart
+@@ -13,6 +13,8 @@ import 'tool_button.dart';
+ import 'toolbar_divider.dart';
+ 
+ class Toolbar extends StatelessWidget {
++  static const _indicatorArrowShapeKey = 'arrows.arrowRight';
++
+   const Toolbar({
+     required this.canvasController,
+     required this.viewController,
+@@ -49,10 +51,15 @@ class Toolbar extends StatelessWidget {
+ 
+   @override
+   Widget build(BuildContext context) {
++    final indicatorArrowToolId = ShapeTool.idFor(_indicatorArrowShapeKey);
++
+     return AnimatedBuilder(
+       animation: Listenable.merge([canvasController, viewController]),
+       builder: (context, _) {
+         final activeTool = canvasController.currentTool?.id;
++        final indicatorArrowSelected = activeTool == indicatorArrowToolId;
++        final shapeToolSelected =
++            activeTool?.startsWith(ShapeTool.idPrefix) ?? false;
+ 
+         return Container(
+           height: 44,
+@@ -123,13 +130,20 @@ class Toolbar extends StatelessWidget {
+                         canvasController.setTool(CurveTool.idValue),
+                   ),
+                   const ToolbarDivider(),
++                  ToolButton(
++                    label: '标识箭头',
++                    icon: Icons.forward,
++                    selected: indicatorArrowSelected,
++                    onPressed: () =>
++                        canvasController.setTool(indicatorArrowToolId),
++                  ),
+                   ToolButton(
+                     label: '图形',
+                     icon: Icons.category_outlined,
+                     selected:
+                         activeTool == RectTool.idValue ||
+                         activeTool == EllipseTool.idValue ||
+-                        (activeTool?.startsWith(ShapeTool.idPrefix) ?? false),
++                        (shapeToolSelected && !indicatorArrowSelected),
+                     onPressed: () => canvasController.setTool(RectTool.idValue),
+                   ),
+                   ToolButton(
+@@ -338,7 +352,17 @@ class Toolbar extends StatelessWidget {
+       items: const [
+         PopupMenuItem(value: 'note', child: Text('便签')),
+         PopupMenuItem(value: 'counter', child: Text('计数器')),
+-        PopupMenuItem(value: 'mindmap', child: Text('思维导图')),
++        PopupMenuItem(
++          value: 'mindmap',
++          child: Row(
++            mainAxisSize: MainAxisSize.min,
++            children: [
++              Icon(Icons.account_tree_outlined, size: 18),
++              SizedBox(width: 8),
++              Text('思维导图'),
++            ],
++          ),
++        ),
+       ],
+     ).then((value) {
+       if (value == 'counter') {
+---SCOPED STATUS---
+ M lib/src/ui/toolbar/toolbar.dart
+?? docs/plan/plan_requirement_3_20260711-003151.md
+warning: in the working copy of 'wenz_draw/lib/src/ui/toolbar/toolbar.dart', LF will be replaced by CRLF the next time Git touches it
+
+diff --git a/lib/src/ui/toolbar/toolbar.dart b/lib/src/ui/toolbar/toolbar.dart
+index 05d7a7c2456951397b4bf4316cd4bb800fc72881..248e609ed5148004beb8116fe8e3af2231583d83
+--- a/lib/src/ui/toolbar/toolbar.dart
++++ b/lib/src/ui/toolbar/toolbar.dart
+@@ -13,6 +13,8 @@
+ import 'toolbar_divider.dart';
+ 
+ class Toolbar extends StatelessWidget {
++  static const _indicatorArrowShapeKey = 'arrows.arrowRight';
++
+   const Toolbar({
+     required this.canvasController,
+     required this.viewController,
+@@ -49,10 +51,15 @@
+ 
+   @override
+   Widget build(BuildContext context) {
++    final indicatorArrowToolId = ShapeTool.idFor(_indicatorArrowShapeKey);
++
+     return AnimatedBuilder(
+       animation: Listenable.merge([canvasController, viewController]),
+       builder: (context, _) {
+         final activeTool = canvasController.currentTool?.id;
++        final indicatorArrowSelected = activeTool == indicatorArrowToolId;
++        final shapeToolSelected =
++            activeTool?.startsWith(ShapeTool.idPrefix) ?? false;
+ 
+         return Container(
+           height: 44,
+@@ -124,12 +131,19 @@
+                   ),
+                   const ToolbarDivider(),
+                   ToolButton(
++                    label: '标识箭头',
++                    icon: Icons.forward,
++                    selected: indicatorArrowSelected,
++                    onPressed: () =>
++                        canvasController.setTool(indicatorArrowToolId),
++                  ),
++                  ToolButton(
+                     label: '图形',
+                     icon: Icons.category_outlined,
+                     selected:
+                         activeTool == RectTool.idValue ||
+                         activeTool == EllipseTool.idValue ||
+-                        (activeTool?.startsWith(ShapeTool.idPrefix) ?? false),
++                        (shapeToolSelected && !indicatorArrowSelected),
+                     onPressed: () => canvasController.setTool(RectTool.idValue),
+                   ),
+                   ToolButton(
+
+codex
+P001 已完成，仅修改 [toolbar.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/ui/toolbar/toolbar.dart:15)：
+
+- 新增“标识箭头”工具栏按钮，使用实心箭头图标。
+- 点击后激活 `ShapeTool.idFor('arrows.arrowRight')`。
+- 标识箭头与通用“图形”按钮选中态互斥。
+- 保留现有横向滚动布局及原有未提交改动。
+- 未修改 plan 文件，未运行测试、构建、lint 或 analyze。
+diff --git a/lib/src/ui/toolbar/toolbar.dart b/lib/src/ui/toolbar/toolbar.dart
+index 05d7a7c2456951397b4bf4316cd4bb800fc72881..248e609ed5148004beb8116fe8e3af2231583d83
+--- a/lib/src/ui/toolbar/toolbar.dart
++++ b/lib/src/ui/toolbar/toolbar.dart
+@@ -13,6 +13,8 @@
+ import 'toolbar_divider.dart';
+ 
+ class Toolbar extends StatelessWidget {
++  static const _indicatorArrowShapeKey = 'arrows.arrowRight';
++
+   const Toolbar({
+     required this.canvasController,
+     required this.viewController,
+@@ -49,10 +51,15 @@
+ 
+   @override
+   Widget build(BuildContext context) {
++    final indicatorArrowToolId = ShapeTool.idFor(_indicatorArrowShapeKey);
++
+     return AnimatedBuilder(
+       animation: Listenable.merge([canvasController, viewController]),
+       builder: (context, _) {
+         final activeTool = canvasController.currentTool?.id;
++        final indicatorArrowSelected = activeTool == indicatorArrowToolId;
++        final shapeToolSelected =
++            activeTool?.startsWith(ShapeTool.idPrefix) ?? false;
+ 
+         return Container(
+           height: 44,
+@@ -124,12 +131,19 @@
+                   ),
+                   const ToolbarDivider(),
+                   ToolButton(
++                    label: '标识箭头',
++                    icon: Icons.forward,
++                    selected: indicatorArrowSelected,
++                    onPressed: () =>
++                        canvasController.setTool(indicatorArrowToolId),
++                  ),
++                  ToolButton(
+                     label: '图形',
+                     icon: Icons.category_outlined,
+                     selected:
+                         activeTool == RectTool.idValue ||
+                         activeTool == EllipseTool.idValue ||
+-                        (activeTool?.startsWith(ShapeTool.idPrefix) ?? false),
++                        (shapeToolSelected && !indicatorArrowSelected),
+                     onPressed: () => canvasController.setTool(RectTool.idValue),
+                   ),
+                   ToolButton(
+
+tokens used
+31,215
+P001 已完成，仅修改 [toolbar.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/ui/toolbar/toolbar.dart:15)：
+
+- 新增“标识箭头”工具栏按钮，使用实心箭头图标。
+- 点击后激活 `ShapeTool.idFor('arrows.arrowRight')`。
+- 标识箭头与通用“图形”按钮选中态互斥。
+- 保留现有横向滚动布局及原有未提交改动。
+- 未修改 plan 文件，未运行测试、构建、lint 或 analyze。

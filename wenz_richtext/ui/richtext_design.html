@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wenz RichText · 编辑器元素与样式设计稿</title>
+<style>
+  /* =========================================================
+     设计令牌 —— 对齐编辑器 Material 配色（亮色主题）
+     ========================================================= */
+  :root{
+    --primary:            #4f6df5;   /* scheme.primary          */
+    --on-primary:         #ffffff;
+    --primary-container:  #dde0ff;   /* scheme.primaryContainer */
+    --secondary-container:#e8e0ff;   /* scheme.secondaryContainer */
+    --on-secondary-container:#241946;
+    --tertiary-container: #d6e4e0;   /* scheme.tertiaryContainer */
+    --on-tertiary-container:#0e1f1b;
+    --error-container:    #ffdad6;
+    --on-error-container: #410002;
+    --surface:            #fbfaff;
+    --surface-container:  #f2f0f7;   /* surfaceContainerHighest */
+    --on-surface:         #1b1b21;
+    --on-surface-variant: #46464f;
+    --outline:            #777680;
+    --amber-strong:       #c97b00;   /* amber.shade900 */
+    --amber-bg:           #fff8e1;   /* amber withAlpha(48) */
+    --blue-link:          #1976d2;   /* Colors.blue */
+    --code-bg:            #f5f5f7;
+    --code-text:          #c7254e;
+    --shadow:             0 1px 3px rgba(20,20,40,.08), 0 1px 2px rgba(20,20,40,.06);
+    --radius:             12px;
+    --radius-sm:          8px;
+    --serif:              "Songti SC","SimSun", Georgia, serif;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",-apple-system,system-ui,sans-serif;
+    color:var(--on-surface);
+    background:
+      radial-gradient(1200px 600px at 80% -10%, #eef1ff 0%, transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, #fdf0f4 0%, transparent 55%),
+      var(--surface);
+    line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* 页面框架 */
+  .page{
+    max-width:880px;
+    margin:0 auto;
+    padding:56px 32px 120px;
+  }
+  .hero{
+    text-align:center;
+    margin-bottom:48px;
+  }
+  .hero .badge{
+    display:inline-block;
+    font-size:12px;
+    letter-spacing:.12em;
+    color:var(--primary);
+    background:var(--primary-container);
+    padding:4px 12px;
+    border-radius:999px;
+    margin-bottom:16px;
+  }
+  .hero h1{
+    font-size:40px;
+    margin:0 0 12px;
+    font-weight:800;
+    letter-spacing:-.02em;
+  }
+  .hero p{
+    color:var(--on-surface-variant);
+    margin:0;
+    font-size:16px;
+  }
+
+  /* 区段 */
+  .section{ margin-bottom:56px; }
+  .section-title{
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+    margin:0 0 8px;
+    font-size:22px;
+    font-weight:700;
+  }
+  .section-title .num{
+    font-size:13px;
+    font-weight:700;
+    color:var(--on-surface-variant);
+    background:var(--surface-container);
+    width:28px; height:28px;
+    display:inline-flex; align-items:center; justify-content:center;
+    border-radius:50%;
+  }
+  .section-desc{
+    color:var(--on-surface-variant);
+    font-size:14px;
+    margin:0 0 24px;
+  }
+
+  /* 样例卡片：模拟编辑器纸张 */
+  .sheet{
+    background:#ffffff;
+    border:1px solid #ece9f5;
+    border-radius:var(--radius);
+    padding:40px 48px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .sheet + .sheet{ margin-top:20px; }
+  .sheet-label{
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--primary);
+    margin:0 0 16px;
+  }
+
+  /* 富文本内容基线 */
+  .rt{ font-size:16px; line-height:1.75; color:var(--on-surface); }
+  .rt > *:first-child{ margin-top:0; }
+  .rt > *:last-child{ margin-bottom:0; }
+
+  p{ margin:.55em 0; }
+
+  /* —— 标题 H1–H6（对齐 _headingSize: 24/21/18/16） —— */
+  h1.r{ font-size:24px; font-weight:700; margin:.6em 0 .35em; }
+  h2.r{ font-size:21px; font-weight:700; margin:.6em 0 .35em; }
+  h3.r{ font-size:18px; font-weight:700; margin:.6em 0 .35em; }
+  h4.r{ font-size:16px; font-weight:700; margin:.6em 0 .35em; }
+  h5.r{ font-size:16px; font-weight:600; color:var(--on-surface-variant); }
+  h6.r{ font-size:16px; font-weight:600; color:var(--outline); }
+
+  /* —— 引用 —— */
+  blockquote.r{
+    margin:1em 0;
+    padding:8px 18px;
+    border-left:4px solid var(--primary);
+    background:var(--surface-container);
+    border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+    color:var(--on-surface-variant);
+    font-style:italic;
+  }
+
+  /* —— 列表 —— */
+  ul.r, ol.r{ margin:.55em 0; padding-left:26px; }
+  li.r{ margin:.25em 0; }
+  ul.r ul.r{ margin:.15em 0; }
+  .task{ list-style:none; padding-left:8px; }
+  .task li{ display:flex; align-items:flex-start; gap:10px; }
+  .task input{ margin-top:6px; }
+  .task .done{ color:var(--on-surface-variant); text-decoration:line-through; }
+
+  /* —— 代码块 —— */
+  pre.r{
+    background:#1e1e2e;
+    color:#e6e6f0;
+    border-radius:var(--radius);
+    padding:18px 20px;
+    overflow:auto;
+    font-family:"JetBrains Mono","Fira Code","Consolas",monospace;
+    font-size:13.5px;
+    line-height:1.6;
+    margin:1em 0;
+  }
+  pre.r .lang-tag{
+    float:right;
+    font-size:11px;
+    color:#8a8aff;
+    opacity:.7;
+  }
+  pre.r .kw{ color:#c792ea; }
+  pre.r .str{ color:#c3e88d; }
+  pre.r .fn{ color:#82aaff; }
+  pre.r .num{ color:#f78c6c; }
+  pre.r .com{ color:#6b7394; font-style:italic; }
+
+  /* —— 分割线 —— */
+  hr.r{
+    border:none;
+    border-top:1px solid #e4e1ee;
+    margin:1.6em 0;
+    position:relative;
+  }
+  hr.r::after{
+    content:"";
+    position:absolute;
+    left:50%; top:-3px;
+    transform:translateX(-50%);
+    width:6px; height:6px;
+    background:var(--primary);
+    border-radius:50%;
+  }
+
+  /* —— 图片 —— */
+  figure.r{
+    margin:1.2em 0;
+    text-align:center;
+  }
+  figure.r img{
+    max-width:100%;
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    display:block;
+    margin:0 auto;
+  }
+  figure.r figcaption{
+    margin-top:8px;
+    font-size:13px;
+    color:var(--on-surface-variant);
+  }
+
+  /* —— 表格 —— */
+  table.r{
+    width:100%;
+    border-collapse:collapse;
+    margin:1em 0;
+    font-size:15px;
+    box-shadow:var(--shadow);
+    border-radius:var(--radius-sm);
+    overflow:hidden;
+  }
+  table.r th, table.r td{
+    padding:10px 14px;
+    border:1px solid #ece9f5;
+    text-align:left;
+  }
+  table.r th{
+    background:var(--surface-container);
+    font-weight:700;
+  }
+  table.r tr:nth-child(even) td{ background:#fafaff; }
+  .cell-bg-a{ background:#e8f5e9 !important; }
+  .cell-bg-b{ background:#fff3e0 !important; }
+
+  /* —— 视频 —— */
+  .video-block{
+    margin:1.2em 0;
+    border-radius:var(--radius);
+    overflow:hidden;
+    box-shadow:var(--shadow);
+    position:relative;
+    background:#000;
+  }
+  .video-block img{ width:100%; display:block; }
+  .video-block .play{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .video-block .play span{
+    width:64px; height:64px;
+    border-radius:50%;
+    background:rgba(255,255,255,.9);
+    color:#111;
+    display:flex; align-items:center; justify-content:center;
+    font-size:24px;
+    box-shadow:0 6px 20px rgba(0,0,0,.3);
+  }
+
+  /* —— 文件块 —— */
+  .file-block{
+    display:flex; align-items:center; gap:14px;
+    border:1px solid #ece9f5;
+    border-radius:var(--radius-sm);
+    padding:14px 16px;
+    margin:1em 0;
+    background:#fff;
+    text-decoration:none;
+    color:var(--on-surface);
+    transition:box-shadow .2s, border-color .2s;
+  }
+  .file-block:hover{ box-shadow:var(--shadow); border-color:var(--primary); }
+  .file-ico{
+    width:40px; height:40px; flex:none;
+    border-radius:10px;
+    background:var(--error-container);
+    color:var(--on-error-container);
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:12px;
+  }
+  .file-meta{ flex:1; min-width:0; }
+  .file-meta .name{ font-weight:600; }
+  .file-meta .sub{ font-size:13px; color:var(--on-surface-variant); }
+  .file-size{ font-size:13px; color:var(--on-surface-variant); }
+
+  /* —— 标注 Callout（info/success/warning/danger） —— */
+  .callout{
+    display:flex; gap:12px;
+    padding:14px 16px;
+    border-radius:var(--radius-sm);
+    border:1px solid;
+    margin:1em 0;
+  }
+  .callout .ico{ font-size:20px; line-height:1.4; flex:none; }
+  .callout .body{ flex:1; }
+  .callout .ttl{ font-weight:700; margin-bottom:2px; }
+  .callout.info{
+    background:var(--surface-container);
+    border-color:#d8d5e2;
+    color:var(--on-surface-variant);
+  }
+  .callout.success{
+    background:rgba(214,228,224,.6);
+    border-color:#bcd8d0;
+    color:var(--on-tertiary-container);
+  }
+  .callout.warning{
+    background:var(--amber-bg);
+    border-color:#ffe082;
+    color:var(--amber-strong);
+  }
+  .callout.danger{
+    background:rgba(255,218,214,.7);
+    border-color:#f5b8b0;
+    color:var(--on-error-container);
+  }
+
+  /* —— 嵌入块 Embed —— */
+  .embed-block{
+    border:1px dashed #cfcbe0;
+    border-radius:var(--radius-sm);
+    padding:16px;
+    margin:1em 0;
+    background:#fafaff;
+    display:flex; align-items:center; gap:12px;
+    color:var(--on-surface-variant);
+  }
+  .embed-block .chip{
+    font-size:11px; font-weight:700; letter-spacing:.06em;
+    text-transform:uppercase;
+    background:var(--primary-container); color:var(--primary);
+    padding:3px 8px; border-radius:6px;
+  }
+  .embed-block .formula{
+    font-family:"Cambria Math","Times New Roman",serif;
+    font-style:italic;
+    color:var(--on-secondary-container);
+    background:var(--secondary-container);
+    padding:3px 10px;
+    border-radius:6px;
+    font-size:18px;
+  }
+
+  /* ===================== 行内样式 ===================== */
+  .bold{ font-weight:700; }
+  .italic{ font-style:italic; }
+  .underline{ text-decoration:underline; }
+  .strike{ text-decoration:line-through; }
+  .under-strike{ text-decoration:underline line-through; }
+  .link{ color:var(--blue-link); text-decoration:underline; cursor:pointer; }
+  .colored{ color:#d81b60; }
+  .hi{ background:#fff59d; padding:0 2px; border-radius:3px; }
+  .big{ font-size:22px; }
+  .small{ font-size:12px; }
+  .mono{ font-family:"JetBrains Mono","Consolas",monospace; }
+  .serif{ font-family:var(--serif); }
+  .remark{
+    border-bottom:2px dotted var(--amber-strong);
+    cursor:help;
+  }
+
+  /* —— 行内嵌入 —— */
+  .mention{
+    color:var(--primary);
+    font-weight:600;
+    background:rgba(221,224,255,.7);
+    padding:1px 6px;
+    border-radius:6px;
+    white-space:nowrap;
+  }
+  .inline-formula{
+    font-family:"Cambria Math","Times New Roman",serif;
+    font-style:italic;
+    color:var(--on-secondary-container);
+    background:var(--secondary-container);
+    padding:1px 8px;
+    border-radius:6px;
+  }
+  .inline-img{
+    height:1.6em; vertical-align:-0.35em;
+    border-radius:4px;
+    box-shadow:0 0 0 1px #ece9f5;
+  }
+  .inline-unknown{ color:var(--on-surface-variant); font-style:italic; }
+
+  /* —— 批注/修订标记示意 —— */
+  .comment-mark{
+    background:rgba(79,109,245,.14);
+    border-bottom:2px solid var(--primary);
+  }
+  .revision-add{ color:#1b8a3a; text-decoration:underline; text-decoration-style:wavy; }
+  .revision-del{ color:#c62828; text-decoration:line-through; }
+
+  /* —— 属性速查表 —— */
+  .ref-table{ width:100%; border-collapse:collapse; font-size:14px; }
+  .ref-table th, .ref-table td{
+    text-align:left; padding:10px 12px;
+    border-bottom:1px solid #ece9f5; vertical-align:top;
+  }
+  .ref-table th{ background:var(--surface-container); font-weight:700; color:var(--on-surface-variant); }
+  .ref-table code{
+    background:var(--code-bg); color:var(--code-text);
+    padding:1px 6px; border-radius:4px; font-size:12.5px;
+  }
+
+  /* 页脚 */
+  .footer{
+    text-align:center; color:var(--on-surface-variant);
+    font-size:13px; margin-top:64px;
+  }
+  .footer code{ background:var(--code-bg); color:var(--code-text); padding:1px 6px; border-radius:4px; }
+
+  @media (max-width:640px){
+    .page{ padding:32px 16px 80px; }
+    .sheet{ padding:24px 20px; }
+    .hero h1{ font-size:30px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ===================== HERO ===================== -->
+  <header class="hero">
+    <span class="badge">WENZ RICHTEXT · DESIGN</span>
+    <h1>富文本编辑器 元素与样式设计稿</h1>
+    <p>覆盖全部块级元素、列表、表格、嵌入、文件、视频，以及全部行内属性</p>
+  </header>
+
+  <!-- ===================== 1. 文本属性 ===================== -->
+  <section class="section">
+    <h2 class="section-title"><span class="num">1</span>行内文本属性 Inline Attributes</h2>
+    <p class="section-desc">对应 <code>TextAttributes</code>：加粗 / 斜体 / 下划线 / 删除线 / 颜色 / 高亮 / 字号 / 字体 / 链接 / 批注 / 修订。</p>
+
+    <div class="sheet">
+      <p class="sheet-label">基础字形 Marks</p>
+      <div class="rt">
+        <p>
+          这是一段<span class="bold">加粗文本</span>，
+          这是<span class="italic">斜体文本</span>，
+          这是<span class="underline">下划线文本</span>，
+          这是<span class="strike">删除线文本</span>，
+          也可以<span class="under-strike">下划线 + 删除线</span>叠加。
+        </p>
+        <p>
+          这是自定义<span class="colored">文字颜色</span>（color），
+          这是<span class="hi">高亮背景</span>（background），
+          这是<span class="big">大字号</span>与<span class="small">小字号</span>（fontSize），
+          也可切换<span class="serif">衬线字体</span>（fontFamily）。
+        </p>
+        <p>
+          这是一个<a class="link" href="#">超链接</a>（url，自动蓝色 + 下划线），
+          这是一段带<span class="remark" title="批注：这里需要确认">批注标记</span>的文本（remark），
+          以及行内<span class="mono">inline code</span>样式。
+        </p>
+      </div>
+    </div>
+
+    <div class="sheet">
+      <p class="sheet-label">行内嵌入 Inline Embeds</p>
+      <div class="rt">
+        <p>
+          提及成员：<span class="mention">@张小明</span> 与 <span class="mention">@产品组</span>（mention，主色 + 药丸背景）；
+          行内公式 <span class="inline-formula">E = mc²</span>（formula，等宽 + 次级容器色）；
+          行内图片 <img class="inline-img" src="https://placehold.co/80x32/4f6df5/ffffff?text=logo" alt="img">（image）；
+          未知类型 <span class="inline-unknown">[custom]</span>（fallback）。
+        </p>
+      </div>
+    </div>
+
+    <div class="sheet">
+      <p class="sheet-label">批注与修订标记</p>
+      <div class="rt">
+        <p>
+          这段文字包含<span class="comment-mark">被批注的范围</span>（commentIds）；
+          修订模式下的<span class="revision-add">新增内容</span>与<span class="revision-del">删除内容</span>（revisionIds）。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 2. 标题层级 ===================== -->
+  <section class="section">
+    <h2 class="section-title"><span class="num">2</span>标题层级 Headings</h2>
+    <p class="section-desc">对应 <code>BlockType.heading</code>，<code>level</code> 1–6；实际渲染字号 24 / 21 / 18 / 16 / 16 / 16，均为 w700。</p>
+
+    <div class="sheet">
+      <div class="rt">
+        <h1 class="r">一级标题 Heading 1</h1>
+        <h2 class="r">二级标题 Heading 2</h2>
+        <h3 class="r">三级标题 Heading 3</h3>
+        <h4 class="r">四级标题 Heading 4</h4>
+        <h5 class="r">五级标题 Heading 5</h5>
+        <h6 class="r">六级标题 Heading 6</h6>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 3. 段落对齐与缩进 ===================== -->
+  <section class="section">
+    <h2 class="section-title"><span class="num">3</span>段落对齐与缩进 Alignment &amp; Indent</h2>
+    <p class="section-desc">对应 <code>BlockAttributes.alignment</code>（left / center / right / justify）与 <code>indent</code>（0–8）。</p>
+
+    <div class="sheet">
+      <div class="rt">
+        <p style="text-align:left;">左对齐：设计与代码，本质都是把复杂的问题拆成简单的小块。</p>
+        <p style="text-align:center;">居中对齐：行到水穷处，坐看云起时。</p>
+        <p style="text-align:right;">右对齐：春风又绿江南岸，明月何时照我还。</p>
+        <p style="text-align:justify;">两端对齐：富文本编辑器需要同时处理内容结构、样式渲染、手势交互与输入法协作等多个维度的复杂度，每一个细节都决定了最终的书写体验。</p>
+        <p style="margin-left:24px;">缩进 1 级：第一层引用或层级嵌套。</p>
+        <p style="margin-left:48px;">缩进 2 级：更深的层级。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 4. 引用 ===================== -->
+  <section class="section">
+    <h2 class="section-title"><span class="num">4</span>引用 Quote</h2>
+    <p class="section-desc">对应 <code>BlockType.quote</code>，斜体 + 左侧主色竖线 + 浅灰底。</p>
+
+    <div class="sheet">
+      <div class="rt">
+        <blockquote class="r">
+          任何足够先进的技术，都与魔法无异。<br>
+          —— 阿瑟 · 克拉克
+        </blockquote>
+        <blockquote class="r" style="margin-left:24px;">
+          引用支持缩进，用于嵌套引用场景。
+        </blockquote>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 5. 列表 ===================== -->
+  <section class="section">
+    <h2 class="section-title"><span class="num">5</span>列表 Lists</h2>
+    <p class="section-desc">对应 <code>BlockType.listItem</code> + <code>listType</code>：无序（unordered）/ 有序（ordered）/ 任务（task，带 <code>checked</code>）。</p>
+
+    <div class="sheet">
+      <p class="sheet-label">无序列表 Unordered</p>
+      <div class="rt">
+        <ul class="r">
+          <li class="r">需求分析与数据建模</li>
+          <li class="r">核心编辑能力
+            <ul class="r">
+              <li class="r">文本输入与光标管理</li>
+              <li class="r">块级结构操作</li>
+            </ul>
+          </li>
+          <li class="r">渲染与手势</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="sheet">
+      <p class="sheet-label">有序列表 Ordered</p>
+      <div class="rt">
+        <ol class="r">
+          <li class="r">打开编辑器</li>
+          <li class="r">输入内容</li>
+          <li class="r">应用样式</li>
+          <li class="r">导出 HTML / Markdown / JSON</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="sheet">
+      <p class="sheet-label">任务列表 Task</p>
+      <div class="rt">
+        <ul class="task">
+          <li><input type="checkbox" checked disabled><span class="done">完成文档调研</span></li>
+          <li><input type="checkbox" checked disabled><span class="done">搭建基础框架</span></li>
+          <li><input type="checkbox" disabled><span>编写单元测试</span></li>
+          <li><input type="checkbox" disabled><span>性能优化与回归</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 6. 代码块 ===================== -->
+  <section class="section">
+    <h2 class="section-title"><span class="num">6</span>代码块 Code Block</h2>
+    <p class="section-desc">对应 <code>BlockType.code</code>，带 <code>language</code> 字段；深色背景、等宽字体。</p>
+
+    <div class="sheet">
+      <div class="rt">
+<pre class="r"><span class="lang-tag">dart</span><span class="com">// 创建一个加粗的段落</span>
+<span class="kw">final</span> run = TextRun(
+  text: <span class="str">'Hello, world'</span>,
+  attributes: TextAttributes(bold: <span class="kw">true</span>),
+);
+<span class="kw">final</span> block = TextBlockNode(
+  type: BlockType.paragraph,
+  content: [run],
+);
+controller.<span class="fn">replaceSelection</span>([block]);</pre>
+
+<pre class="r"><span class="lang-tag">json</span>{
+  <span class="str">"type"</span>: <span class="str">"heading"</span>,
+  <span class="str">"attributes"</span>: { <span class="str">"level"</span>: <span class="num">2</span>, <span class="str">"alignment"</span>: <span class="str">"center"</span> },
+  <span class="str">"content"</span>: [{ <span class="str">"type"</span>: <span class="str">"text"</span>, <span class="str">"text"</span>: <span class="str">"标题"</span> }]
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 7. 引用型：Callout ===================== -->
+  <section class="section">
+    <h2 class="section-title"><span class="num">7</span>标注 Callout</h2>
+    <p class="section-desc">对应 <code>BlockType.callout</code>，<code>variant</code> 四种：info / success / warning / danger，每种有默认图标与标题。</p>
+
+    <div class="sheet">
+      <div class="rt">
+        <div class="callout info">
+          <div class="ico">ℹ️</div>
+          <div class="body"><div class="ttl">Info</div>这是一条普通提示信息，用于补充说明上下文。</div>
+        </div>
+        <div class="callout success">
+          <div class="ico">✅</div>
+          <div class="body"><div class="ttl">Success</div>操作已成功完成，可以继续下一步。</div>
+        </div>
+        <div class="callout warning">
+          <div class="ico">⚠️</div>
+          <div class="body"><div class="ttl">Warning</div>该操作不可撤销，请谨慎确认。</div>
+        </div>
+        <div class="callout danger">
+          <div class="ico">⛔</div>
+          <div class="body"><div class="ttl">Danger</div>检测到严重错误，已停止执行。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 8. 分割线 ===================== -->
+  <section class="section">
+    <h2 class="section-title"><span class="num">8</span>分割线 Divider</h2>
+    <p class="section-desc">对应 <code>BlockType.divider</code>，用于分隔不同主题的内容。</p>
+
+    <div class="sheet">
+      <div class="rt">
+        <p>第一章：起源</p>
+        <hr class="r">
+        <p>第二章：发展</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 9. 图片 ===================== -->
+  <section class="section">
+    <h2 class="section-title"><span class="num">9</span>图片 Image</h2>
+    <p class="section-desc">对应 <code>BlockType.image</code>：支持 <code>caption</code>、<code>altText</code>、显示尺寸 <code>showWidth/showHeight</code>。完整 figure chrome（圆角/阴影/最大宽度）、caption 渲染、空/加载上传中/加载失败状态全集、选中描边与只读裁剪等显示细节，见专门设计稿 <a href="media_block_display_design.html">ui/media_block_display_design.html</a>（①~⑤ 图片块部分）。</p>
+
+    <div class="sheet">
+      <div class="rt">
+        <figure class="r">
+          <img src="https://placehold.co/720x360/4f6df5/ffffff?text=Wenz+RichText" alt="封面示意图">
+          <figcaption>图 1 · 带标题的图片（figure + figcaption）</figcaption>
+        </figure>
+        <figure class="r">
+          <img src="https://placehold.co/480x180/e8e0ff/241946?text=small+image" alt="小尺寸示意" style="width:60%;">
+          <figcaption>图 2 · 自定义显示宽度 showWidth</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 10. 视频 ===================== -->
+  <section class="section">
+    <h2 class="section-title"><span class="num">10</span>视频 Video</h2>
+    <p class="section-desc">对应 <code>BlockType.video</code>，<code>assetId</code> 指向资源。封面预览 + 播放覆盖层（默认/悬停/按下）、播放中/缓冲中/加载失败/占位态、宽高比处理、选中描边与明暗双 token 等显示细节，见专门设计稿 <a href="media_block_display_design.html">ui/media_block_display_design.html</a>（③~④ 视频块部分）。</p>
+
+    <div class="sheet">
+      <div class="rt">
+        <div class="video-block">
+          <img src="https://placehold.co/720x360/1e1e2e/8a8aff?text=Video+Preview" alt="视频预览">
+          <div class="play"><span>▶</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 11. 文件 ===================== -->
+  <section class="section">
+    <h2 class="section-title"><span class="num">11</span>文件 File</h2>
+    <p class="section-desc">对应 <code>BlockType.file</code>：name / size / mimeType / downloadUrl / uploadStatus。</p>
+
+    <div class="sheet">
+      <div class="rt">
+        <a class="file-block" href="#">
+          <div class="file-ico">PDF</div>
+          <div class="file-meta">
+            <div class="name">产品需求文档 v2.3.pdf</div>
+            <div class="sub">application/pdf · 已上传</div>
+          </div>
+          <div class="file-size">2.4 MB</div>
+        </a>
+        <a class="file-block" href="#">
+          <div class="file-ico" style="background:var(--primary-container);color:var(--primary);">DOC</div>
+          <div class="file-meta">
+            <div class="name">会议纪要.docx</div>
+            <div class="sub">application/vnd.openxmlformats · 上传中 68%</div>
+          </div>
+          <div class="file-size">880 KB</div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 12. 表格 ===================== -->
+  <section class="section">
+    <h2 class="section-title"><span class="num">12</span>表格 Table</h2>
+    <p class="section-desc">对应 <code>BlockType.table</code>：支持列对齐 <code>columnAlignments</code>、列宽 <code>columnWidths</code>、合并单元格（rowSpan/columnSpan）、表头与单元格底色。</p>
+
+    <div class="sheet">
+      <div class="rt">
+        <table class="r">
+          <thead>
+            <tr>
+              <th style="width:34%;">元素</th>
+              <th style="width:22%;">类型</th>
+              <th>说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="bold">段落</span></td>
+              <td>block</td>
+              <td>基础文本块</td>
+            </tr>
+            <tr>
+              <td><span class="bold">标题</span></td>
+              <td>block</td>
+              <td>level 1–6</td>
+            </tr>
+            <tr>
+              <td class="cell-bg-a"><span class="mention">@成员</span></td>
+              <td class="cell-bg-a">inline embed</td>
+              <td class="cell-bg-a">提及</td>
+            </tr>
+            <tr>
+              <td class="cell-bg-b"><span class="inline-formula">x²</span></td>
+              <td class="cell-bg-b">inline embed</td>
+              <td class="cell-bg-b">行内公式（自定义底色）</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 13. 块级嵌入 ===================== -->
+  <section class="section">
+    <h2 class="section-title"><span class="num">13</span>块级嵌入 Block Embed</h2>
+    <p class="section-desc">对应 <code>BlockType.embed</code>，<code>embedType</code> 自定义（如 <code>formula</code> / <code>custom</code>），可携带任意 <code>data</code>。</p>
+
+    <div class="sheet">
+      <div class="rt">
+        <div class="embed-block">
+          <span class="chip">FORMULA</span>
+          <span class="formula">∑<sub>i=1</sub><sup>n</sup> i = n(n+1)/2</span>
+          <span style="font-size:13px;">—— block embed · embedType=formula</span>
+        </div>
+        <div class="embed-block">
+          <span class="chip">CUSTOM</span>
+          <span style="font-size:13px;">embedType=custom · data: { title, url, ... } · fallbackText 用于降级展示</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 14. 综合排版示例 ===================== -->
+  <section class="section">
+    <h2 class="section-title"><span class="num">14</span>综合排版示例 Composition</h2>
+    <p class="section-desc">将上述元素组合成一篇真实文档片段，验证整体视觉协调性。</p>
+
+    <div class="sheet">
+      <div class="rt">
+        <h1 class="r">Wenz RichText 编辑器设计概览</h1>
+        <p>
+          本文档由 <span class="mention">@产品设计组</span> 维护，介绍编辑器支持的
+          <span class="bold">全部块级元素与行内属性</span>。详细字段请参阅
+          <a class="link" href="#">数据模型文档</a>。
+        </p>
+
+        <div class="callout info">
+          <div class="ico">ℹ️</div>
+          <div class="body"><div class="ttl">阅读建议</div>先看行内属性，再看块级元素，最后对照速查表。</div>
+        </div>
+
+        <h2 class="r">1. 核心能力</h2>
+        <ul class="r">
+          <li class="r">12 种块级类型 + 灵活的行内样式</li>
+          <li class="r">表格、代码块、公式、文件、视频等富媒体</li>
+          <li class="r">批注、修订、锚点等协作能力</li>
+        </ul>
+
+        <h2 class="r">2. 代码示例</h2>
+<pre class="r"><span class="lang-tag">dart</span><span class="kw">final</span> doc = DocumentNode(
+  blocks: [
+    TextBlockNode.heading(level: <span class="num">1</span>, text: <span class="str">'标题'</span>),
+    CodeBlockNode(language: <span class="str">'dart'</span>, code: <span class="str">'print(42)'</span>),
+  ],
+);</pre>
+
+        <hr class="r">
+
+        <h2 class="r">3. 关键公式</h2>
+        <p>质能方程：<span class="inline-formula">E = mc²</span>，求和：<span class="inline-formula">∑ i = n(n+1)/2</span>。</p>
+
+        <blockquote class="r">好的排版，让内容自己会说话。</blockquote>
+
+        <table class="r">
+          <thead><tr><th>阶段</th><th>状态</th><th>负责人</th></tr></thead>
+          <tbody>
+            <tr><td>设计</td><td>已完成</td><td><span class="mention">@张小明</span></td></tr>
+            <tr><td>开发</td><td>进行中</td><td><span class="mention">@李华</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 15. 属性速查表 ===================== -->
+  <section class="section">
+    <h2 class="section-title"><span class="num">15</span>属性速查表 Reference</h2>
+    <p class="section-desc">编辑器数据模型字段一览（对应 <code>block_node.dart</code> / <code>attributes.dart</code>）。</p>
+
+    <div class="sheet" style="padding:0;">
+      <table class="ref-table">
+        <thead>
+          <tr><th>类别</th><th>字段</th><th>取值</th></tr>
+        </thead>
+        <tbody>
+          <tr><td rowspan="6">块级类型<br><code>BlockType</code></td>
+              <td><code>paragraph</code></td><td>普通段落</td></tr>
+          <tr><td><code>heading</code></td><td>标题，level 1–6</td></tr>
+          <tr><td><code>quote</code></td><td>引用</td></tr>
+          <tr><td><code>listItem</code></td><td>列表项（ordered / task / unordered）</td></tr>
+          <tr><td><code>code</code></td><td>代码块，language</td></tr>
+          <tr><td><code>image / video / file</code></td><td>媒体块</td></tr>
+          <tr><td></td><td><code>table / divider / callout / embed</code></td><td>结构 / 提示 / 自定义嵌入</td></tr>
+
+          <tr><td rowspan="6">块级属性<br><code>BlockAttributes</code></td>
+              <td><code>level</code></td><td>1–6（仅 heading）</td></tr>
+          <tr><td><code>indent</code></td><td>0–8</td></tr>
+          <tr><td><code>alignment</code></td><td>left / center / right / justify</td></tr>
+          <tr><td><code>listType</code></td><td>ordered / task / null(=unordered)</td></tr>
+          <tr><td><code>checked</code></td><td>bool（task 列表）</td></tr>
+          <tr><td><code>childNote / anchor</code></td><td>批注 / 锚点</td></tr>
+
+          <tr><td rowspan="8">行内属性<br><code>TextAttributes</code></td>
+              <td><code>bold / italic</code></td><td>bool · 加粗 / 斜体</td></tr>
+          <tr><td><code>underline / lineThrough</code></td><td>bool · 下划线 / 删除线</td></tr>
+          <tr><td><code>remark</code></td><td>bool · 批注标记</td></tr>
+          <tr><td><code>color</code></td><td>int (ARGB) · 文字颜色</td></tr>
+          <tr><td><code>background</code></td><td>int (ARGB) · 高亮背景</td></tr>
+          <tr><td><code>fontSize</code></td><td>double · 字号</td></tr>
+          <tr><td><code>fontFamily</code></td><td>String · 字体</td></tr>
+          <tr><td><code>url</code></td><td>String · 超链接</td></tr>
+          <tr><td></td><td><code>commentIds / revisionIds</code></td><td>List&lt;String&gt; · 批注 / 修订锚</td></tr>
+
+          <tr><td rowspan="2">行内嵌入<br><code>InlineEmbed</code></td>
+              <td><code>mention</code></td><td>id / label</td></tr>
+          <tr><td><code>formula / emoji / image</code></td><td>对应 LaTeX / 表情 / 行内图</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="footer">
+    Wenz RichText Editor · 设计稿生成于 <code>ui/richtext_design.html</code> · 元素与属性对齐 <code>lib/src/core/model</code>
+  </footer>
+
+</div>
+</body>
+</html>

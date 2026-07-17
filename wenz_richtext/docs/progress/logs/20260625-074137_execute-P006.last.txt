@@ -1,0 +1,12 @@
+**已完成**
+- `lib/src/widgets/wenz_rich_text_editor.dart:6262` 起重做了视频默认占位：黑底、圆角阴影、居中播放按钮、封面/标题兜底都保留，resolver 接管时仍走原注入链路。
+- `lib/src/widgets/wenz_rich_text_editor.dart:7228` 和 `:7480` 起把文件/图片块改成更贴近设计稿的默认展示：文件卡片支持 `40x40` 类型徽标、元信息/大小/状态分区、hover/focus 边框；图片块改成居中 figure 风格、支持显示尺寸、圆角阴影和 `13px` caption。
+- `lib/src/widgets/wenz_rich_text_editor.dart:6436`、`:6493`、`:6777`、`:6880` 起把通用 block embed / formula 改成虚线卡片 + chip + fallbackText 兜底，公式块改为浅紫背景、数学字体、更大字号。
+- `lib/src/widgets/media_resolver.dart:10` 更新了注释，说明默认回退已经是 figure / preview / card chrome。
+- `test/widgets/media_resolver_test.dart:122`、`:164`、`:300` 补了图片、文件、通用 embed / formula 的回归断言；`test/widgets/editor_golden_test.dart:10` 增加了设计基线冒烟测试。  
+
+**验证**
+- `flutter test test/widgets/media_resolver_test.dart`
+- `flutter test test/widgets/editor_golden_test.dart --plain-name "design baseline maps default renderer coverage and tokens"`
+
+- 这次没有更新 golden PNG，留给后续的视觉回归任务处理。

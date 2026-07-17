@@ -1,0 +1,5 @@
+**Fixed**
+- Cleaned the analyzer warnings in `lib/src/widgets/wenz_rich_text_editor.dart` by making the play button and media padding const (`:6377`, `:7568`) and const-ifying the syntax palette (`:8490`).
+- Removed the remaining warnings by passing explicit dashed-border painter values at the call site (`:6867`) and an explicit `dense: false` for `_ObjectBlockCard` (`:6662`).
+- Verified with `flutter analyze` — no issues found.
+

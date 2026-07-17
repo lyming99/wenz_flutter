@@ -1,0 +1,69 @@
+{
+  "title": "修复视频首击播放与全屏展示",
+  "summary": "反馈 #1 包含两个相互关联的视频交互缺陷。当前内嵌视频由 `MediaResolver` 注入播放器，外层 `SelectionGestureOverlay`、对象块选中重建和播放器自身的异步播放状态共同参与首击处理，需要保证第一次点击直接到达并稳定驱动播放器；当前 `_showVideoPreview` 虽已将 `Dialog` 与示例播放器圆角设为零，但仍受默认 dialog inset 以及 `maxWidth: 720`、`maxHeight: 560` 限制，因此并非真正全屏。修复应保留正文内视频块的圆角、选中描边和对象工具栏，同时让预览播放面覆盖整个视口、各层均无圆角，并补齐真实首击与全屏几何回归覆盖。",
+  "tasks": [
+    {
+      "title": "修复内嵌视频首击事件路由与播放器实例稳定性",
+      "scope": [
+        "lib/src/widgets/wenz_rich_text_editor.dart",
+        "lib/src/widgets/selection_gesture_overlay.dart",
+        "lib/src/widgets/media_resolver.dart",
+        "test/widgets/wenz_rich_text_editor_test.dart",
+        "test/widgets/media_resolver_test.dart"
+      ],
+      "acceptance": [
+        "未选中的 `VideoBlockNode` 通过 `MediaResolver` 渲染交互式播放器时，鼠标或触控在画面中央、播放按钮等播放器交互区域点击一次，即可触发子播放器的播放回调，不需要先用第一次点击选中视频块。",
+        "同一次 pointer 序列不会因对象块选中、工具栏显示或编辑器重建而替换或销毁 inline resolver 播放器实例，首击产生的播放状态能够保留。",
+        "点击视频 frame 的非交互区域仍可选中对象块并显示现有选中描边和悬浮工具栏；拖选、Shift 扩展选择、右键菜单、滚动和双击预览不被误判为播放点击。",
+        "inline 与全屏位置继续各自构建独立 resolver 子树，不共享 `GlobalKey` 或播放器实例；resolver 返回 `null`、抛错和内置占位场景保持原有降级行为。",
+        "回归用例以可记录首击和内部状态的 resolver 播放器覆盖未选中与已选中视频，断言单次点击生效，并保护普通视频对象选择与预览入口。"
+      ]
+    },
+    {
+      "title": "校准示例视频播放器的首次播放状态机与控件命中",
+      "scope": [
+        "example/lib/example_video_player.dart",
+        "example/lib/main.dart",
+        "example/test/widget_test.dart"
+      ],
+      "acceptance": [
+        "`ExampleVideoPlayer` 完成初始化且无错误时，第一次点击中央播放层或底部播放按钮就进入播放状态，不出现第一次只唤醒、准备或立即回退而必须再次点击的情况。",
+        "播放、暂停、播放结束后从头重播以及快速连续点击使用一致的异步状态控制，不因 `playOrPause` 与 playing/completed 流更新时序产生反向切换或重复命令。",
+        "进度条、静音按钮和音量滑块完整占有自身命中区域，拖动或点击这些控件不会穿透到画面播放层并额外切换播放状态。",
+        "初始化中、缓冲、空 source、打开失败和播放器销毁场景继续安全降级，无未捕获异步异常；asset、network、file 三类来源分发保持可用。",
+        "示例层回归覆盖播放器构造模式、首击播放命令和控制条命中边界，且不依赖真实网络资源才能验证交互状态。"
+      ]
+    },
+    {
+      "title": "将视频预览改为铺满视口的无圆角全屏播放面",
+      "scope": [
+        "lib/src/widgets/wenz_rich_text_editor.dart",
+        "lib/src/widgets/media_resolver.dart",
+        "example/lib/example_video_player.dart",
+        "example/lib/main.dart",
+        "test/widgets/media_resolver_test.dart",
+        "test/widgets/wenz_rich_text_editor_test.dart",
+        "example/test/widget_test.dart",
+        "docs/rendering.md"
+      ],
+      "acceptance": [
+        "从视频对象工具栏或双击入口打开预览时，全屏路由的黑色播放面覆盖完整视口，移除当前 `Dialog` 默认 inset 和 `720×560` 最大尺寸限制；视频按安全宽高比在全屏播放面内显示，允许以黑边保持比例但不能残留外部弹窗边距。",
+        "全屏路由、背景容器、视频 frame、resolver 边界和示例播放器根部均使用零圆角、无圆角裁剪，四角与视口边缘贴合；正文内嵌视频仍保留 `_kMediaCornerRadius`、阴影和贴合 frame 的选中描边。",
+        "全屏状态提供明确且可访问的退出方式，并保持路由返回、Escape/系统返回和语义标签可用，不因取消普通弹窗外框而失去关闭能力。",
+        "自定义 resolver 播放器、内置占位、resolver 返回 `null` 或抛错时都获得有限的全屏约束，不出现无限尺寸、溢出、空白崩溃或重新带入内嵌圆角。",
+        "回归用例在不同测试视口下断言全屏播放面矩形与视口一致、无 `ClipRRect`/圆角 shape、dialog resolver entry 独立存在，同时保护内嵌视频的圆角和有限尺寸。",
+        "媒体渲染文档明确区分 inline 圆角 frame 与全屏零圆角视口，并说明 resolver 会按渲染位置获得独立子树和有限约束。"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter analyze && flutter test && cd example && flutter analyze && flutter test",
+    "criteria": [
+      "根包与 example 静态分析均通过，没有新增 analyzer error 或 warning；根包和 example 全量测试命令退出码均为 0。",
+      "内嵌真实播放器在未选中和已选中视频块中均可通过第一次点击开始播放，播放状态不会被选区或工具栏重建重置。",
+      "中央播放层、底部播放按钮、进度条、静音和音量控件的命中互不穿透，暂停、重播、缓冲和错误降级行为正常。",
+      "视频全屏播放面覆盖完整测试视口，不受原有 `720×560` 或 dialog inset 限制，所有全屏层均为直角且有可访问的退出路径。",
+      "正文内视频圆角、选中描边、对象工具栏、双击预览、resolver inline/dialog 隔离、占位和异常 fallback 均无回归。"
+    ]
+  }
+}

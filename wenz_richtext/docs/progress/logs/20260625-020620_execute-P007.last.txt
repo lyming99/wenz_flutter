@@ -1,0 +1,10 @@
+**P007 已完成**
+- 修复表格边框绘制：单元格不再 `Border.all` 四边重复画，改为共享边只由一侧绘制，外侧边补齐：`lib/src/widgets/wenz_rich_text_editor.dart:3749`
+- 增加合并单元格外缘判断所需的 `rowSpan`/`columnSpan` 指标：`lib/src/widgets/wenz_rich_text_editor.dart:4219`
+- 新增最小 widget 回归，验证内部横线/竖线只分配给一个单元格绘制：`test/widgets/wenz_rich_text_editor_test.dart:1006`
+- 已更新计划勾选、进度区和 P007 验证记录：`docs/plan/plan_feedback_2_20260625-004108.md:58`
+
+**验证**
+- 已运行 `dart format lib\src\widgets\wenz_rich_text_editor.dart test\widgets\wenz_rich_text_editor_test.dart`
+- 已运行 `flutter test test\widgets\wenz_rich_text_editor_test.dart --name "table cell borders paint shared grid lines once" --reporter expanded`，1 项通过
+- 已运行 `git diff --check -- ...`，未发现空白问题

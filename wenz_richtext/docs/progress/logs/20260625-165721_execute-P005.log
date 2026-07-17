@@ -1,0 +1,2895 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efdff-842e-7a21-b329-5f91878a371d
+--------
+user
+你是开发执行者。
+请只执行指定任务 P005，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_6_20260625-035040.md
+指定任务：
+- [ ] P005: 保持表格操作与生命周期一致 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/core/commands/table_commands.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+任务 scope：lib/src/widgets/wenz_rich_text_editor.dart, lib/src/widgets/table_floating_toolbar_overlay.dart, lib/src/core/commands/table_commands.dart, test/widgets/wenz_rich_text_editor_test.dart
+
+完成后必须：
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 如需测试，只运行与当前任务直接相关的最小测试集，不要运行全量测试或与本任务无关的测试
+- 只有当前任务本身明确要求全量验证时，才允许运行全量测试
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+**Modifying code for task P005**
+
+I'm looking into modifying code in the repo for task P005. I need to inspect without changing the plan. There’s some mention of AGENTS—should I check if it’s included? Since we're working in the current directory, I’ll inspect the necessary files. This task seems nontrivial and may involve multiple files, so I’ll figure out the plan and potentially incorporate a preamble in Chinese. The user has requested that I focus only on executing task P005, so I need to be clear on the scope.
+**Preparing to update the plan**
+
+I plan to read the AGENTS and the scoped files or plan that are relevant. I might also check codegraph to ensure I'm modifying only the specified files. It seems I don't need to modify the plan itself. I could potentially work on tests directly from the test file. Oh, and considering a Chinese response sounds important, too. I think I'll carry out an update of the plan concisely to keep things clear and focused.
+codex
+我会只围绕 P005 建立最小执行计划，并先读取约束与相关代码。
+  → 读取 P005 上下文
+  • 定位生命周期问题
+  • 修复限定范围文件
+  • 运行最小相关测试
+codex
+先检查仓库指引、P005 描述和这几个 scoped 文件。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop';
+Write-Host '--- AGENTS ---';
+Get-ChildItem -Path . -Filter AGENTS.md -Recurse -Force | ForEach-Object { Write-Host "'$_.FullName; Get-Content -LiteralPath $_.FullName -Encoding UTF8 | Select-Object -First 200 };
+Write-Host '"'--- P005 PLAN CONTEXT ---';
+Select-String -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_richtext\\docs\\plan\\plan_feedback_6_20260625-035040.md' -Pattern 'P005|表格操作|生命周期' -Context 4,12;
+Write-Host '--- FILES ---';
+Get-Item 'lib/src/widgets/wenz_rich_text_editor.dart','lib/src/widgets/table_floating_toolbar_overlay.dart','lib/src/core/commands/table_commands.dart','test/widgets/wenz_rich_text_editor_test.dart' | Select-Object FullName,Length" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 384ms:
+--- AGENTS ---
+--- P005 PLAN CONTEXT ---
+
+  docs\plan\plan_feedback_6_20260625-035040.md:9:表格悬浮工具栏，应该使用系统悬浮overlay实现，目前存在事件穿透问题
+  docs\plan\plan_feedback_6_20260625-035040.md:10:
+  docs\plan\plan_feedback_6_20260625-035040.md:11:## 需求理解
+  docs\plan\plan_feedback_6_20260625-035040.md:12:- 当前表格悬浮工具栏仍依赖表格渲染树内部的浮动定位，容易受到父级 `Stack`、裁剪、命中测试范围和选区手势层影响，导致点击工具栏时事
+件继续穿透到底层表格或编辑器。
+> docs\plan\plan_feedback_6_20260625-035040.md:13:- 本次目标是将表格工具栏迁移为 Flutter 系统浮层能力承载的 overlay，例如 `OverlayEntry` / `Overl
+ayPortal` / `CompositedTransformFollower` 方案，让工具栏在独立浮层中完成定位、命中测试和生命周期管理。
+  docs\plan\plan_feedback_6_20260625-035040.md:14:- 修复重点是事件不穿透、定位稳定、滚动跟随、选区变化自动刷新，以及现有表格命令能力不回归。
+  docs\plan\plan_feedback_6_20260625-035040.md:15:- 本次不调整表格数据模型、命令语义、导入导出协议和列宽拖拽逻辑，除非为 overlay 锚点和状态同步提供必要的渲染层适配。
+  docs\plan\plan_feedback_6_20260625-035040.md:16:
+  docs\plan\plan_feedback_6_20260625-035040.md:17:## 任务计划
+  docs\plan\plan_feedback_6_20260625-035040.md:18:- [x] P001: 复现并界定工具栏事件穿透 <!-- scope: lib/src/widgets/wenz_rich_text_e
+ditor.dart,lib/src/widgets/selection_gesture_overlay.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  docs\plan\plan_feedback_6_20260625-035040.md:19:  - 验收要点：明确当前工具栏点击后会穿透到表格单元格、文本选区、拖拽手势或编辑器空白区域的最小复现场景。
+  docs\plan\plan_feedback_6_20260625-035040.md:20:  - 验收要点：记录穿透发生时的命中测试链路、工具栏所在渲染层、父级尺寸/裁剪约束和选区手势层关系。
+  docs\plan\plan_feedback_6_20260625-035040.md:21:  - 验收要点：确认问题修复范围限定在表格工具栏浮层、定位和事件拦截，不改变表格命令、文档模型和序列化结构。
+  docs\plan\plan_feedback_6_20260625-035040.md:22:
+  docs\plan\plan_feedback_6_20260625-035040.md:23:- [x] P002: 设计系统 Overlay 承载结构 <!-- scope: lib/src/widgets/wenz_rich_t
+ext_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/widgets/block_renderer_registry.dart -->
+  docs\plan\plan_feedback_6_20260625-035040.md:24:  - 验收要点：确定表格工具栏由编辑器级 overlay 宿主管理，而不是继续作为表格 `Stack` 的负偏移子节点显示。
+  docs\plan\plan_feedback_6_20260625-035040.md:25:  - 验收要点：定义表格锚点、选区范围、工具栏 action 回调、可用状态和关闭条件的数据传递方式，避免 renderer 与 ove
+rlay 状态双向耦合。
+  docs\plan\plan_feedback_6_20260625-035040.md:34:  - 验收要点：工具栏背景、按钮、分隔线和空白填充区域均有明确命中测试策略，点击和拖动不会继续触发表格选区、单元格聚焦或文本选择。
+  docs\plan\plan_feedback_6_20260625-035040.md:35:  - 验收要点：工具栏按钮点击只触发对应 `TableToolbarActionIntent` 一次，不额外产生底层 tap、long 
+press、drag 或 selection change。
+  docs\plan\plan_feedback_6_20260625-035040.md:36:  - 验收要点：工具栏之外的编辑器区域仍可正常点击、拖选、滚动和唤起表格选区，不因 overlay 引入全屏遮罩阻塞正常交互。
+  docs\plan\plan_feedback_6_20260625-035040.md:37:
+> docs\plan\plan_feedback_6_20260625-035040.md:38:- [ ] P005: 保持表格操作与生命周期一致 <!-- scope: lib/src/widgets/wenz_rich_text_
+editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/core/commands/table_commands.dart,test/widgets/
+wenz_rich_text_editor_test.dart -->
+  docs\plan\plan_feedback_6_20260625-035040.md:39:  - 验收要点：插入/删除行列、切换表头、设置/清除背景色、列对齐、合并/拆分单元格、重置列宽等原有工具栏操作行为不回归。
+  docs\plan\plan_feedback_6_20260625-035040.md:40:  - 验收要点：工具栏 action 执行后，表格选区、焦点、撤销/重做、文档变更通知和 overlay 刷新顺序保持一致，不出现 st
+ale range 或空引用。
+  docs\plan\plan_feedback_6_20260625-035040.md:41:  - 验收要点：多表格文档中只显示当前活动表格的工具栏，选区跨表格或表格被删除后 overlay 自动关闭。
+  docs\plan\plan_feedback_6_20260625-035040.md:42:
+  docs\plan\plan_feedback_6_20260625-035040.md:43:- [ ] P006: 补充自动化与手工验收记录 <!-- scope: test/widgets/wenz_rich_text_edit
+or_test.dart,docs/acceptance_manual_checklist.md,docs/plan/plan_feedback_6_20260625-035040.md -->
+  docs\plan\plan_feedback_6_20260625-035040.md:44:  - 验收要点：新增或更新 widget 测试，覆盖工具栏显示于 overlay、按钮点击不穿透、点击工具栏外仍能编辑、滚动后工具栏跟随
+、选区取消后 overlay 消失。
+  docs\plan\plan_feedback_6_20260625-035040.md:45:  - 验收要点：执行 `flutter analyze`、相关 widget 测试和必要的回归测试；若存在失败，需区分本次改动导致失败与
+既有失败。
+  docs\plan\plan_feedback_6_20260625-035040.md:46:  - 验收要点：在本计划进度区记录每个任务的完成范围、验证命令、验证结果、遗留风险和后续建议。
+  docs\plan\plan_feedback_6_20260625-035040.md:47:
+  docs\plan\plan_feedback_6_20260625-035040.md:48:## 总体验收标准
+  docs\plan\plan_feedback_6_20260625-035040.md:49:- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
+  docs\plan\plan_feedback_6_20260625-035040.md:50:- 表格悬浮工具栏使用系统 overlay 方案承载，不再依赖表格内部负偏移浮动节点来模拟悬浮效果。
+  docs\plan\plan_feedback_6_20260625-035040.md:57:- 当前状态：计划已创建，P001-P006 待开发执行。
+  docs\plan\plan_feedback_6_20260625-035040.md:58:- 当前负责人：待分配。
+  docs\plan\plan_feedback_6_20260625-035040.md:59:- 下一步：从 P001 开始复现并记录表格工具栏事件穿透的命中测试链路。
+  docs\plan\plan_feedback_6_20260625-035040.md:60:- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
+> docs\plan\plan_feedback_6_20260625-035040.md:61:- 风险记录：系统 overlay 迁移会改变工具栏所在渲染树，需重点关注焦点保持、选区刷新、滚动跟随、测试定位和 overlay 生命周
+期清理。
+  docs\plan\plan_feedback_6_20260625-035040.md:62:- P001 AutoPlan 完成：2026-06-24T20:01:25.268Z；日志：docs/progress/logs/202
+60625-035238_execute-P001.log
+  docs\plan\plan_feedback_6_20260625-035040.md:63:- P002 AutoPlan 完成：2026-06-25T06:15:27.920Z；日志：docs/progress/logs/202
+60625-141120_execute-P002.log
+  docs\plan\plan_feedback_6_20260625-035040.md:64:- P003 AutoPlan 完成：2026-06-25T06:39:51.664Z；日志：docs/progress/logs/202
+60625-143432_execute-P003.log
+  docs\plan\plan_feedback_6_20260625-035040.md:65:- P004 AutoPlan 完成：2026-06-25T06:48:07.109Z；日志：docs/progress/logs/202
+60625-143957_execute-P004.log
+--- FILES ---
+
+FullName : D:\project\GitHub\wenz_flutter\wenz_richtext\lib\src\widgets\wenz_rich_text_editor.dart
+Length   : 329022
+
+
+FullName : D:\project\GitHub\wenz_flutter\wenz_richtext\lib\src\widgets\table_floating_toolbar_overlay.dart
+Length   : 13973
+
+
+FullName : D:\project\GitHub\wenz_flutter\wenz_richtext\lib\src\core\commands\table_commands.dart
+Length   : 23847
+
+
+FullName : D:\project\GitHub\wenz_flutter\wenz_richtext\test\widgets\wenz_rich_text_editor_test.dart
+Length   : 270313
+
+
+
+
+**Inspecting code**
+
+I need to inspect some code, and I'm thinking about using `codegraph_explore` first since it suggests calling FIRST for many questions. Even though I’ve already done some shell commands, I think using `codegraph` could really help. I’ll need to check for relevant symbols as I do this. Maybe I should also consider checking the `.codegraph` health to ensure everything is functioning properly. Let’s get started with that!
+codex
+P005 验收点明确了；接下来定位 overlay 生命周期和表格命令链路。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+codex
+我会用关键词查找现有实现，避免读取整份大文件。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop';
+rg -n \"TableFloatingToolbar|TableToolbarAction|table toolbar|toolbarBuilder|updateAnchor|hide\\(|show\\(|TableSelection|selectedTable|tableSelection|_table\" lib/src/widgets/wenz_rich_text_editor.dart lib/src/widgets/table_floating_toolbar_overlay.dart lib/src/core/commands/table_commands.dart test/widgets/wenz_rich_text_editor_test.dart" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 201ms:
+lib/src/core/commands/table_commands.dart:129:      selection: _tableSelectionAfterColumnInserted(
+lib/src/core/commands/table_commands.dart:172:      selection: _tableSelectionAfterRowDeleted(
+lib/src/core/commands/table_commands.dart:224:      selection: _tableSelectionAfterColumnDeleted(
+lib/src/core/commands/table_commands.dart:639:    selection: _tableSelectionAfterRowInserted(
+lib/src/core/commands/table_commands.dart:702:DocumentSelection? _tableSelectionAfterRowInserted(
+lib/src/core/commands/table_commands.dart:709:  return _mapTableSelection(
+lib/src/core/commands/table_commands.dart:719:DocumentSelection? _tableSelectionAfterColumnInserted(
+lib/src/core/commands/table_commands.dart:726:  return _mapTableSelection(
+lib/src/core/commands/table_commands.dart:737:DocumentSelection? _tableSelectionAfterRowDeleted(
+lib/src/core/commands/table_commands.dart:744:  return _mapTableSelection(
+lib/src/core/commands/table_commands.dart:754:DocumentSelection? _tableSelectionAfterColumnDeleted(
+lib/src/core/commands/table_commands.dart:761:  return _mapTableSelection(
+lib/src/core/commands/table_commands.dart:772:DocumentSelection? _mapTableSelection(
+lib/src/widgets/table_floating_toolbar_overlay.dart:8:/// Builds the visible table toolbar for an overlay request.
+lib/src/widgets/table_floating_toolbar_overlay.dart:9:typedef TableFloatingToolbarOverlayBuilder = Widget Function(
+lib/src/widgets/table_floating_toolbar_overlay.dart:14:typedef TableFloatingToolbarOverlayRequestBuilder
+lib/src/widgets/table_floating_toolbar_overlay.dart:15:    = TableFloatingToolbarOverlayRequest Function({
+lib/src/widgets/table_floating_toolbar_overlay.dart:25:/// editor owns [TableFloatingToolbarOverlayHost], which renders this payload with
+lib/src/widgets/table_floating_toolbar_overlay.dart:31:class TableFloatingToolbarOverlayRequest {
+lib/src/widgets/table_floating_toolbar_overlay.dart:32:  const TableFloatingToolbarOverlayRequest({
+lib/src/widgets/table_floating_toolbar_overlay.dart:40:    required this.toolbarBuilder,
+lib/src/widgets/table_floating_toolbar_overlay.dart:70:  final TableFloatingToolbarOverlayBuilder toolbarBuilder;
+lib/src/widgets/table_floating_toolbar_overlay.dart:85:/// Last known geometry for a rendered table toolbar anchor.
+lib/src/widgets/table_floating_toolbar_overlay.dart:87:class TableFloatingToolbarAnchorSnapshot {
+lib/src/widgets/table_floating_toolbar_overlay.dart:88:  const TableFloatingToolbarAnchorSnapshot({
+lib/src/widgets/table_floating_toolbar_overlay.dart:105:/// Editor-owned controller for the active table toolbar overlay request.
+lib/src/widgets/table_floating_toolbar_overlay.dart:106:class TableFloatingToolbarOverlayController extends ChangeNotifier {
+lib/src/widgets/table_floating_toolbar_overlay.dart:107:  TableFloatingToolbarOverlayRequest? _request;
+lib/src/widgets/table_floating_toolbar_overlay.dart:108:  final Map<String, TableFloatingToolbarAnchorSnapshot> _anchors =
+lib/src/widgets/table_floating_toolbar_overlay.dart:109:      <String, TableFloatingToolbarAnchorSnapshot>{};
+lib/src/widgets/table_floating_toolbar_overlay.dart:111:  TableFloatingToolbarOverlayRequest? get request => _request;
+lib/src/widgets/table_floating_toolbar_overlay.dart:113:  TableFloatingToolbarAnchorSnapshot? anchorFor(
+lib/src/widgets/table_floating_toolbar_overlay.dart:125:  void updateAnchor(TableFloatingToolbarAnchorSnapshot anchor) {
+lib/src/widgets/table_floating_toolbar_overlay.dart:131:    hide(owner: owner);
+lib/src/widgets/table_floating_toolbar_overlay.dart:134:  void show(TableFloatingToolbarOverlayRequest request) {
+lib/src/widgets/table_floating_toolbar_overlay.dart:139:  void hide({Object? owner}) {
+lib/src/widgets/table_floating_toolbar_overlay.dart:152:/// Editor-level host that renders table toolbar requests into the system overlay.
+lib/src/widgets/table_floating_toolbar_overlay.dart:153:class TableFloatingToolbarOverlayHost extends StatefulWidget {
+lib/src/widgets/table_floating_toolbar_overlay.dart:154:  const TableFloatingToolbarOverlayHost({
+lib/src/widgets/table_floating_toolbar_overlay.dart:160:  final TableFloatingToolbarOverlayController controller;
+lib/src/widgets/table_floating_toolbar_overlay.dart:164:  State<TableFloatingToolbarOverlayHost> createState() =>
+lib/src/widgets/table_floating_toolbar_overlay.dart:165:      _TableFloatingToolbarOverlayHostState();
+lib/src/widgets/table_floating_toolbar_overlay.dart:168:class _TableFloatingToolbarOverlayHostState
+lib/src/widgets/table_floating_toolbar_overlay.dart:169:    extends State<TableFloatingToolbarOverlayHost> {
+lib/src/widgets/table_floating_toolbar_overlay.dart:171:  TableFloatingToolbarOverlayRequest? _request;
+lib/src/widgets/table_floating_toolbar_overlay.dart:182:  void didUpdateWidget(covariant TableFloatingToolbarOverlayHost oldWidget) {
+lib/src/widgets/table_floating_toolbar_overlay.dart:197:      _portalController.hide();
+lib/src/widgets/table_floating_toolbar_overlay.dart:211:        return _TableFloatingToolbarOverlayEntry(request: request);
+lib/src/widgets/table_floating_toolbar_overlay.dart:243:        _portalController.show();
+lib/src/widgets/table_floating_toolbar_overlay.dart:246:      _portalController.hide();
+lib/src/widgets/table_floating_toolbar_overlay.dart:252:/// leaving overlay ownership with [TableFloatingToolbarOverlayHost].
+lib/src/widgets/table_floating_toolbar_overlay.dart:253:class TableFloatingToolbarOverlayAnchor extends StatefulWidget {
+lib/src/widgets/table_floating_toolbar_overlay.dart:254:  const TableFloatingToolbarOverlayAnchor({
+lib/src/widgets/table_floating_toolbar_overlay.dart:263:  final TableFloatingToolbarOverlayController? controller;
+lib/src/widgets/table_floating_toolbar_overlay.dart:264:  final TableFloatingToolbarOverlayRequestBuilder? requestBuilder;
+lib/src/widgets/table_floating_toolbar_overlay.dart:270:  State<TableFloatingToolbarOverlayAnchor> createState() =>
+lib/src/widgets/table_floating_toolbar_overlay.dart:271:      _TableFloatingToolbarOverlayAnchorState();
+lib/src/widgets/table_floating_toolbar_overlay.dart:274:class _TableFloatingToolbarOverlayAnchorState
+lib/src/widgets/table_floating_toolbar_overlay.dart:275:    extends State<TableFloatingToolbarOverlayAnchor>
+lib/src/widgets/table_floating_toolbar_overlay.dart:290:  void didUpdateWidget(covariant TableFloatingToolbarOverlayAnchor oldWidget) {
+lib/src/widgets/table_floating_toolbar_overlay.dart:366:    controller.updateAnchor(
+lib/src/widgets/table_floating_toolbar_overlay.dart:367:      TableFloatingToolbarAnchorSnapshot(
+lib/src/widgets/table_floating_toolbar_overlay.dart:378:      controller.hide(owner: _owner);
+lib/src/widgets/table_floating_toolbar_overlay.dart:381:    controller.show(
+lib/src/widgets/table_floating_toolbar_overlay.dart:403:class _TableFloatingToolbarOverlayEntry extends StatefulWidget {
+lib/src/widgets/table_floating_toolbar_overlay.dart:404:  const _TableFloatingToolbarOverlayEntry({required this.request});
+lib/src/widgets/table_floating_toolbar_overlay.dart:406:  final TableFloatingToolbarOverlayRequest request;
+lib/src/widgets/table_floating_toolbar_overlay.dart:409:  State<_TableFloatingToolbarOverlayEntry> createState() =>
+lib/src/widgets/table_floating_toolbar_overlay.dart:410:      _TableFloatingToolbarOverlayEntryState();
+lib/src/widgets/table_floating_toolbar_overlay.dart:413:class _TableFloatingToolbarOverlayEntryState
+lib/src/widgets/table_floating_toolbar_overlay.dart:414:    extends State<_TableFloatingToolbarOverlayEntry> {
+lib/src/widgets/table_floating_toolbar_overlay.dart:448:              child: request.toolbarBuilder(context),
+test/widgets/wenz_rich_text_editor_test.dart:2574:        selection: _tableCellSelection(),
+test/widgets/wenz_rich_text_editor_test.dart:3135:      selection: _tableCellSelection(),
+test/widgets/wenz_rich_text_editor_test.dart:3442:    controller.setSelection(_tableCellSelection());
+test/widgets/wenz_rich_text_editor_test.dart:3463:      selection: _tableCellSelection(),
+test/widgets/wenz_rich_text_editor_test.dart:3508:      selection: _tableCellSelection(),
+test/widgets/wenz_rich_text_editor_test.dart:3766:    final headerBackground = _tableCellBackgroundBox(
+test/widgets/wenz_rich_text_editor_test.dart:3777:    final stripedBackground = _tableCellBackgroundBox(
+test/widgets/wenz_rich_text_editor_test.dart:3788:    final customBackground = _tableCellBackgroundBox(
+test/widgets/wenz_rich_text_editor_test.dart:3805:      selection: _tableCellSelection(),
+test/widgets/wenz_rich_text_editor_test.dart:8468:DocumentSelection _tableCellSelection() {
+test/widgets/wenz_rich_text_editor_test.dart:8495:DecoratedBox _tableCellBackgroundBox(
+lib/src/widgets/wenz_rich_text_editor.dart:67:const double _kTableFloatingToolbarGap = 4.0;
+lib/src/widgets/wenz_rich_text_editor.dart:68:const double _kTableFloatingToolbarEstimatedHeight = 56.0;
+lib/src/widgets/wenz_rich_text_editor.dart:523:  late final TableFloatingToolbarOverlayController
+lib/src/widgets/wenz_rich_text_editor.dart:524:      _tableToolbarOverlayController = TableFloatingToolbarOverlayController();
+lib/src/widgets/wenz_rich_text_editor.dart:690:    _tableToolbarOverlayController.hide();
+lib/src/widgets/wenz_rich_text_editor.dart:691:    _tableToolbarOverlayController.dispose();
+lib/src/widgets/wenz_rich_text_editor.dart:795:    final request = _tableToolbarRequestForCurrentSelection();
+lib/src/widgets/wenz_rich_text_editor.dart:797:      _tableToolbarOverlayController.hide();
+lib/src/widgets/wenz_rich_text_editor.dart:800:    _tableToolbarOverlayController.show(request);
+lib/src/widgets/wenz_rich_text_editor.dart:803:  TableFloatingToolbarOverlayRequest?
+lib/src/widgets/wenz_rich_text_editor.dart:804:      _tableToolbarRequestForCurrentSelection() {
+lib/src/widgets/wenz_rich_text_editor.dart:812:    final tableBlock = _tableBlockAt(tableRange.blockIndex);
+lib/src/widgets/wenz_rich_text_editor.dart:822:    final anchor = _tableToolbarOverlayController.anchorFor(
+lib/src/widgets/wenz_rich_text_editor.dart:829:    return TableFloatingToolbarOverlayRequest(
+lib/src/widgets/wenz_rich_text_editor.dart:838:      gap: _kTableFloatingToolbarGap,
+lib/src/widgets/wenz_rich_text_editor.dart:839:      fallbackHeight: _kTableFloatingToolbarEstimatedHeight,
+lib/src/widgets/wenz_rich_text_editor.dart:840:      toolbarBuilder: (context) => _TableFloatingToolbar(
+lib/src/widgets/wenz_rich_text_editor.dart:844:        onAction: _handleTableToolbarAction,
+lib/src/widgets/wenz_rich_text_editor.dart:1063:          onTableToolbarAction:
+lib/src/widgets/wenz_rich_text_editor.dart:1064:              widget.readOnly ? null : _handleTableToolbarAction,
+lib/src/widgets/wenz_rich_text_editor.dart:1065:          tableToolbarOverlayController: _tableToolbarOverlayController,
+lib/src/widgets/wenz_rich_text_editor.dart:1133:            TableFloatingToolbarOverlayHost(
+lib/src/widgets/wenz_rich_text_editor.dart:1134:              controller: _tableToolbarOverlayController,
+lib/src/widgets/wenz_rich_text_editor.dart:1237:  void _handleTableToolbarAction(TableToolbarActionIntent intent) {
+lib/src/widgets/wenz_rich_text_editor.dart:1238:    final tableBlock = _tableBlockAt(intent.blockIndex);
+lib/src/widgets/wenz_rich_text_editor.dart:1250:      case TableToolbarAction.insertRowAbove:
+lib/src/widgets/wenz_rich_text_editor.dart:1256:      case TableToolbarAction.insertRowBelow:
+lib/src/widgets/wenz_rich_text_editor.dart:1262:      case TableToolbarAction.deleteRow:
+lib/src/widgets/wenz_rich_text_editor.dart:1264:          final current = _tableBlockAt(intent.blockIndex);
+lib/src/widgets/wenz_rich_text_editor.dart:1274:      case TableToolbarAction.insertColumnBefore:
+lib/src/widgets/wenz_rich_text_editor.dart:1280:      case TableToolbarAction.insertColumnAfter:
+lib/src/widgets/wenz_rich_text_editor.dart:1286:      case TableToolbarAction.deleteColumn:
+lib/src/widgets/wenz_rich_text_editor.dart:1290:          final current = _tableBlockAt(intent.blockIndex);
+lib/src/widgets/wenz_rich_text_editor.dart:1300:      case TableToolbarAction.toggleHeader:
+lib/src/widgets/wenz_rich_text_editor.dart:1315:      case TableToolbarAction.setBackgroundColor:
+lib/src/widgets/wenz_rich_text_editor.dart:1325:      case TableToolbarAction.clearBackgroundColor:
+lib/src/widgets/wenz_rich_text_editor.dart:1335:      case TableToolbarAction.alignLeft:
+lib/src/widgets/wenz_rich_text_editor.dart:1338:      case TableToolbarAction.alignCenter:
+lib/src/widgets/wenz_rich_text_editor.dart:1341:      case TableToolbarAction.alignRight:
+lib/src/widgets/wenz_rich_text_editor.dart:1344:      case TableToolbarAction.clearAlignment:
+lib/src/widgets/wenz_rich_text_editor.dart:1347:      case TableToolbarAction.mergeCells:
+lib/src/widgets/wenz_rich_text_editor.dart:1358:      case TableToolbarAction.splitCell:
+lib/src/widgets/wenz_rich_text_editor.dart:1365:      case TableToolbarAction.resetColumnWidth:
+lib/src/widgets/wenz_rich_text_editor.dart:1384:    final tableBlock = _tableBlockAt(blockIndex);
+lib/src/widgets/wenz_rich_text_editor.dart:1408:  TableBlockNode? _tableBlockAt(int blockIndex) {
+lib/src/widgets/wenz_rich_text_editor.dart:1419:    TableToolbarActionIntent intent,
+lib/src/widgets/wenz_rich_text_editor.dart:3268:    this.onTableToolbarAction,
+lib/src/widgets/wenz_rich_text_editor.dart:3298:  final TableToolbarActionHandler? onTableToolbarAction;
+lib/src/widgets/wenz_rich_text_editor.dart:3299:  final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+lib/src/widgets/wenz_rich_text_editor.dart:3354:        oldWidget.onTableToolbarAction != widget.onTableToolbarAction ||
+lib/src/widgets/wenz_rich_text_editor.dart:3396:      onTableToolbarAction: widget.onTableToolbarAction,
+lib/src/widgets/wenz_rich_text_editor.dart:3460:    this.onTableToolbarAction,
+lib/src/widgets/wenz_rich_text_editor.dart:3488:  final TableToolbarActionHandler? onTableToolbarAction;
+lib/src/widgets/wenz_rich_text_editor.dart:3489:  final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+lib/src/widgets/wenz_rich_text_editor.dart:3517:      onTableToolbarAction: onTableToolbarAction,
+lib/src/widgets/wenz_rich_text_editor.dart:4251:    onToolbarAction: rc.onTableToolbarAction,
+lib/src/widgets/wenz_rich_text_editor.dart:4309:    onToolbarAction: rc.onTableToolbarAction,
+lib/src/widgets/wenz_rich_text_editor.dart:4574:  final TableToolbarActionHandler? onToolbarAction;
+lib/src/widgets/wenz_rich_text_editor.dart:5304:  final TableToolbarActionHandler? onToolbarAction;
+lib/src/widgets/wenz_rich_text_editor.dart:5305:  final TableFloatingToolbarOverlayController? toolbarOverlayController;
+lib/src/widgets/wenz_rich_text_editor.dart:5327:            maxWidth: _tableMaxWidth(constraints, columnCount),
+lib/src/widgets/wenz_rich_text_editor.dart:5368:                                border: _tableCellBorder(
+lib/src/widgets/wenz_rich_text_editor.dart:5438:          return TableFloatingToolbarOverlayAnchor(
+lib/src/widgets/wenz_rich_text_editor.dart:5447:                    TableFloatingToolbarOverlayRequest(
+lib/src/widgets/wenz_rich_text_editor.dart:5456:                      gap: _kTableFloatingToolbarGap,
+lib/src/widgets/wenz_rich_text_editor.dart:5457:                      fallbackHeight: _kTableFloatingToolbarEstimatedHeight,
+lib/src/widgets/wenz_rich_text_editor.dart:5458:                      toolbarBuilder: (context) => _TableFloatingToolbar(
+lib/src/widgets/wenz_rich_text_editor.dart:5502:class _TableFloatingToolbar extends StatelessWidget {
+lib/src/widgets/wenz_rich_text_editor.dart:5503:  const _TableFloatingToolbar({
+lib/src/widgets/wenz_rich_text_editor.dart:5513:  final TableToolbarActionHandler onAction;
+lib/src/widgets/wenz_rich_text_editor.dart:5544:                action: TableToolbarAction.insertRowAbove,
+lib/src/widgets/wenz_rich_text_editor.dart:5549:                action: TableToolbarAction.insertRowBelow,
+lib/src/widgets/wenz_rich_text_editor.dart:5554:                action: TableToolbarAction.deleteRow,
+lib/src/widgets/wenz_rich_text_editor.dart:5561:                action: TableToolbarAction.insertColumnBefore,
+lib/src/widgets/wenz_rich_text_editor.dart:5566:                action: TableToolbarAction.insertColumnAfter,
+lib/src/widgets/wenz_rich_text_editor.dart:5571:                action: TableToolbarAction.deleteColumn,
+lib/src/widgets/wenz_rich_text_editor.dart:5578:                action: TableToolbarAction.toggleHeader,
+lib/src/widgets/wenz_rich_text_editor.dart:5583:                action: TableToolbarAction.setBackgroundColor,
+lib/src/widgets/wenz_rich_text_editor.dart:5589:                action: TableToolbarAction.clearBackgroundColor,
+lib/src/widgets/wenz_rich_text_editor.dart:5595:                action: TableToolbarAction.alignLeft,
+lib/src/widgets/wenz_rich_text_editor.dart:5600:                action: TableToolbarAction.alignCenter,
+lib/src/widgets/wenz_rich_text_editor.dart:5605:                action: TableToolbarAction.alignRight,
+lib/src/widgets/wenz_rich_text_editor.dart:5610:                action: TableToolbarAction.clearAlignment,
+lib/src/widgets/wenz_rich_text_editor.dart:5616:                action: TableToolbarAction.mergeCells,
+lib/src/widgets/wenz_rich_text_editor.dart:5622:                action: TableToolbarAction.splitCell,
+lib/src/widgets/wenz_rich_text_editor.dart:5628:                action: TableToolbarAction.resetColumnWidth,
+lib/src/widgets/wenz_rich_text_editor.dart:5640:    required TableToolbarAction action,
+lib/src/widgets/wenz_rich_text_editor.dart:5653:                TableToolbarActionIntent(
+lib/src/widgets/wenz_rich_text_editor.dart:5794:double _tableMaxWidth(BoxConstraints constraints, int columnCount) {
+lib/src/widgets/wenz_rich_text_editor.dart:5801:Border _tableCellBorder({
+lib/src/widgets/wenz_rich_text_editor.dart:5876:    final lefts = _tableOffsets(columnWidths);
+lib/src/widgets/wenz_rich_text_editor.dart:5877:    final tops = _tableOffsets(rowHeights);
+lib/src/widgets/wenz_rich_text_editor.dart:5977:  final text = _tableCellDisplayText(cell);
+lib/src/widgets/wenz_rich_text_editor.dart:5991:List<InlineNode> _tableCellInlineContent(TableCellNode? cell) {
+lib/src/widgets/wenz_rich_text_editor.dart:6003:String _tableCellDisplayText(TableCellNode cell) {
+lib/src/widgets/wenz_rich_text_editor.dart:6004:  final inline = _tableCellInlineContent(cell);
+lib/src/widgets/wenz_rich_text_editor.dart:6017:Color? _tableCellBackgroundColor({
+lib/src/widgets/wenz_rich_text_editor.dart:6046:List<double> _tableOffsets(List<double> sizes) {
+lib/src/widgets/wenz_rich_text_editor.dart:6181:    final inlineContent = _tableCellInlineContent(cell);
+lib/src/widgets/wenz_rich_text_editor.dart:6198:    final backgroundColor = _tableCellBackgroundColor(
+lib/src/widgets/wenz_rich_text_editor.dart:6246:      label: _tableCellSemanticsLabel(
+lib/src/widgets/wenz_rich_text_editor.dart:6279:String _tableCellSemanticsLabel({
+
+**Focusing on output management**
+
+I need to ensure my output is more focused and organized. I think I should use the Get-Content command along with line numbers to manage relevant lines. Utilizing a PowerShell function could help streamline this process. By structuring it better, I can make it clearer and easier to understand for the user. It feels important to keep things tidy and efficient in my output!
+codex
+找到了集中区域；现在查看控制器、渲染器和命令的关键片段。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop';
+function Show-Lines("'$Path,$Start,$End){
+  Write-Host "--- $Path:$Start-$End ---";
+  $i=0; Get-Content -LiteralPath $Path -Encoding UTF8 | ForEach-Object { $i++; if($i -ge $Start -and $i -le $End){ '"'{0,5}: {1}' -f "'$i,$_ } }
+}
+Show-Lines '"'lib/src/widgets/table_floating_toolbar_overlay.dart' 1 260;
+Show-Lines 'lib/src/widgets/table_floating_toolbar_overlay.dart' 260 520;
+Show-Lines 'lib/src/widgets/wenz_rich_text_editor.dart' 3330 3545;
+Show-Lines 'lib/src/widgets/wenz_rich_text_editor.dart' 4190 4335;
+Show-Lines 'lib/src/widgets/wenz_rich_text_editor.dart' 5270 5685;
+Show-Lines 'lib/src/core/commands/table_commands.dart' 1 260;
+Show-Lines 'lib/src/core/commands/table_commands.dart' 260 540;
+Show-Lines 'lib/src/core/commands/table_commands.dart' 540 835;" in D:\project\GitHub\wenz_flutter\wenz_richtext
+2026-06-25T08:58:11.651296Z ERROR codex_core::tools::router: error={"output":"At line:4 char:19\r\n+   Write-Host \"--- $Path:$Start-$End ---\";\r\n+                   ~~~~~~\r\nVariable reference is not valid. ':' was not followed by a valid variable name character. Consider using ${} to delimit\r\n the name.\r\n    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException\r\n    + FullyQualifiedErrorId : InvalidVariableReferenceWithDrive\r\n \r\n","metadata":{"exit_code":1,"duration_seconds":0.2}}
+ exited 1 in 236ms:
+At line:4 char:19
++   Write-Host "--- $Path:$Start-$End ---";
++                   ~~~~~~
+Variable reference is not valid. ':' was not followed by a valid variable name character. Consider using ${} to delimit
+ the name.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : InvalidVariableReferenceWithDrive
+ 
+
+codex
+上个命令只是字符串插值语法问题，马上重试读取相同片段。 
+
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop';
+function Show-Lines("'$Path,$Start,$End){
+  Write-Host ("--- {0}:{1}-{2} ---" -f $Path,$Start,$End);
+  $i=0; Get-Content -LiteralPath $Path -Encoding UTF8 | ForEach-Object { $i++; if($i -ge $Start -and $i -le $End){ '"'{0,5}: {1}' -f "'$i,$_ } }
+}
+Show-Lines '"'lib/src/widgets/table_floating_toolbar_overlay.dart' 1 260;
+Show-Lines 'lib/src/widgets/table_floating_toolbar_overlay.dart' 260 520;
+Show-Lines 'lib/src/widgets/wenz_rich_text_editor.dart' 3330 3545;
+Show-Lines 'lib/src/widgets/wenz_rich_text_editor.dart' 4190 4335;
+Show-Lines 'lib/src/widgets/wenz_rich_text_editor.dart' 5270 5685;
+Show-Lines 'lib/src/core/commands/table_commands.dart' 1 260;
+Show-Lines 'lib/src/core/commands/table_commands.dart' 260 540;
+Show-Lines 'lib/src/core/commands/table_commands.dart' 540 835;" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 726ms:
+--- lib/src/widgets/table_floating_toolbar_overlay.dart:1-260 ---
+    1: import 'dart:math' as math;
+    2: 
+    3: import 'package:flutter/material.dart';
+    4: import 'package:flutter/scheduler.dart';
+    5: 
+    6: import '../core/position/document_position.dart';
+    7: 
+    8: /// Builds the visible table toolbar for an overlay request.
+    9: typedef TableFloatingToolbarOverlayBuilder = Widget Function(
+   10:   BuildContext context,
+   11: );
+   12: 
+   13: /// Creates a request after the table anchor owns a [LayerLink] and global rect.
+   14: typedef TableFloatingToolbarOverlayRequestBuilder
+   15:     = TableFloatingToolbarOverlayRequest Function({
+   16:   required Object owner,
+   17:   required LayerLink anchorLink,
+   18:   required Rect anchorRect,
+   19:   required double visibleTop,
+   20: });
+   21: 
+   22: /// Immutable payload sent from a table renderer to the editor-owned overlay host.
+   23: ///
+   24: /// The table renderer owns only the anchor and the current toolbar payload. The
+   25: /// editor owns [TableFloatingToolbarOverlayHost], which renders this payload with
+   26: /// Flutter's system [OverlayPortal] plus [CompositedTransformFollower]. This
+   27: /// keeps the toolbar outside the table block's internal [Stack], so it can cross
+   28: /// parent bounds and participate in overlay hit testing without making renderers
+   29: /// manage overlay entries directly.
+   30: @immutable
+   31: class TableFloatingToolbarOverlayRequest {
+   32:   const TableFloatingToolbarOverlayRequest({
+   33:     required this.owner,
+   34:     required this.anchorLink,
+   35:     required this.anchorRect,
+   36:     required this.visibleTop,
+   37:     required this.tableBlockId,
+   38:     required this.blockIndex,
+   39:     required this.selectionRange,
+   40:     required this.toolbarBuilder,
+   41:     this.enabled = true,
+   42:     this.minWidth = 0,
+   43:     this.gap = 4,
+   44:     this.fallbackHeight = 40,
+   45:   });
+   46: 
+   47:   /// Opaque identity of the renderer anchor that published this request.
+   48:   final Object owner;
+   49: 
+   50:   /// Link followed by the system overlay entry.
+   51:   final LayerLink anchorLink;
+   52: 
+   53:   /// Current global rect of the table block anchor.
+   54:   final Rect anchorRect;
+   55: 
+   56:   /// Top edge of the visible editor viewport in global coordinates.
+   57:   final double visibleTop;
+   58: 
+   59:   /// Active table identity used by hosts/tests to reason about request staleness.
+   60:   final String tableBlockId;
+   61: 
+   62:   /// Active table block index in the source document.
+   63:   final int blockIndex;
+   64: 
+   65:   /// Current table-cell selection range that the toolbar actions target.
+   66:   final TableCellRange selectionRange;
+   67: 
+   68:   /// Builds toolbar chrome. The renderer captures the table action callback here
+   69:   /// so the overlay host never calls back into renderer state directly.
+   70:   final TableFloatingToolbarOverlayBuilder toolbarBuilder;
+   71: 
+   72:   /// Whether this request may be shown. Hosts hide disabled requests.
+   73:   final bool enabled;
+   74: 
+   75:   /// Minimum toolbar width, independent from the table block's layout width.
+   76:   final double minWidth;
+   77: 
+   78:   /// Gap between the toolbar bottom and the table anchor top.
+   79:   final double gap;
+   80: 
+   81:   /// Height used until the overlay measures its real toolbar child.
+   82:   final double fallbackHeight;
+   83: }
+   84: 
+   85: /// Last known geometry for a rendered table toolbar anchor.
+   86: @immutable
+   87: class TableFloatingToolbarAnchorSnapshot {
+   88:   const TableFloatingToolbarAnchorSnapshot({
+   89:     required this.owner,
+   90:     required this.anchorLink,
+   91:     required this.anchorRect,
+   92:     required this.visibleTop,
+   93:     required this.tableBlockId,
+   94:     required this.blockIndex,
+   95:   });
+   96: 
+   97:   final Object owner;
+   98:   final LayerLink anchorLink;
+   99:   final Rect anchorRect;
+  100:   final double visibleTop;
+  101:   final String tableBlockId;
+  102:   final int blockIndex;
+  103: }
+  104: 
+  105: /// Editor-owned controller for the active table toolbar overlay request.
+  106: class TableFloatingToolbarOverlayController extends ChangeNotifier {
+  107:   TableFloatingToolbarOverlayRequest? _request;
+  108:   final Map<String, TableFloatingToolbarAnchorSnapshot> _anchors =
+  109:       <String, TableFloatingToolbarAnchorSnapshot>{};
+  110: 
+  111:   TableFloatingToolbarOverlayRequest? get request => _request;
+  112: 
+  113:   TableFloatingToolbarAnchorSnapshot? anchorFor(
+  114:     String tableBlockId, {
+  115:     int? blockIndex,
+  116:   }) {
+  117:     final anchor = _anchors[tableBlockId];
+  118:     if (anchor == null ||
+  119:         (blockIndex != null && anchor.blockIndex != blockIndex)) {
+  120:       return null;
+  121:     }
+  122:     return anchor;
+  123:   }
+  124: 
+  125:   void updateAnchor(TableFloatingToolbarAnchorSnapshot anchor) {
+  126:     _anchors[anchor.tableBlockId] = anchor;
+  127:   }
+  128: 
+  129:   void unregisterAnchor({required Object owner}) {
+  130:     _anchors.removeWhere((_, anchor) => identical(anchor.owner, owner));
+  131:     hide(owner: owner);
+  132:   }
+  133: 
+  134:   void show(TableFloatingToolbarOverlayRequest request) {
+  135:     _request = request;
+  136:     notifyListeners();
+  137:   }
+  138: 
+  139:   void hide({Object? owner}) {
+  140:     final current = _request;
+  141:     if (current == null) {
+  142:       return;
+  143:     }
+  144:     if (owner != null && !identical(current.owner, owner)) {
+  145:       return;
+  146:     }
+  147:     _request = null;
+  148:     notifyListeners();
+  149:   }
+  150: }
+  151: 
+  152: /// Editor-level host that renders table toolbar requests into the system overlay.
+  153: class TableFloatingToolbarOverlayHost extends StatefulWidget {
+  154:   const TableFloatingToolbarOverlayHost({
+  155:     super.key,
+  156:     required this.controller,
+  157:     required this.child,
+  158:   });
+  159: 
+  160:   final TableFloatingToolbarOverlayController controller;
+  161:   final Widget child;
+  162: 
+  163:   @override
+  164:   State<TableFloatingToolbarOverlayHost> createState() =>
+  165:       _TableFloatingToolbarOverlayHostState();
+  166: }
+  167: 
+  168: class _TableFloatingToolbarOverlayHostState
+  169:     extends State<TableFloatingToolbarOverlayHost> {
+  170:   final OverlayPortalController _portalController = OverlayPortalController();
+  171:   TableFloatingToolbarOverlayRequest? _request;
+  172: 
+  173:   @override
+  174:   void initState() {
+  175:     super.initState();
+  176:     _request = widget.controller.request;
+  177:     widget.controller.addListener(_handleControllerChanged);
+  178:     WidgetsBinding.instance.addPostFrameCallback((_) => _syncPortal());
+  179:   }
+  180: 
+  181:   @override
+  182:   void didUpdateWidget(covariant TableFloatingToolbarOverlayHost oldWidget) {
+  183:     super.didUpdateWidget(oldWidget);
+  184:     if (oldWidget.controller == widget.controller) {
+  185:       return;
+  186:     }
+  187:     oldWidget.controller.removeListener(_handleControllerChanged);
+  188:     _request = widget.controller.request;
+  189:     widget.controller.addListener(_handleControllerChanged);
+  190:     WidgetsBinding.instance.addPostFrameCallback((_) => _syncPortal());
+  191:   }
+  192: 
+  193:   @override
+  194:   void dispose() {
+  195:     widget.controller.removeListener(_handleControllerChanged);
+  196:     if (_portalController.isShowing) {
+  197:       _portalController.hide();
+  198:     }
+  199:     super.dispose();
+  200:   }
+  201: 
+  202:   @override
+  203:   Widget build(BuildContext context) {
+  204:     return OverlayPortal(
+  205:       controller: _portalController,
+  206:       overlayChildBuilder: (context) {
+  207:         final request = _request;
+  208:         if (request == null || !request.enabled) {
+  209:           return const SizedBox.shrink();
+  210:         }
+  211:         return _TableFloatingToolbarOverlayEntry(request: request);
+  212:       },
+  213:       child: widget.child,
+  214:     );
+  215:   }
+  216: 
+  217:   void _handleControllerChanged() {
+  218:     if (!mounted) {
+  219:       return;
+  220:     }
+  221:     setState(() {
+  222:       _request = widget.controller.request;
+  223:     });
+  224:     _syncPortalSafely();
+  225:   }
+  226: 
+  227:   void _syncPortalSafely() {
+  228:     if (SchedulerBinding.instance.schedulerPhase ==
+  229:         SchedulerPhase.persistentCallbacks) {
+  230:       WidgetsBinding.instance.addPostFrameCallback((_) => _syncPortal());
+  231:       return;
+  232:     }
+  233:     _syncPortal();
+  234:   }
+  235: 
+  236:   void _syncPortal() {
+  237:     if (!mounted) {
+  238:       return;
+  239:     }
+  240:     final shouldShow = _request?.enabled == true;
+  241:     if (shouldShow) {
+  242:       if (!_portalController.isShowing) {
+  243:         _portalController.show();
+  244:       }
+  245:     } else if (_portalController.isShowing) {
+  246:       _portalController.hide();
+  247:     }
+  248:   }
+  249: }
+  250: 
+  251: /// Anchor installed by table renderers. It publishes or withdraws requests while
+  252: /// leaving overlay ownership with [TableFloatingToolbarOverlayHost].
+  253: class TableFloatingToolbarOverlayAnchor extends StatefulWidget {
+  254:   const TableFloatingToolbarOverlayAnchor({
+  255:     super.key,
+  256:     required this.controller,
+  257:     required this.requestBuilder,
+  258:     required this.tableBlockId,
+  259:     required this.blockIndex,
+  260:     required this.child,
+--- lib/src/widgets/table_floating_toolbar_overlay.dart:260-520 ---
+  260:     required this.child,
+  261:   });
+  262: 
+  263:   final TableFloatingToolbarOverlayController? controller;
+  264:   final TableFloatingToolbarOverlayRequestBuilder? requestBuilder;
+  265:   final String tableBlockId;
+  266:   final int blockIndex;
+  267:   final Widget child;
+  268: 
+  269:   @override
+  270:   State<TableFloatingToolbarOverlayAnchor> createState() =>
+  271:       _TableFloatingToolbarOverlayAnchorState();
+  272: }
+  273: 
+  274: class _TableFloatingToolbarOverlayAnchorState
+  275:     extends State<TableFloatingToolbarOverlayAnchor>
+  276:     with WidgetsBindingObserver {
+  277:   final LayerLink _anchorLink = LayerLink();
+  278:   final Object _owner = Object();
+  279:   ScrollPosition? _scrollPosition;
+  280:   bool _syncScheduled = false;
+  281: 
+  282:   @override
+  283:   void initState() {
+  284:     super.initState();
+  285:     WidgetsBinding.instance.addObserver(this);
+  286:     _scheduleSync();
+  287:   }
+  288: 
+  289:   @override
+  290:   void didUpdateWidget(covariant TableFloatingToolbarOverlayAnchor oldWidget) {
+  291:     super.didUpdateWidget(oldWidget);
+  292:     if (oldWidget.controller != widget.controller ||
+  293:         oldWidget.tableBlockId != widget.tableBlockId) {
+  294:       oldWidget.controller?.unregisterAnchor(owner: _owner);
+  295:     }
+  296:     _scheduleSync();
+  297:   }
+  298: 
+  299:   @override
+  300:   void didChangeDependencies() {
+  301:     super.didChangeDependencies();
+  302:     _syncScrollPosition(Scrollable.maybeOf(context)?.position);
+  303:     _scheduleSync();
+  304:   }
+  305: 
+  306:   @override
+  307:   void didChangeMetrics() {
+  308:     _scheduleSync();
+  309:   }
+  310: 
+  311:   @override
+  312:   void dispose() {
+  313:     WidgetsBinding.instance.removeObserver(this);
+  314:     _scrollPosition?.removeListener(_scheduleSync);
+  315:     widget.controller?.unregisterAnchor(owner: _owner);
+  316:     super.dispose();
+  317:   }
+  318: 
+  319:   @override
+  320:   Widget build(BuildContext context) {
+  321:     _scheduleSync();
+  322:     return CompositedTransformTarget(
+  323:       link: _anchorLink,
+  324:       child: widget.child,
+  325:     );
+  326:   }
+  327: 
+  328:   void _scheduleSync() {
+  329:     if (_syncScheduled) {
+  330:       return;
+  331:     }
+  332:     _syncScheduled = true;
+  333:     WidgetsBinding.instance.addPostFrameCallback((_) {
+  334:       _syncScheduled = false;
+  335:       _syncRequest();
+  336:     });
+  337:   }
+  338: 
+  339:   void _syncScrollPosition(ScrollPosition? position) {
+  340:     if (identical(_scrollPosition, position)) {
+  341:       return;
+  342:     }
+  343:     _scrollPosition?.removeListener(_scheduleSync);
+  344:     _scrollPosition = position;
+  345:     _scrollPosition?.addListener(_scheduleSync);
+  346:   }
+  347: 
+  348:   void _syncRequest() {
+  349:     if (!mounted) {
+  350:       return;
+  351:     }
+  352:     final controller = widget.controller;
+  353:     if (controller == null) {
+  354:       return;
+  355:     }
+  356:     final renderObject = context.findRenderObject();
+  357:     if (renderObject is! RenderBox ||
+  358:         !renderObject.attached ||
+  359:         !renderObject.hasSize) {
+  360:       controller.unregisterAnchor(owner: _owner);
+  361:       return;
+  362:     }
+  363:     final anchorTopLeft = renderObject.localToGlobal(Offset.zero);
+  364:     final anchorRect = anchorTopLeft & renderObject.size;
+  365:     final visibleTop = _visibleTopFor(context);
+  366:     controller.updateAnchor(
+  367:       TableFloatingToolbarAnchorSnapshot(
+  368:         owner: _owner,
+  369:         anchorLink: _anchorLink,
+  370:         anchorRect: anchorRect,
+  371:         visibleTop: visibleTop,
+  372:         tableBlockId: widget.tableBlockId,
+  373:         blockIndex: widget.blockIndex,
+  374:       ),
+  375:     );
+  376:     final requestBuilder = widget.requestBuilder;
+  377:     if (requestBuilder == null) {
+  378:       controller.hide(owner: _owner);
+  379:       return;
+  380:     }
+  381:     controller.show(
+  382:       requestBuilder(
+  383:         owner: _owner,
+  384:         anchorLink: _anchorLink,
+  385:         anchorRect: anchorRect,
+  386:         visibleTop: visibleTop,
+  387:       ),
+  388:     );
+  389:   }
+  390: 
+  391:   double _visibleTopFor(BuildContext context) {
+  392:     final scrollable = Scrollable.maybeOf(context);
+  393:     final viewportObject = scrollable?.context.findRenderObject();
+  394:     if (viewportObject is RenderBox &&
+  395:         viewportObject.attached &&
+  396:         viewportObject.hasSize) {
+  397:       return viewportObject.localToGlobal(Offset.zero).dy;
+  398:     }
+  399:     return MediaQuery.maybeOf(context)?.padding.top ?? 0;
+  400:   }
+  401: }
+  402: 
+  403: class _TableFloatingToolbarOverlayEntry extends StatefulWidget {
+  404:   const _TableFloatingToolbarOverlayEntry({required this.request});
+  405: 
+  406:   final TableFloatingToolbarOverlayRequest request;
+  407: 
+  408:   @override
+  409:   State<_TableFloatingToolbarOverlayEntry> createState() =>
+  410:       _TableFloatingToolbarOverlayEntryState();
+  411: }
+  412: 
+  413: class _TableFloatingToolbarOverlayEntryState
+  414:     extends State<_TableFloatingToolbarOverlayEntry> {
+  415:   final GlobalKey _toolbarKey = GlobalKey();
+  416:   double? _toolbarHeight;
+  417:   bool _measureScheduled = false;
+  418: 
+  419:   @override
+  420:   Widget build(BuildContext context) {
+  421:     _scheduleMeasure();
+  422:     final request = widget.request;
+  423:     final toolbarHeight = _toolbarHeight ?? request.fallbackHeight;
+  424:     final preferredTop = -(toolbarHeight + request.gap);
+  425:     final visibleTop = request.visibleTop - request.anchorRect.top;
+  426:     final top = math.max(preferredTop, visibleTop);
+  427:     final minWidth = math.max(request.minWidth, request.anchorRect.width);
+  428: 
+  429:     return Positioned.fill(
+  430:       child: CompositedTransformFollower(
+  431:         link: request.anchorLink,
+  432:         showWhenUnlinked: false,
+  433:         targetAnchor: Alignment.topLeft,
+  434:         followerAnchor: Alignment.topLeft,
+  435:         offset: Offset(0, top),
+  436:         child: Align(
+  437:           alignment: AlignmentDirectional.topStart,
+  438:           widthFactor: 1,
+  439:           heightFactor: 1,
+  440:           child: ConstrainedBox(
+  441:             key: _toolbarKey,
+  442:             constraints: BoxConstraints(minWidth: minWidth),
+  443:             child: Listener(
+  444:               key: const ValueKey<String>(
+  445:                 'table-floating-toolbar-hit-test-blocker',
+  446:               ),
+  447:               behavior: HitTestBehavior.opaque,
+  448:               child: request.toolbarBuilder(context),
+  449:             ),
+  450:           ),
+  451:         ),
+  452:       ),
+  453:     );
+  454:   }
+  455: 
+  456:   void _scheduleMeasure() {
+  457:     if (_measureScheduled) {
+  458:       return;
+  459:     }
+  460:     _measureScheduled = true;
+  461:     WidgetsBinding.instance.addPostFrameCallback((_) {
+  462:       _measureScheduled = false;
+  463:       _syncToolbarHeight();
+  464:     });
+  465:   }
+  466: 
+  467:   void _syncToolbarHeight() {
+  468:     if (!mounted) {
+  469:       return;
+  470:     }
+  471:     final renderObject = _toolbarKey.currentContext?.findRenderObject();
+  472:     if (renderObject is! RenderBox || !renderObject.hasSize) {
+  473:       return;
+  474:     }
+  475:     final nextHeight = renderObject.size.height;
+  476:     if (_toolbarHeight != null && (_toolbarHeight! - nextHeight).abs() < 0.5) {
+  477:       return;
+  478:     }
+  479:     setState(() {
+  480:       _toolbarHeight = nextHeight;
+  481:     });
+  482:   }
+  483: }
+--- lib/src/widgets/wenz_rich_text_editor.dart:3330-3545 ---
+ 3330:     // extent moves within it (e.g. dragging to resize a range) does not flip
+ 3331:     // the boolean "touches" flag, but the rendered highlight/caret offset DID
+ 3332:     // change. So when this block is touched by the selection, a different
+ 3333:     // selection object must also invalidate the cache.
+ 3334:     final selectionTouchedChanged =
+ 3335:         _selectionTouchesBlock(oldWidget) != _selectionTouchesBlock(widget);
+ 3336:     final selectionShiftedWhileTouched = _selectionTouchesBlock(widget) &&
+ 3337:         oldWidget.selection != widget.selection;
+ 3338:     if (widget.blockChanged ||
+ 3339:         oldWidget.blockIndex != widget.blockIndex ||
+ 3340:         oldWidget.blockCount != widget.blockCount ||
+ 3341:         selectionTouchedChanged ||
+ 3342:         selectionShiftedWhileTouched ||
+ 3343:         oldWidget.showCaret != widget.showCaret ||
+ 3344:         oldWidget.showDebugOverlay != widget.showDebugOverlay ||
+ 3345:         oldWidget.listMarker != widget.listMarker ||
+ 3346:         oldWidget.canEdit != widget.canEdit ||
+ 3347:         oldWidget.textStyle != widget.textStyle ||
+ 3348:         oldWidget.inlineEmbedRenderer != widget.inlineEmbedRenderer ||
+ 3349:         oldWidget.headingCollapseState != widget.headingCollapseState ||
+ 3350:         oldWidget.onHeadingCollapseToggled != widget.onHeadingCollapseToggled ||
+ 3351:         oldWidget.onCodeLanguageChanged != widget.onCodeLanguageChanged ||
+ 3352:         oldWidget.onCodeCopied != widget.onCodeCopied ||
+ 3353:         oldWidget.onCalloutVariantChanged != widget.onCalloutVariantChanged ||
+ 3354:         oldWidget.onTableToolbarAction != widget.onTableToolbarAction ||
+ 3355:         oldWidget.tableToolbarOverlayController !=
+ 3356:             widget.tableToolbarOverlayController ||
+ 3357:         oldWidget.onTableColumnResize != widget.onTableColumnResize ||
+ 3358:         oldWidget.onTodoCheckedChanged != widget.onTodoCheckedChanged ||
+ 3359:         oldWidget.onObjectBlockAction != widget.onObjectBlockAction ||
+ 3360:         oldWidget.findMatches != widget.findMatches ||
+ 3361:         oldWidget.currentFindMatch != widget.currentFindMatch ||
+ 3362:         _compositionTouchesBlock(oldWidget) !=
+ 3363:             _compositionTouchesBlock(widget) ||
+ 3364:         oldWidget.blockRenderers != widget.blockRenderers) {
+ 3365:       _cachedChild = null;
+ 3366:     }
+ 3367:   }
+ 3368: 
+ 3369:   @override
+ 3370:   Widget build(BuildContext context) {
+ 3371:     super.build(context);
+ 3372:     final cached = _cachedChild;
+ 3373:     if (cached != null) {
+ 3374:       return cached;
+ 3375:     }
+ 3376:     final child = _BlockRenderer(
+ 3377:       block: widget.block,
+ 3378:       blockIndex: widget.blockIndex,
+ 3379:       blockCount: widget.blockCount,
+ 3380:       listMarker: widget.listMarker,
+ 3381:       selection: widget.selection,
+ 3382:       compositionState: widget.compositionState,
+ 3383:       registry: widget.registry,
+ 3384:       blockRenderers: widget.blockRenderers,
+ 3385:       showCaret: widget.showCaret,
+ 3386:       textStyle: widget.textStyle,
+ 3387:       showDebugOverlay: widget.showDebugOverlay,
+ 3388:       canEdit: widget.canEdit,
+ 3389:       mediaResolver: widget.mediaResolver,
+ 3390:       inlineEmbedRenderer: widget.inlineEmbedRenderer,
+ 3391:       headingCollapseState: widget.headingCollapseState,
+ 3392:       onHeadingCollapseToggled: widget.onHeadingCollapseToggled,
+ 3393:       onCodeLanguageChanged: widget.onCodeLanguageChanged,
+ 3394:       onCodeCopied: widget.onCodeCopied,
+ 3395:       onCalloutVariantChanged: widget.onCalloutVariantChanged,
+ 3396:       onTableToolbarAction: widget.onTableToolbarAction,
+ 3397:       tableToolbarOverlayController: widget.tableToolbarOverlayController,
+ 3398:       onTableColumnResize: widget.onTableColumnResize,
+ 3399:       onTodoCheckedChanged: widget.onTodoCheckedChanged,
+ 3400:       onObjectBlockAction: widget.onObjectBlockAction,
+ 3401:       findMatches: widget.findMatches,
+ 3402:       currentFindMatch: widget.currentFindMatch,
+ 3403:     );
+ 3404:     _cachedChild = child;
+ 3405:     return child;
+ 3406:   }
+ 3407: 
+ 3408:   /// Whether the current selection could affect this block's rendering: it is
+ 3409:   /// an endpoint, or it lies strictly between the selection's start and end
+ 3410:   /// (so it would be fully highlighted), or the selection is collapsed inside
+ 3411:   /// it (the caret).
+ 3412:   bool _selectionTouchesBlock(_KeepAliveBlock w) {
+ 3413:     final selection = w.selection;
+ 3414:     if (selection == null) {
+ 3415:       return false;
+ 3416:     }
+ 3417:     final index = w.blockIndex;
+ 3418:     final start = selection.start;
+ 3419:     final end = selection.end;
+ 3420:     if (start.blockIndex == index || end.blockIndex == index) {
+ 3421:       return true;
+ 3422:     }
+ 3423:     // Interior block of a multi-block range is fully highlighted.
+ 3424:     return index > start.blockIndex && index < end.blockIndex;
+ 3425:   }
+ 3426: 
+ 3427:   /// Whether an active IME composition affects this block (composition lives in
+ 3428:   /// the caret's block). Only that block needs to repaint the underline span.
+ 3429:   bool _compositionTouchesBlock(_KeepAliveBlock w) {
+ 3430:     final composition = w.compositionState;
+ 3431:     if (composition == null) {
+ 3432:       return false;
+ 3433:     }
+ 3434:     final selection = w.selection;
+ 3435:     return selection != null && selection.extent.blockIndex == w.blockIndex;
+ 3436:   }
+ 3437: }
+ 3438: 
+ 3439: class _BlockRenderer extends StatelessWidget {
+ 3440:   const _BlockRenderer({
+ 3441:     required this.block,
+ 3442:     required this.blockIndex,
+ 3443:     required this.blockCount,
+ 3444:     this.listMarker,
+ 3445:     required this.selection,
+ 3446:     required this.compositionState,
+ 3447:     required this.registry,
+ 3448:     required this.blockRenderers,
+ 3449:     required this.showCaret,
+ 3450:     this.textStyle,
+ 3451:     this.showDebugOverlay = false,
+ 3452:     this.canEdit = true,
+ 3453:     this.mediaResolver,
+ 3454:     this.inlineEmbedRenderer,
+ 3455:     this.headingCollapseState,
+ 3456:     this.onHeadingCollapseToggled,
+ 3457:     this.onCodeLanguageChanged,
+ 3458:     this.onCodeCopied,
+ 3459:     this.onCalloutVariantChanged,
+ 3460:     this.onTableToolbarAction,
+ 3461:     this.tableToolbarOverlayController,
+ 3462:     this.onTableColumnResize,
+ 3463:     this.onTodoCheckedChanged,
+ 3464:     this.onObjectBlockAction,
+ 3465:     this.findMatches = const <FindReplaceMatch>[],
+ 3466:     this.currentFindMatch,
+ 3467:   });
+ 3468: 
+ 3469:   final BlockNode block;
+ 3470:   final int blockIndex;
+ 3471:   final int blockCount;
+ 3472:   final String? listMarker;
+ 3473:   final DocumentSelection? selection;
+ 3474:   final CompositionState? compositionState;
+ 3475:   final BlockGeometryRegistry registry;
+ 3476:   final BlockRendererRegistry blockRenderers;
+ 3477:   final bool showCaret;
+ 3478:   final TextStyle? textStyle;
+ 3479:   final bool showDebugOverlay;
+ 3480:   final bool canEdit;
+ 3481:   final MediaResolver? mediaResolver;
+ 3482:   final InlineEmbedRenderer? inlineEmbedRenderer;
+ 3483:   final HeadingCollapseState? headingCollapseState;
+ 3484:   final ValueChanged<String>? onHeadingCollapseToggled;
+ 3485:   final ValueChanged<String>? onCodeLanguageChanged;
+ 3486:   final Future<void> Function(String code)? onCodeCopied;
+ 3487:   final ValueChanged<String>? onCalloutVariantChanged;
+ 3488:   final TableToolbarActionHandler? onTableToolbarAction;
+ 3489:   final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+ 3490:   final TableColumnResizeHandler? onTableColumnResize;
+ 3491:   final TodoCheckedChangeHandler? onTodoCheckedChanged;
+ 3492:   final ObjectBlockActionHandler? onObjectBlockAction;
+ 3493:   final List<FindReplaceMatch> findMatches;
+ 3494:   final FindReplaceMatch? currentFindMatch;
+ 3495: 
+ 3496:   @override
+ 3497:   Widget build(BuildContext context) {
+ 3498:     final renderContext = BlockRenderContext(
+ 3499:       block: block,
+ 3500:       blockIndex: blockIndex,
+ 3501:       blockCount: blockCount,
+ 3502:       listMarker: listMarker,
+ 3503:       selection: selection,
+ 3504:       compositionState: compositionState,
+ 3505:       registry: registry,
+ 3506:       showCaret: showCaret,
+ 3507:       textStyle: textStyle,
+ 3508:       showDebugOverlay: showDebugOverlay,
+ 3509:       canEdit: canEdit,
+ 3510:       mediaResolver: mediaResolver,
+ 3511:       inlineEmbedRenderer: inlineEmbedRenderer,
+ 3512:       headingCollapseState: headingCollapseState,
+ 3513:       onHeadingCollapseToggled: onHeadingCollapseToggled,
+ 3514:       onCodeLanguageChanged: onCodeLanguageChanged,
+ 3515:       onCodeCopied: onCodeCopied,
+ 3516:       onCalloutVariantChanged: onCalloutVariantChanged,
+ 3517:       onTableToolbarAction: onTableToolbarAction,
+ 3518:       tableToolbarOverlayController: tableToolbarOverlayController,
+ 3519:       onTableColumnResize: onTableColumnResize,
+ 3520:       onTodoCheckedChanged: onTodoCheckedChanged,
+ 3521:       onObjectBlockAction: onObjectBlockAction,
+ 3522:       findMatches: _matchesForBlock(findMatches, blockIndex),
+ 3523:       currentFindMatch:
+ 3524:           currentFindMatch?.blockIndex == blockIndex ? currentFindMatch : null,
+ 3525:     );
+ 3526:     final builder = blockRenderers.resolveForBlock(
+ 3527:       block,
+ 3528:       fallback: _defaultBlockFallback,
+ 3529:     );
+ 3530:     final leadingIndent = _indentStartFor(block);
+ 3531:     final content = Padding(
+ 3532:       padding: EdgeInsetsDirectional.only(
+ 3533:         start: leadingIndent,
+ 3534:       ),
+ 3535:       child: builder(context, renderContext),
+ 3536:     );
+ 3537:     return _BlockDragHandleOverlay(
+ 3538:       blockId: block.id,
+ 3539:       blockPlainText: block.plainText,
+ 3540:       blockIndex: blockIndex,
+ 3541:       blockCount: blockCount,
+ 3542:       leadingIndent: leadingIndent,
+ 3543:       canEdit: canEdit,
+ 3544:       registry: registry,
+ 3545:       onAction: onObjectBlockAction,
+--- lib/src/widgets/wenz_rich_text_editor.dart:4190-4335 ---
+ 4190: double _blockMarginAfter(BlockNode block, double fallback) {
+ 4191:   if (block is TextBlockNode && block.type == BlockType.heading) {
+ 4192:     return _kRichTextBodyFontSize * _kHeadingMarginBottomEm;
+ 4193:   }
+ 4194:   return fallback;
+ 4195: }
+ 4196: 
+ 4197: bool _isListItemBlock(BlockNode block) {
+ 4198:   return block is TextBlockNode && block.type == BlockType.listItem;
+ 4199: }
+ 4200: 
+ 4201: int _blockIndentLevel(BlockNode block) {
+ 4202:   return (block.attributes.indent ?? 0).clamp(0, 8).toInt();
+ 4203: }
+ 4204: 
+ 4205: /// Plain-text fallback used when no renderer is registered for a block type.
+ 4206: /// Guarantees every block paints *something*.
+ 4207: Widget _defaultBlockFallback(
+ 4208:   BuildContext context,
+ 4209:   BlockRenderContext renderContext,
+ 4210: ) {
+ 4211:   return Text(renderContext.block.plainText);
+ 4212: }
+ 4213: 
+ 4214: /// Installs the built-in block renderers onto [registry]. Exposed so the editor
+ 4215: /// can wire defaults into a caller-supplied registry without duplicating the
+ 4216: /// dispatch table.
+ 4217: extension BlockRendererRegistryDefaults on BlockRendererRegistry {
+ 4218:   void installDefaultBuilders() {
+ 4219:     register(BlockType.paragraph, _defaultTextBlockRenderer);
+ 4220:     register(BlockType.heading, _defaultTextBlockRenderer);
+ 4221:     register(BlockType.quote, _defaultTextBlockRenderer);
+ 4222:     register(BlockType.listItem, _defaultTextBlockRenderer);
+ 4223:     register(BlockType.code, _defaultCodeBlockRenderer);
+ 4224:     register(BlockType.image, _defaultImageBlockRenderer);
+ 4225:     register(BlockType.table, _defaultTableBlockRenderer);
+ 4226:     register(BlockType.divider, _defaultDividerBlockRenderer);
+ 4227:     register(BlockType.video, _defaultVideoBlockRenderer);
+ 4228:     register(BlockType.embed, _defaultBlockEmbedRenderer);
+ 4229:     register(BlockType.callout, _defaultCalloutBlockRenderer);
+ 4230:     register(BlockType.file, _defaultFileBlockRenderer);
+ 4231:   }
+ 4232: }
+ 4233: 
+ 4234: Widget _defaultTextBlockRenderer(
+ 4235:   BuildContext context,
+ 4236:   BlockRenderContext rc,
+ 4237: ) {
+ 4238:   return _TextBlockRenderer(
+ 4239:     block: rc.block as TextBlockNode,
+ 4240:     blockIndex: rc.blockIndex,
+ 4241:     selection: rc.selection,
+ 4242:     compositionState: rc.compositionState,
+ 4243:     registry: rc.registry,
+ 4244:     showCaret: rc.showCaret,
+ 4245:     textStyle: rc.textStyle,
+ 4246:     showDebugOverlay: rc.showDebugOverlay,
+ 4247:     listMarker: rc.listMarker,
+ 4248:     inlineEmbedRenderer: rc.inlineEmbedRenderer,
+ 4249:     headingCollapseState: rc.headingCollapseState,
+ 4250:     onHeadingCollapseToggled: rc.onHeadingCollapseToggled,
+ 4251:     onToolbarAction: rc.onTableToolbarAction,
+ 4252:     onColumnResize: rc.onTableColumnResize,
+ 4253:     onTodoCheckedChanged: rc.onTodoCheckedChanged,
+ 4254:     findMatches: rc.findMatches,
+ 4255:     currentFindMatch: rc.currentFindMatch,
+ 4256:   );
+ 4257: }
+ 4258: 
+ 4259: Widget _defaultCodeBlockRenderer(
+ 4260:   BuildContext context,
+ 4261:   BlockRenderContext rc,
+ 4262: ) {
+ 4263:   return _CodeBlockRenderer(
+ 4264:     block: rc.block as CodeBlockNode,
+ 4265:     blockIndex: rc.blockIndex,
+ 4266:     selection: rc.selection,
+ 4267:     compositionState: rc.compositionState,
+ 4268:     registry: rc.registry,
+ 4269:     showCaret: rc.showCaret,
+ 4270:     showDebugOverlay: rc.showDebugOverlay,
+ 4271:     onLanguageChanged: rc.onCodeLanguageChanged,
+ 4272:     onCodeCopied: rc.onCodeCopied,
+ 4273:     findMatches: rc.findMatches,
+ 4274:     currentFindMatch: rc.currentFindMatch,
+ 4275:   );
+ 4276: }
+ 4277: 
+ 4278: Widget _defaultImageBlockRenderer(
+ 4279:   BuildContext context,
+ 4280:   BlockRenderContext rc,
+ 4281: ) {
+ 4282:   final image = rc.block as ImageBlockNode;
+ 4283:   final resolved = _resolveMedia(context, rc);
+ 4284:   final media = resolved ?? const _ImageBlockPlaceholder();
+ 4285:   return _withSelectableImageBlock(
+ 4286:     image,
+ 4287:     rc,
+ 4288:     _ImageBlockContent(
+ 4289:       block: image,
+ 4290:       child: media,
+ 4291:     ),
+ 4292:   );
+ 4293: }
+ 4294: 
+ 4295: Widget _defaultTableBlockRenderer(
+ 4296:   BuildContext context,
+ 4297:   BlockRenderContext rc,
+ 4298: ) {
+ 4299:   return _TableBlockRenderer(
+ 4300:     block: rc.block as TableBlockNode,
+ 4301:     blockIndex: rc.blockIndex,
+ 4302:     selection: rc.selection,
+ 4303:     compositionState: rc.compositionState,
+ 4304:     registry: rc.registry,
+ 4305:     showCaret: rc.showCaret,
+ 4306:     textStyle: rc.textStyle,
+ 4307:     showDebugOverlay: rc.showDebugOverlay,
+ 4308:     inlineEmbedRenderer: rc.inlineEmbedRenderer,
+ 4309:     onToolbarAction: rc.onTableToolbarAction,
+ 4310:     toolbarOverlayController: rc.tableToolbarOverlayController,
+ 4311:     onColumnResize: rc.onTableColumnResize,
+ 4312:     findMatches: rc.findMatches,
+ 4313:     currentFindMatch: rc.currentFindMatch,
+ 4314:   );
+ 4315: }
+ 4316: 
+ 4317: Widget _defaultDividerBlockRenderer(
+ 4318:   BuildContext context,
+ 4319:   BlockRenderContext rc,
+ 4320: ) {
+ 4321:   final block = rc.block as DividerBlockNode;
+ 4322:   return _withSelectableObjectBlock(
+ 4323:     block,
+ 4324:     rc,
+ 4325:     _DividerBlockContent(
+ 4326:       blockId: block.id,
+ 4327:       blockIndex: rc.blockIndex,
+ 4328:       blockCount: rc.blockCount,
+ 4329:       selected: _objectBlockSelected(block, rc),
+ 4330:       canEdit: rc.canEdit,
+ 4331:       onAction: rc.onObjectBlockAction,
+ 4332:     ),
+ 4333:   );
+ 4334: }
+ 4335: 
+--- lib/src/widgets/wenz_rich_text_editor.dart:5270-5685 ---
+ 5270:           ),
+ 5271:         ],
+ 5272:       ),
+ 5273:     );
+ 5274:   }
+ 5275: }
+ 5276: 
+ 5277: class _TableBlockRenderer extends StatelessWidget {
+ 5278:   const _TableBlockRenderer({
+ 5279:     required this.block,
+ 5280:     required this.blockIndex,
+ 5281:     required this.selection,
+ 5282:     required this.compositionState,
+ 5283:     required this.registry,
+ 5284:     required this.showCaret,
+ 5285:     this.textStyle,
+ 5286:     this.showDebugOverlay = false,
+ 5287:     this.inlineEmbedRenderer,
+ 5288:     this.onToolbarAction,
+ 5289:     this.toolbarOverlayController,
+ 5290:     this.onColumnResize,
+ 5291:     this.findMatches = const <FindReplaceMatch>[],
+ 5292:     this.currentFindMatch,
+ 5293:   });
+ 5294: 
+ 5295:   final TableBlockNode block;
+ 5296:   final int blockIndex;
+ 5297:   final DocumentSelection? selection;
+ 5298:   final CompositionState? compositionState;
+ 5299:   final BlockGeometryRegistry registry;
+ 5300:   final bool showCaret;
+ 5301:   final TextStyle? textStyle;
+ 5302:   final bool showDebugOverlay;
+ 5303:   final InlineEmbedRenderer? inlineEmbedRenderer;
+ 5304:   final TableToolbarActionHandler? onToolbarAction;
+ 5305:   final TableFloatingToolbarOverlayController? toolbarOverlayController;
+ 5306:   final TableColumnResizeHandler? onColumnResize;
+ 5307:   final List<FindReplaceMatch> findMatches;
+ 5308:   final FindReplaceMatch? currentFindMatch;
+ 5309: 
+ 5310:   @override
+ 5311:   Widget build(BuildContext context) {
+ 5312:     final table = block.table;
+ 5313:     final columnCount = table.columnCount;
+ 5314:     if (table.rowCount == 0 || columnCount == 0) {
+ 5315:       return const SizedBox.shrink();
+ 5316:     }
+ 5317:     final theme = Theme.of(context);
+ 5318:     final effectiveStyle = textStyle ?? DefaultTextStyle.of(context).style;
+ 5319:     final tableTextStyle =
+ 5320:         effectiveStyle.copyWith(fontSize: _kTableCellFontSize);
+ 5321:     return _withBlockSemantics(
+ 5322:       block,
+ 5323:       LayoutBuilder(
+ 5324:         builder: (context, constraints) {
+ 5325:           final metrics = _TableGridMetrics.compute(
+ 5326:             table: table,
+ 5327:             maxWidth: _tableMaxWidth(constraints, columnCount),
+ 5328:             textStyle: tableTextStyle,
+ 5329:             textDirection: Directionality.of(context),
+ 5330:           );
+ 5331:           final activeRange = _activeTableRange(selection, block, blockIndex);
+ 5332:           final stackWidth = metrics.width;
+ 5333:           final resizeHeight = metrics.height;
+ 5334:           final tableSurface = SizedBox(
+ 5335:             width: stackWidth,
+ 5336:             height: metrics.height,
+ 5337:             child: Stack(
+ 5338:               clipBehavior: Clip.none,
+ 5339:               children: <Widget>[
+ 5340:                 Positioned.fill(
+ 5341:                   child: DecoratedBox(
+ 5342:                     decoration: BoxDecoration(
+ 5343:                       color: theme.colorScheme.surface,
+ 5344:                       borderRadius: BorderRadius.circular(_kTableSurfaceRadius),
+ 5345:                       boxShadow: _kSurfaceBoxShadow,
+ 5346:                     ),
+ 5347:                   ),
+ 5348:                 ),
+ 5349:                 ClipRRect(
+ 5350:                   borderRadius: BorderRadius.circular(_kTableSurfaceRadius),
+ 5351:                   child: SizedBox(
+ 5352:                     width: stackWidth,
+ 5353:                     height: metrics.height,
+ 5354:                     child: Stack(
+ 5355:                       clipBehavior: Clip.none,
+ 5356:                       children: <Widget>[
+ 5357:                         for (final cell in metrics.cells)
+ 5358:                           Positioned(
+ 5359:                             left: cell.left,
+ 5360:                             top: cell.top,
+ 5361:                             width: cell.width,
+ 5362:                             height: cell.height,
+ 5363:                             child: DecoratedBox(
+ 5364:                               key: ValueKey<String>(
+ 5365:                                 'table-cell-border-${block.id}-${cell.rowIndex}-${cell.columnIndex}',
+ 5366:                               ),
+ 5367:                               decoration: BoxDecoration(
+ 5368:                                 border: _tableCellBorder(
+ 5369:                                   cell: cell,
+ 5370:                                   rowCount: table.rowCount,
+ 5371:                                   columnCount: columnCount,
+ 5372:                                   color: _kTableBorderColor,
+ 5373:                                 ),
+ 5374:                               ),
+ 5375:                               child: _TableCellSurface(
+ 5376:                                 tableBlock: block,
+ 5377:                                 blockIndex: blockIndex,
+ 5378:                                 rowIndex: cell.rowIndex,
+ 5379:                                 columnIndex: cell.columnIndex,
+ 5380:                                 cell: cell.cell,
+ 5381:                                 textStyle: tableTextStyle,
+ 5382:                                 textAlign: _textAlign(
+ 5383:                                   table.columnAlignments[cell.columnIndex],
+ 5384:                                 ),
+ 5385:                                 selection: selection,
+ 5386:                                 compositionState: compositionState,
+ 5387:                                 registry: registry,
+ 5388:                                 showCaret: showCaret,
+ 5389:                                 highlightWholeCell: _shouldHighlightTableCell(
+ 5390:                                   selection,
+ 5391:                                   block.id,
+ 5392:                                   blockIndex,
+ 5393:                                   cell.rowIndex,
+ 5394:                                   cell.columnIndex,
+ 5395:                                 ),
+ 5396:                                 showDebugOverlay: showDebugOverlay,
+ 5397:                                 inlineEmbedRenderer: inlineEmbedRenderer,
+ 5398:                                 findMatches: findMatches,
+ 5399:                                 currentFindMatch: currentFindMatch,
+ 5400:                               ),
+ 5401:                             ),
+ 5402:                           ),
+ 5403:                       ],
+ 5404:                     ),
+ 5405:                   ),
+ 5406:                 ),
+ 5407:                 if (activeRange != null &&
+ 5408:                     onColumnResize != null &&
+ 5409:                     resizeHeight > 0)
+ 5410:                   for (var column = 0;
+ 5411:                       column < metrics.columnWidths.length;
+ 5412:                       column++)
+ 5413:                     Positioned(
+ 5414:                       left: metrics.columnLefts[column] +
+ 5415:                           metrics.columnWidths[column] -
+ 5416:                           (_kTableResizeHandleWidth / 2),
+ 5417:                       top: 0,
+ 5418:                       width: _kTableResizeHandleWidth,
+ 5419:                       height: resizeHeight,
+ 5420:                       child: _TableColumnResizeHandle(
+ 5421:                         key: ValueKey<String>(
+ 5422:                           'table-resize-${block.id}-$column',
+ 5423:                         ),
+ 5424:                         columnIndex: column,
+ 5425:                         width: metrics.columnWidths[column],
+ 5426:                         onResize: (width) {
+ 5427:                           onColumnResize!(
+ 5428:                             blockIndex: blockIndex,
+ 5429:                             columnIndex: column,
+ 5430:                             width: width,
+ 5431:                           );
+ 5432:                         },
+ 5433:                       ),
+ 5434:                     ),
+ 5435:               ],
+ 5436:             ),
+ 5437:           );
+ 5438:           return TableFloatingToolbarOverlayAnchor(
+ 5439:             controller: toolbarOverlayController,
+ 5440:             requestBuilder: activeRange != null && onToolbarAction != null
+ 5441:                 ? ({
+ 5442:                     required Object owner,
+ 5443:                     required LayerLink anchorLink,
+ 5444:                     required Rect anchorRect,
+ 5445:                     required double visibleTop,
+ 5446:                   }) =>
+ 5447:                     TableFloatingToolbarOverlayRequest(
+ 5448:                       owner: owner,
+ 5449:                       anchorLink: anchorLink,
+ 5450:                       anchorRect: anchorRect,
+ 5451:                       visibleTop: visibleTop,
+ 5452:                       tableBlockId: block.id,
+ 5453:                       blockIndex: blockIndex,
+ 5454:                       selectionRange: activeRange,
+ 5455:                       minWidth: _kTableToolbarMinWidth,
+ 5456:                       gap: _kTableFloatingToolbarGap,
+ 5457:                       fallbackHeight: _kTableFloatingToolbarEstimatedHeight,
+ 5458:                       toolbarBuilder: (context) => _TableFloatingToolbar(
+ 5459:                         block: block,
+ 5460:                         blockIndex: blockIndex,
+ 5461:                         range: activeRange,
+ 5462:                         onAction: onToolbarAction!,
+ 5463:                       ),
+ 5464:                     )
+ 5465:                 : null,
+ 5466:             tableBlockId: block.id,
+ 5467:             blockIndex: blockIndex,
+ 5468:             child: tableSurface,
+ 5469:           );
+ 5470:         },
+ 5471:       ),
+ 5472:     );
+ 5473:   }
+ 5474: }
+ 5475: 
+ 5476: TableCellRange? _activeTableRange(
+ 5477:   DocumentSelection? selection,
+ 5478:   TableBlockNode tableBlock,
+ 5479:   int blockIndex,
+ 5480: ) {
+ 5481:   final range = selection?.tableCellRange;
+ 5482:   if (range == null ||
+ 5483:       range.tableBlockId != tableBlock.id ||
+ 5484:       range.blockIndex != blockIndex) {
+ 5485:     return null;
+ 5486:   }
+ 5487:   final rowCount = tableBlock.table.rowCount;
+ 5488:   final columnCount = tableBlock.table.columnCount;
+ 5489:   if (rowCount == 0 || columnCount == 0) {
+ 5490:     return null;
+ 5491:   }
+ 5492:   return TableCellRange(
+ 5493:     tableBlockId: tableBlock.id,
+ 5494:     blockIndex: blockIndex,
+ 5495:     startRow: range.startRow.clamp(0, rowCount - 1).toInt(),
+ 5496:     endRow: range.endRow.clamp(0, rowCount - 1).toInt(),
+ 5497:     startColumn: range.startColumn.clamp(0, columnCount - 1).toInt(),
+ 5498:     endColumn: range.endColumn.clamp(0, columnCount - 1).toInt(),
+ 5499:   );
+ 5500: }
+ 5501: 
+ 5502: class _TableFloatingToolbar extends StatelessWidget {
+ 5503:   const _TableFloatingToolbar({
+ 5504:     required this.block,
+ 5505:     required this.blockIndex,
+ 5506:     required this.range,
+ 5507:     required this.onAction,
+ 5508:   });
+ 5509: 
+ 5510:   final TableBlockNode block;
+ 5511:   final int blockIndex;
+ 5512:   final TableCellRange range;
+ 5513:   final TableToolbarActionHandler onAction;
+ 5514: 
+ 5515:   @override
+ 5516:   Widget build(BuildContext context) {
+ 5517:     final theme = Theme.of(context);
+ 5518:     final cell = block.table.cellAt(range.startRow, range.startColumn);
+ 5519:     final canDeleteRow = block.table.rowCount > 1;
+ 5520:     final canDeleteColumn = block.table.columnCount > 1;
+ 5521:     final canMerge = !range.isSingleCell;
+ 5522:     final canSplit = cell != null &&
+ 5523:         !cell.covered &&
+ 5524:         (cell.rowSpan > 1 || cell.columnSpan > 1);
+ 5525:     return Material(
+ 5526:       key: const ValueKey<String>('table-floating-toolbar'),
+ 5527:       elevation: 3,
+ 5528:       color: theme.colorScheme.surface,
+ 5529:       borderRadius: BorderRadius.circular(8),
+ 5530:       child: DecoratedBox(
+ 5531:         decoration: BoxDecoration(
+ 5532:           border: Border.all(color: theme.dividerColor.withAlpha(160)),
+ 5533:           borderRadius: BorderRadius.circular(8),
+ 5534:         ),
+ 5535:         child: Padding(
+ 5536:           padding: const EdgeInsets.all(4),
+ 5537:           child: Wrap(
+ 5538:             spacing: 2,
+ 5539:             runSpacing: 2,
+ 5540:             children: <Widget>[
+ 5541:               _button(
+ 5542:                 icon: Icons.keyboard_arrow_up,
+ 5543:                 tooltip: '在上方插入行',
+ 5544:                 action: TableToolbarAction.insertRowAbove,
+ 5545:               ),
+ 5546:               _button(
+ 5547:                 icon: Icons.keyboard_arrow_down,
+ 5548:                 tooltip: '在下方插入行',
+ 5549:                 action: TableToolbarAction.insertRowBelow,
+ 5550:               ),
+ 5551:               _button(
+ 5552:                 icon: Icons.delete_outline,
+ 5553:                 tooltip: '删除行',
+ 5554:                 action: TableToolbarAction.deleteRow,
+ 5555:                 enabled: canDeleteRow,
+ 5556:               ),
+ 5557:               _divider(theme),
+ 5558:               _button(
+ 5559:                 icon: Icons.keyboard_arrow_left,
+ 5560:                 tooltip: '在左侧插入列',
+ 5561:                 action: TableToolbarAction.insertColumnBefore,
+ 5562:               ),
+ 5563:               _button(
+ 5564:                 icon: Icons.keyboard_arrow_right,
+ 5565:                 tooltip: '在右侧插入列',
+ 5566:                 action: TableToolbarAction.insertColumnAfter,
+ 5567:               ),
+ 5568:               _button(
+ 5569:                 icon: Icons.delete_forever_outlined,
+ 5570:                 tooltip: '删除列',
+ 5571:                 action: TableToolbarAction.deleteColumn,
+ 5572:                 enabled: canDeleteColumn,
+ 5573:               ),
+ 5574:               _divider(theme),
+ 5575:               _button(
+ 5576:                 icon: Icons.title,
+ 5577:                 tooltip: '切换表头单元格',
+ 5578:                 action: TableToolbarAction.toggleHeader,
+ 5579:               ),
+ 5580:               _button(
+ 5581:                 icon: Icons.format_color_fill,
+ 5582:                 tooltip: '设置单元格背景',
+ 5583:                 action: TableToolbarAction.setBackgroundColor,
+ 5584:                 backgroundColor: _kTableToolbarBackgroundColor,
+ 5585:               ),
+ 5586:               _button(
+ 5587:                 icon: Icons.format_color_reset,
+ 5588:                 tooltip: '清除单元格背景',
+ 5589:                 action: TableToolbarAction.clearBackgroundColor,
+ 5590:               ),
+ 5591:               _divider(theme),
+ 5592:               _button(
+ 5593:                 icon: Icons.format_align_left,
+ 5594:                 tooltip: '列左对齐',
+ 5595:                 action: TableToolbarAction.alignLeft,
+ 5596:               ),
+ 5597:               _button(
+ 5598:                 icon: Icons.format_align_center,
+ 5599:                 tooltip: '列居中对齐',
+ 5600:                 action: TableToolbarAction.alignCenter,
+ 5601:               ),
+ 5602:               _button(
+ 5603:                 icon: Icons.format_align_right,
+ 5604:                 tooltip: '列右对齐',
+ 5605:                 action: TableToolbarAction.alignRight,
+ 5606:               ),
+ 5607:               _button(
+ 5608:                 icon: Icons.format_align_justify,
+ 5609:                 tooltip: '清除列对齐',
+ 5610:                 action: TableToolbarAction.clearAlignment,
+ 5611:               ),
+ 5612:               _divider(theme),
+ 5613:               _button(
+ 5614:                 icon: Icons.call_merge,
+ 5615:                 tooltip: '合并所选单元格',
+ 5616:                 action: TableToolbarAction.mergeCells,
+ 5617:                 enabled: canMerge,
+ 5618:               ),
+ 5619:               _button(
+ 5620:                 icon: Icons.call_split,
+ 5621:                 tooltip: '拆分单元格',
+ 5622:                 action: TableToolbarAction.splitCell,
+ 5623:                 enabled: canSplit,
+ 5624:               ),
+ 5625:               _button(
+ 5626:                 icon: Icons.swap_horiz,
+ 5627:                 tooltip: '重置列宽',
+ 5628:                 action: TableToolbarAction.resetColumnWidth,
+ 5629:               ),
+ 5630:             ],
+ 5631:           ),
+ 5632:         ),
+ 5633:       ),
+ 5634:     );
+ 5635:   }
+ 5636: 
+ 5637:   Widget _button({
+ 5638:     required IconData icon,
+ 5639:     required String tooltip,
+ 5640:     required TableToolbarAction action,
+ 5641:     bool enabled = true,
+ 5642:     int? backgroundColor,
+ 5643:   }) {
+ 5644:     return IconButton(
+ 5645:       icon: Icon(icon),
+ 5646:       iconSize: 18,
+ 5647:       tooltip: tooltip,
+ 5648:       padding: EdgeInsets.zero,
+ 5649:       constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+ 5650:       onPressed: enabled
+ 5651:           ? () {
+ 5652:               onAction(
+ 5653:                 TableToolbarActionIntent(
+ 5654:                   action: action,
+ 5655:                   blockIndex: blockIndex,
+ 5656:                   rowIndex: range.startRow,
+ 5657:                   columnIndex: range.startColumn,
+ 5658:                   endRowIndex: range.endRow,
+ 5659:                   endColumnIndex: range.endColumn,
+ 5660:                   backgroundColor: backgroundColor,
+ 5661:                 ),
+ 5662:               );
+ 5663:             }
+ 5664:           : null,
+ 5665:     );
+ 5666:   }
+ 5667: 
+ 5668:   Widget _divider(ThemeData theme) {
+ 5669:     return SizedBox(
+ 5670:       height: 32,
+ 5671:       child: VerticalDivider(
+ 5672:         width: 6,
+ 5673:         thickness: 1,
+ 5674:         color: theme.dividerColor.withAlpha(160),
+ 5675:       ),
+ 5676:     );
+ 5677:   }
+ 5678: }
+ 5679: 
+ 5680: class _TableColumnResizeHandle extends StatefulWidget {
+ 5681:   const _TableColumnResizeHandle({
+ 5682:     super.key,
+ 5683:     required this.columnIndex,
+ 5684:     required this.width,
+ 5685:     required this.onResize,
+--- lib/src/core/commands/table_commands.dart:1-260 ---
+    1: import '../model/attributes.dart';
+    2: import '../model/block_node.dart';
+    3: import '../model/inline_node.dart';
+    4: import '../model/table_model.dart';
+    5: import '../position/document_position.dart';
+    6: import '../transaction/document_session.dart';
+    7: import 'block_commands.dart';
+    8: import 'editor_command.dart';
+    9: import 'table_cell_editing.dart';
+   10: 
+   11: typedef TableCellIdBuilder = String Function(
+   12:     String tableId, int rowIndex, int columnIndex);
+   13: 
+   14: class InsertTableCommand extends EditorCommand {
+   15:   const InsertTableCommand({
+   16:     required this.index,
+   17:     required this.tableId,
+   18:     required this.rowCount,
+   19:     required this.columnCount,
+   20:     this.selection,
+   21:     this.cellIdBuilder,
+   22:   });
+   23: 
+   24:   final int index;
+   25:   final String tableId;
+   26:   final int rowCount;
+   27:   final int columnCount;
+   28:   final DocumentSelection? selection;
+   29:   final TableCellIdBuilder? cellIdBuilder;
+   30: 
+   31:   @override
+   32:   String get description => 'insertTable';
+   33: 
+   34:   @override
+   35:   CommandResult execute(DocumentSession session) {
+   36:     if (rowCount <= 0 || columnCount <= 0) {
+   37:       return const CommandResult(recordHistory: false);
+   38:     }
+   39:     return InsertBlocksCommand(
+   40:       index: index,
+   41:       blocks: <BlockNode>[
+   42:         TableBlockNode(
+   43:           id: tableId,
+   44:           table: _createTable(tableId, rowCount, columnCount, cellIdBuilder),
+   45:         ),
+   46:       ],
+   47:       selection: selection,
+   48:     ).execute(session);
+   49:   }
+   50: }
+   51: 
+   52: class InsertTableRowCommand extends EditorCommand {
+   53:   const InsertTableRowCommand({
+   54:     required this.blockIndex,
+   55:     required this.rowIndex,
+   56:     this.cellIdBuilder,
+   57:   });
+   58: 
+   59:   final int blockIndex;
+   60:   final int rowIndex;
+   61:   final TableCellIdBuilder? cellIdBuilder;
+   62: 
+   63:   @override
+   64:   String get description => 'insertTableRow';
+   65: 
+   66:   @override
+   67:   CommandResult execute(DocumentSession session) {
+   68:     return insertTableRowAt(
+   69:       session,
+   70:       blockIndex,
+   71:       rowIndex,
+   72:       cellIdBuilder: cellIdBuilder,
+   73:     );
+   74:   }
+   75: }
+   76: 
+   77: class InsertTableColumnCommand extends EditorCommand {
+   78:   const InsertTableColumnCommand({
+   79:     required this.blockIndex,
+   80:     required this.columnIndex,
+   81:     this.cellIdBuilder,
+   82:   });
+   83: 
+   84:   final int blockIndex;
+   85:   final int columnIndex;
+   86:   final TableCellIdBuilder? cellIdBuilder;
+   87: 
+   88:   @override
+   89:   String get description => 'insertTableColumn';
+   90: 
+   91:   @override
+   92:   CommandResult execute(DocumentSession session) {
+   93:     final tableBlock = tableAt(session, blockIndex);
+   94:     if (tableBlock == null) {
+   95:       return const CommandResult(recordHistory: false);
+   96:     }
+   97:     final insertIndex =
+   98:         columnIndex.clamp(0, tableBlock.table.columnCount).toInt();
+   99:     final rows = <List<TableCellNode>>[
+  100:       for (var rowIndex = 0; rowIndex < tableBlock.table.rowCount; rowIndex++)
+  101:         <TableCellNode>[
+  102:           for (var col = 0; col < insertIndex; col++)
+  103:             copyCell(tableBlock.table.rows[rowIndex][col]),
+  104:           _emptyCell(
+  105:             _cellId(tableBlock.id, rowIndex, insertIndex, cellIdBuilder),
+  106:           ),
+  107:           for (var col = insertIndex;
+  108:               col < tableBlock.table.rows[rowIndex].length;
+  109:               col++)
+  110:             copyCell(tableBlock.table.rows[rowIndex][col]),
+  111:         ],
+  112:     ];
+  113:     // Reindex alignments so columns that were at/after the insertion point
+  114:     // keep their alignment on the shifted column index. Mirrors the reverse
+  115:     // shift done by DeleteTableColumnCommand.
+  116:     final alignments = shiftColumnMapOnInsert(
+  117:       tableBlock.table.columnAlignments,
+  118:       insertIndex,
+  119:     );
+  120:     final widths = shiftColumnMapOnInsert(
+  121:       tableBlock.table.columnWidths,
+  122:       insertIndex,
+  123:     );
+  124:     return _replaceTableWithSelection(
+  125:       session,
+  126:       blockIndex,
+  127:       tableBlock,
+  128:       rows,
+  129:       selection: _tableSelectionAfterColumnInserted(
+  130:         session.selection,
+  131:         tableBlock,
+  132:         blockIndex,
+  133:         rows,
+  134:         insertIndex,
+  135:       ),
+  136:       columnAlignments: alignments,
+  137:       columnWidths: widths,
+  138:     );
+  139:   }
+  140: }
+  141: 
+  142: class DeleteTableRowCommand extends EditorCommand {
+  143:   const DeleteTableRowCommand({
+  144:     required this.blockIndex,
+  145:     required this.rowIndex,
+  146:   });
+  147: 
+  148:   final int blockIndex;
+  149:   final int rowIndex;
+  150: 
+  151:   @override
+  152:   String get description => 'deleteTableRow';
+  153: 
+  154:   @override
+  155:   CommandResult execute(DocumentSession session) {
+  156:     final tableBlock = tableAt(session, blockIndex);
+  157:     if (tableBlock == null ||
+  158:         tableBlock.table.rowCount <= 1 ||
+  159:         rowIndex < 0 ||
+  160:         rowIndex >= tableBlock.table.rowCount) {
+  161:       return const CommandResult(recordHistory: false);
+  162:     }
+  163:     final rows = <List<TableCellNode>>[
+  164:       for (var i = 0; i < tableBlock.table.rowCount; i++)
+  165:         if (i != rowIndex) copyRow(tableBlock.table.rows[i]),
+  166:     ];
+  167:     return _replaceTableWithSelection(
+  168:       session,
+  169:       blockIndex,
+  170:       tableBlock,
+  171:       rows,
+  172:       selection: _tableSelectionAfterRowDeleted(
+  173:         session.selection,
+  174:         tableBlock,
+  175:         blockIndex,
+  176:         rows,
+  177:         rowIndex,
+  178:       ),
+  179:     );
+  180:   }
+  181: }
+  182: 
+  183: class DeleteTableColumnCommand extends EditorCommand {
+  184:   const DeleteTableColumnCommand({
+  185:     required this.blockIndex,
+  186:     required this.columnIndex,
+  187:   });
+  188: 
+  189:   final int blockIndex;
+  190:   final int columnIndex;
+  191: 
+  192:   @override
+  193:   String get description => 'deleteTableColumn';
+  194: 
+  195:   @override
+  196:   CommandResult execute(DocumentSession session) {
+  197:     final tableBlock = tableAt(session, blockIndex);
+  198:     if (tableBlock == null ||
+  199:         tableBlock.table.columnCount <= 1 ||
+  200:         columnIndex < 0 ||
+  201:         columnIndex >= tableBlock.table.columnCount) {
+  202:       return const CommandResult(recordHistory: false);
+  203:     }
+  204:     final rows = <List<TableCellNode>>[
+  205:       for (final row in tableBlock.table.rows)
+  206:         <TableCellNode>[
+  207:           for (var i = 0; i < row.length; i++)
+  208:             if (i != columnIndex) copyCell(row[i]),
+  209:         ],
+  210:     ];
+  211:     final alignments = shiftColumnMapOnDelete(
+  212:       tableBlock.table.columnAlignments,
+  213:       columnIndex,
+  214:     );
+  215:     final widths = shiftColumnMapOnDelete(
+  216:       tableBlock.table.columnWidths,
+  217:       columnIndex,
+  218:     );
+  219:     return _replaceTableWithSelection(
+  220:       session,
+  221:       blockIndex,
+  222:       tableBlock,
+  223:       rows,
+  224:       selection: _tableSelectionAfterColumnDeleted(
+  225:         session.selection,
+  226:         tableBlock,
+  227:         blockIndex,
+  228:         rows,
+  229:         columnIndex,
+  230:       ),
+  231:       columnAlignments: alignments,
+  232:       columnWidths: widths,
+  233:     );
+  234:   }
+  235: }
+  236: 
+  237: class SetTableColumnAlignmentCommand extends EditorCommand {
+  238:   const SetTableColumnAlignmentCommand({
+  239:     required this.blockIndex,
+  240:     required this.columnIndex,
+  241:     required this.alignment,
+  242:   });
+  243: 
+  244:   final int blockIndex;
+  245:   final int columnIndex;
+  246:   final String? alignment;
+  247: 
+  248:   @override
+  249:   String get description => 'setTableColumnAlignment';
+  250: 
+  251:   @override
+  252:   CommandResult execute(DocumentSession session) {
+  253:     final tableBlock = tableAt(session, blockIndex);
+  254:     if (tableBlock == null ||
+  255:         columnIndex < 0 ||
+  256:         columnIndex >= tableBlock.table.columnCount) {
+  257:       return const CommandResult(recordHistory: false);
+  258:     }
+  259:     final alignments = Map<int, String>.from(tableBlock.table.columnAlignments);
+  260:     if (alignment == null) {
+--- lib/src/core/commands/table_commands.dart:260-540 ---
+  260:     if (alignment == null) {
+  261:       alignments.remove(columnIndex);
+  262:     } else {
+  263:       alignments[columnIndex] = alignment!;
+  264:     }
+  265:     return replaceTable(
+  266:       session,
+  267:       blockIndex,
+  268:       tableBlock,
+  269:       tableBlock.table.rows.map(copyRow).toList(),
+  270:       columnAlignments: alignments,
+  271:     );
+  272:   }
+  273: }
+  274: 
+  275: class SetTableColumnWidthCommand extends EditorCommand {
+  276:   const SetTableColumnWidthCommand({
+  277:     required this.blockIndex,
+  278:     required this.columnIndex,
+  279:     required this.width,
+  280:   });
+  281: 
+  282:   final int blockIndex;
+  283:   final int columnIndex;
+  284:   final double? width;
+  285: 
+  286:   @override
+  287:   String get description => 'setTableColumnWidth';
+  288: 
+  289:   @override
+  290:   CommandResult execute(DocumentSession session) {
+  291:     final tableBlock = tableAt(session, blockIndex);
+  292:     if (tableBlock == null ||
+  293:         columnIndex < 0 ||
+  294:         columnIndex >= tableBlock.table.columnCount) {
+  295:       return const CommandResult(recordHistory: false);
+  296:     }
+  297:     final widths = Map<int, double>.from(tableBlock.table.columnWidths);
+  298:     if (width == null || width! <= 0) {
+  299:       widths.remove(columnIndex);
+  300:     } else {
+  301:       widths[columnIndex] = width!;
+  302:     }
+  303:     return replaceTable(
+  304:       session,
+  305:       blockIndex,
+  306:       tableBlock,
+  307:       tableBlock.table.rows.map(copyRow).toList(),
+  308:       columnWidths: widths,
+  309:     );
+  310:   }
+  311: }
+  312: 
+  313: class SetTableCellHeaderCommand extends EditorCommand {
+  314:   const SetTableCellHeaderCommand({
+  315:     required this.blockIndex,
+  316:     required this.rowIndex,
+  317:     required this.columnIndex,
+  318:     required this.isHeader,
+  319:   });
+  320: 
+  321:   final int blockIndex;
+  322:   final int rowIndex;
+  323:   final int columnIndex;
+  324:   final bool isHeader;
+  325: 
+  326:   @override
+  327:   String get description => 'setTableCellHeader';
+  328: 
+  329:   @override
+  330:   CommandResult execute(DocumentSession session) {
+  331:     return updateTableCell(
+  332:       session,
+  333:       blockIndex,
+  334:       rowIndex,
+  335:       columnIndex,
+  336:       (cell) => TableCellNode(
+  337:         id: cell.id,
+  338:         blocks: cell.blocks.map((block) => block.copy()).toList(),
+  339:         rowSpan: cell.rowSpan,
+  340:         columnSpan: cell.columnSpan,
+  341:         isHeader: isHeader,
+  342:         backgroundColor: cell.backgroundColor,
+  343:         covered: cell.covered,
+  344:       ),
+  345:     );
+  346:   }
+  347: }
+  348: 
+  349: class SetTableCellBackgroundCommand extends EditorCommand {
+  350:   const SetTableCellBackgroundCommand({
+  351:     required this.blockIndex,
+  352:     required this.rowIndex,
+  353:     required this.columnIndex,
+  354:     required this.backgroundColor,
+  355:   });
+  356: 
+  357:   final int blockIndex;
+  358:   final int rowIndex;
+  359:   final int columnIndex;
+  360:   final int? backgroundColor;
+  361: 
+  362:   @override
+  363:   String get description => 'setTableCellBackground';
+  364: 
+  365:   @override
+  366:   CommandResult execute(DocumentSession session) {
+  367:     return updateTableCell(
+  368:       session,
+  369:       blockIndex,
+  370:       rowIndex,
+  371:       columnIndex,
+  372:       (cell) => TableCellNode(
+  373:         id: cell.id,
+  374:         blocks: cell.blocks.map((block) => block.copy()).toList(),
+  375:         rowSpan: cell.rowSpan,
+  376:         columnSpan: cell.columnSpan,
+  377:         isHeader: cell.isHeader,
+  378:         backgroundColor: backgroundColor,
+  379:         covered: cell.covered,
+  380:       ),
+  381:     );
+  382:   }
+  383: }
+  384: 
+  385: class MergeTableCellsCommand extends EditorCommand {
+  386:   const MergeTableCellsCommand({
+  387:     required this.blockIndex,
+  388:     required this.startRow,
+  389:     required this.startColumn,
+  390:     required this.endRow,
+  391:     required this.endColumn,
+  392:   });
+  393: 
+  394:   final int blockIndex;
+  395:   final int startRow;
+  396:   final int startColumn;
+  397:   final int endRow;
+  398:   final int endColumn;
+  399: 
+  400:   @override
+  401:   String get description => 'mergeTableCells';
+  402: 
+  403:   @override
+  404:   CommandResult execute(DocumentSession session) {
+  405:     final tableBlock = tableAt(session, blockIndex);
+  406:     if (tableBlock == null) {
+  407:       return const CommandResult(recordHistory: false);
+  408:     }
+  409:     final top = startRow <= endRow ? startRow : endRow;
+  410:     final bottom = startRow <= endRow ? endRow : startRow;
+  411:     final left = startColumn <= endColumn ? startColumn : endColumn;
+  412:     final right = startColumn <= endColumn ? endColumn : startColumn;
+  413:     if (top < 0 ||
+  414:         left < 0 ||
+  415:         bottom >= tableBlock.table.rowCount ||
+  416:         right >= tableBlock.table.columnCount ||
+  417:         (top == bottom && left == right)) {
+  418:       return const CommandResult(recordHistory: false);
+  419:     }
+  420:     for (var row = top; row <= bottom; row++) {
+  421:       for (var column = left; column <= right; column++) {
+  422:         final cell = tableBlock.table.cellAt(row, column);
+  423:         if (cell == null ||
+  424:             cell.covered ||
+  425:             cell.rowSpan != 1 ||
+  426:             cell.columnSpan != 1) {
+  427:           return const CommandResult(recordHistory: false);
+  428:         }
+  429:       }
+  430:     }
+  431:     final rows = tableBlock.table.rows.map(copyRow).toList();
+  432:     for (var row = top; row <= bottom; row++) {
+  433:       for (var column = left; column <= right; column++) {
+  434:         final cell = rows[row][column];
+  435:         rows[row][column] = TableCellNode(
+  436:           id: cell.id,
+  437:           blocks: cell.blocks.map((block) => block.copy()).toList(),
+  438:           rowSpan: row == top && column == left ? bottom - top + 1 : 1,
+  439:           columnSpan: row == top && column == left ? right - left + 1 : 1,
+  440:           isHeader: cell.isHeader,
+  441:           backgroundColor: cell.backgroundColor,
+  442:           covered: !(row == top && column == left),
+  443:         );
+  444:       }
+  445:     }
+  446:     return _replaceTableWithSelection(
+  447:       session,
+  448:       blockIndex,
+  449:       tableBlock,
+  450:       rows,
+  451:       selection: cellSelection(tableBlock.id, blockIndex, top, left, 0),
+  452:       columnAlignments: tableBlock.table.columnAlignments,
+  453:       columnWidths: tableBlock.table.columnWidths,
+  454:     );
+  455:   }
+  456: }
+  457: 
+  458: class SplitTableCellCommand extends EditorCommand {
+  459:   const SplitTableCellCommand({
+  460:     required this.blockIndex,
+  461:     required this.rowIndex,
+  462:     required this.columnIndex,
+  463:   });
+  464: 
+  465:   final int blockIndex;
+  466:   final int rowIndex;
+  467:   final int columnIndex;
+  468: 
+  469:   @override
+  470:   String get description => 'splitTableCell';
+  471: 
+  472:   @override
+  473:   CommandResult execute(DocumentSession session) {
+  474:     final tableBlock = tableAt(session, blockIndex);
+  475:     final anchor = tableBlock?.table.cellAt(rowIndex, columnIndex);
+  476:     if (tableBlock == null ||
+  477:         anchor == null ||
+  478:         anchor.covered ||
+  479:         (anchor.rowSpan == 1 && anchor.columnSpan == 1)) {
+  480:       return const CommandResult(recordHistory: false);
+  481:     }
+  482:     final bottom = rowIndex + anchor.rowSpan - 1;
+  483:     final right = columnIndex + anchor.columnSpan - 1;
+  484:     if (bottom >= tableBlock.table.rowCount ||
+  485:         right >= tableBlock.table.columnCount) {
+  486:       return const CommandResult(recordHistory: false);
+  487:     }
+  488:     final rows = tableBlock.table.rows.map(copyRow).toList();
+  489:     for (var row = rowIndex; row <= bottom; row++) {
+  490:       for (var column = columnIndex; column <= right; column++) {
+  491:         final cell = rows[row][column];
+  492:         rows[row][column] = TableCellNode(
+  493:           id: cell.id,
+  494:           blocks: cell.blocks.map((block) => block.copy()).toList(),
+  495:           isHeader: cell.isHeader,
+  496:           backgroundColor: cell.backgroundColor,
+  497:         );
+  498:       }
+  499:     }
+  500:     return _replaceTableWithSelection(
+  501:       session,
+  502:       blockIndex,
+  503:       tableBlock,
+  504:       rows,
+  505:       selection:
+  506:           cellSelection(tableBlock.id, blockIndex, rowIndex, columnIndex, 0),
+  507:       columnAlignments: tableBlock.table.columnAlignments,
+  508:       columnWidths: tableBlock.table.columnWidths,
+  509:     );
+  510:   }
+  511: }
+  512: 
+  513: class InsertTableCellTextCommand extends EditorCommand {
+  514:   const InsertTableCellTextCommand({
+  515:     required this.blockIndex,
+  516:     required this.rowIndex,
+  517:     required this.columnIndex,
+  518:     required this.offset,
+  519:     required this.text,
+  520:     this.attributes = const TextAttributes(),
+  521:   });
+  522: 
+  523:   final int blockIndex;
+  524:   final int rowIndex;
+  525:   final int columnIndex;
+  526:   final int offset;
+  527:   final String text;
+  528:   final TextAttributes attributes;
+  529: 
+  530:   @override
+  531:   String get description => 'insertTableCellText';
+  532: 
+  533:   @override
+  534:   CommandResult execute(DocumentSession session) {
+  535:     return insertTableCellInlineText(
+  536:       session,
+  537:       blockIndex,
+  538:       rowIndex,
+  539:       columnIndex,
+  540:       offset,
+--- lib/src/core/commands/table_commands.dart:540-835 ---
+  540:       offset,
+  541:       text,
+  542:       attributes: attributes,
+  543:     );
+  544:   }
+  545: }
+  546: 
+  547: class DeleteTableCellTextCommand extends EditorCommand {
+  548:   const DeleteTableCellTextCommand({
+  549:     required this.blockIndex,
+  550:     required this.rowIndex,
+  551:     required this.columnIndex,
+  552:     required this.startOffset,
+  553:     required this.endOffset,
+  554:   });
+  555: 
+  556:   final int blockIndex;
+  557:   final int rowIndex;
+  558:   final int columnIndex;
+  559:   final int startOffset;
+  560:   final int endOffset;
+  561: 
+  562:   @override
+  563:   String get description => 'deleteTableCellText';
+  564: 
+  565:   @override
+  566:   CommandResult execute(DocumentSession session) {
+  567:     return deleteTableCellInlineRange(
+  568:       session,
+  569:       blockIndex,
+  570:       rowIndex,
+  571:       columnIndex,
+  572:       startOffset,
+  573:       endOffset,
+  574:     );
+  575:   }
+  576: }
+  577: 
+  578: class FormatTableCellTextCommand extends EditorCommand {
+  579:   const FormatTableCellTextCommand({
+  580:     required this.blockIndex,
+  581:     required this.rowIndex,
+  582:     required this.columnIndex,
+  583:     required this.startOffset,
+  584:     required this.endOffset,
+  585:     required this.attributes,
+  586:   });
+  587: 
+  588:   final int blockIndex;
+  589:   final int rowIndex;
+  590:   final int columnIndex;
+  591:   final int startOffset;
+  592:   final int endOffset;
+  593:   final TextAttributes attributes;
+  594: 
+  595:   @override
+  596:   String get description => 'formatTableCellText';
+  597: 
+  598:   @override
+  599:   CommandResult execute(DocumentSession session) {
+  600:     return formatTableCellInlineRange(
+  601:       session,
+  602:       blockIndex,
+  603:       rowIndex,
+  604:       columnIndex,
+  605:       startOffset,
+  606:       endOffset,
+  607:       attributes,
+  608:     );
+  609:   }
+  610: }
+  611: 
+  612: CommandResult insertTableRowAt(
+  613:   DocumentSession session,
+  614:   int blockIndex,
+  615:   int rowIndex, {
+  616:   TableCellIdBuilder? cellIdBuilder,
+  617: }) {
+  618:   final tableBlock = tableAt(session, blockIndex);
+  619:   if (tableBlock == null) {
+  620:     return const CommandResult(recordHistory: false);
+  621:   }
+  622:   final insertIndex = rowIndex.clamp(0, tableBlock.table.rowCount).toInt();
+  623:   final rows = <List<TableCellNode>>[
+  624:     for (var i = 0; i < insertIndex; i++) copyRow(tableBlock.table.rows[i]),
+  625:     _createRow(
+  626:       tableBlock.id,
+  627:       insertIndex,
+  628:       tableBlock.table.columnCount,
+  629:       cellIdBuilder,
+  630:     ),
+  631:     for (var i = insertIndex; i < tableBlock.table.rowCount; i++)
+  632:       copyRow(tableBlock.table.rows[i]),
+  633:   ];
+  634:   return _replaceTableWithSelection(
+  635:     session,
+  636:     blockIndex,
+  637:     tableBlock,
+  638:     rows,
+  639:     selection: _tableSelectionAfterRowInserted(
+  640:       session.selection,
+  641:       tableBlock,
+  642:       blockIndex,
+  643:       rows,
+  644:       insertIndex,
+  645:     ),
+  646:   );
+  647: }
+  648: 
+  649: CommandResult updateTableCell(
+  650:   DocumentSession session,
+  651:   int blockIndex,
+  652:   int rowIndex,
+  653:   int columnIndex,
+  654:   TableCellNode Function(TableCellNode cell) update,
+  655: ) {
+  656:   final tableBlock = tableAt(session, blockIndex);
+  657:   final cell = tableBlock?.table.cellAt(rowIndex, columnIndex);
+  658:   if (tableBlock == null || cell == null) {
+  659:     return const CommandResult(recordHistory: false);
+  660:   }
+  661:   final selection = session.selection;
+  662:   final rows = tableBlock.table.rows.map(copyRow).toList();
+  663:   rows[rowIndex][columnIndex] = update(cell);
+  664:   final result = replaceTable(session, blockIndex, tableBlock, rows);
+  665:   if (selection == null) {
+  666:     return result;
+  667:   }
+  668:   return CommandResult(
+  669:     selection: selection,
+  670:     recordHistory: result.recordHistory,
+  671:     metadata: result.metadata,
+  672:   );
+  673: }
+  674: 
+  675: CommandResult _replaceTableWithSelection(
+  676:   DocumentSession session,
+  677:   int blockIndex,
+  678:   TableBlockNode tableBlock,
+  679:   List<List<TableCellNode>> rows, {
+  680:   DocumentSelection? selection,
+  681:   Map<int, String>? columnAlignments,
+  682:   Map<int, double>? columnWidths,
+  683: }) {
+  684:   final result = replaceTable(
+  685:     session,
+  686:     blockIndex,
+  687:     tableBlock,
+  688:     rows,
+  689:     columnAlignments: columnAlignments,
+  690:     columnWidths: columnWidths,
+  691:   );
+  692:   if (selection == null) {
+  693:     return result;
+  694:   }
+  695:   return CommandResult(
+  696:     selection: selection,
+  697:     recordHistory: result.recordHistory,
+  698:     metadata: result.metadata,
+  699:   );
+  700: }
+  701: 
+  702: DocumentSelection? _tableSelectionAfterRowInserted(
+  703:   DocumentSelection? selection,
+  704:   TableBlockNode tableBlock,
+  705:   int blockIndex,
+  706:   List<List<TableCellNode>> rows,
+  707:   int insertIndex,
+  708: ) {
+  709:   return _mapTableSelection(
+  710:     selection,
+  711:     tableBlock,
+  712:     blockIndex,
+  713:     rows,
+  714:     mapRow: (rowIndex) => rowIndex >= insertIndex ? rowIndex + 1 : rowIndex,
+  715:     mapColumn: (columnIndex) => columnIndex,
+  716:   );
+  717: }
+  718: 
+  719: DocumentSelection? _tableSelectionAfterColumnInserted(
+  720:   DocumentSelection? selection,
+  721:   TableBlockNode tableBlock,
+  722:   int blockIndex,
+  723:   List<List<TableCellNode>> rows,
+  724:   int insertIndex,
+  725: ) {
+  726:   return _mapTableSelection(
+  727:     selection,
+  728:     tableBlock,
+  729:     blockIndex,
+  730:     rows,
+  731:     mapRow: (rowIndex) => rowIndex,
+  732:     mapColumn: (columnIndex) =>
+  733:         columnIndex >= insertIndex ? columnIndex + 1 : columnIndex,
+  734:   );
+  735: }
+  736: 
+  737: DocumentSelection? _tableSelectionAfterRowDeleted(
+  738:   DocumentSelection? selection,
+  739:   TableBlockNode tableBlock,
+  740:   int blockIndex,
+  741:   List<List<TableCellNode>> rows,
+  742:   int deletedRowIndex,
+  743: ) {
+  744:   return _mapTableSelection(
+  745:     selection,
+  746:     tableBlock,
+  747:     blockIndex,
+  748:     rows,
+  749:     mapRow: (rowIndex) => rowIndex > deletedRowIndex ? rowIndex - 1 : rowIndex,
+  750:     mapColumn: (columnIndex) => columnIndex,
+  751:   );
+  752: }
+  753: 
+  754: DocumentSelection? _tableSelectionAfterColumnDeleted(
+  755:   DocumentSelection? selection,
+  756:   TableBlockNode tableBlock,
+  757:   int blockIndex,
+  758:   List<List<TableCellNode>> rows,
+  759:   int deletedColumnIndex,
+  760: ) {
+  761:   return _mapTableSelection(
+  762:     selection,
+  763:     tableBlock,
+  764:     blockIndex,
+  765:     rows,
+  766:     mapRow: (rowIndex) => rowIndex,
+  767:     mapColumn: (columnIndex) =>
+  768:         columnIndex > deletedColumnIndex ? columnIndex - 1 : columnIndex,
+  769:   );
+  770: }
+  771: 
+  772: DocumentSelection? _mapTableSelection(
+  773:   DocumentSelection? selection,
+  774:   TableBlockNode tableBlock,
+  775:   int blockIndex,
+  776:   List<List<TableCellNode>> rows, {
+  777:   required int Function(int rowIndex) mapRow,
+  778:   required int Function(int columnIndex) mapColumn,
+  779: }) {
+  780:   final range = selection?.tableCellRange;
+  781:   if (selection == null ||
+  782:       range == null ||
+  783:       range.tableBlockId != tableBlock.id ||
+  784:       range.blockIndex != blockIndex) {
+  785:     return null;
+  786:   }
+  787:   final base = _mapTablePosition(
+  788:     selection.base,
+  789:     tableBlock,
+  790:     blockIndex,
+  791:     rows,
+  792:     mapRow: mapRow,
+  793:     mapColumn: mapColumn,
+  794:   );
+  795:   final extent = _mapTablePosition(
+  796:     selection.extent,
+  797:     tableBlock,
+  798:     blockIndex,
+  799:     rows,
+  800:     mapRow: mapRow,
+  801:     mapColumn: mapColumn,
+  802:   );
+  803:   if (base == null || extent == null) {
+  804:     return null;
+  805:   }
+  806:   return DocumentSelection(base: base, extent: extent);
+  807: }
+  808: 
+  809: DocumentPosition? _mapTablePosition(
+  810:   DocumentPosition position,
+  811:   TableBlockNode tableBlock,
+  812:   int blockIndex,
+  813:   List<List<TableCellNode>> rows, {
+  814:   required int Function(int rowIndex) mapRow,
+  815:   required int Function(int columnIndex) mapColumn,
+  816: }) {
+  817:   final sourceRowIndex = position.path.tableRowIndex;
+  818:   final sourceColumnIndex = position.path.tableColumnIndex;
+  819:   if (position.blockId != tableBlock.id ||
+  820:       position.blockIndex != blockIndex ||
+  821:       sourceRowIndex == null ||
+  822:       sourceColumnIndex == null ||
+  823:       rows.isEmpty) {
+  824:     return null;
+  825:   }
+  826:   final rowIndex = mapRow(sourceRowIndex).clamp(0, rows.length - 1).toInt();
+  827:   final row = rows[rowIndex];
+  828:   if (row.isEmpty) {
+  829:     return null;
+  830:   }
+  831:   final columnIndex =
+  832:       mapColumn(sourceColumnIndex).clamp(0, row.length - 1).toInt();
+  833:   final textLength = cellTextBlock(row[columnIndex]).plainText.length;
+  834:   return DocumentPosition.tableCell(
+  835:     tableBlockId: tableBlock.id,
+
+codex
+输出被截断了；我改为小段查看，聚焦生命周期和 action。
+exec
+powershell.exe -Command '$ErrorActionPreference='"'Stop';
+function Show-Lines("'$Path,$Start,$End){
+  Write-Host ("--- {0}:{1}-{2} ---" -f $Path,$Start,$End);
+  $i=0; Get-Content -LiteralPath $Path -Encoding UTF8 | ForEach-Object { $i++; if($i -ge $Start -and $i -le $End){ '"'{0,5}: {1}' -f "'$i,$_ } }
+}
+Show-Lines '"'lib/src/widgets/table_floating_toolbar_overlay.dart' 100 240;
+Show-Lines 'lib/src/widgets/table_floating_toolbar_overlay.dart' 240 390;
+Show-Lines 'lib/src/widgets/table_floating_toolbar_overlay.dart' 390 490;" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 331ms:
+--- lib/src/widgets/table_floating_toolbar_overlay.dart:100-240 ---
+  100:   final double visibleTop;
+  101:   final String tableBlockId;
+  102:   final int blockIndex;
+  103: }
+  104: 
+  105: /// Editor-owned controller for the active table toolbar overlay request.
+  106: class TableFloatingToolbarOverlayController extends ChangeNotifier {
+  107:   TableFloatingToolbarOverlayRequest? _request;
+  108:   final Map<String, TableFloatingToolbarAnchorSnapshot> _anchors =
+  109:       <String, TableFloatingToolbarAnchorSnapshot>{};
+  110: 
+  111:   TableFloatingToolbarOverlayRequest? get request => _request;
+  112: 
+  113:   TableFloatingToolbarAnchorSnapshot? anchorFor(
+  114:     String tableBlockId, {
+  115:     int? blockIndex,
+  116:   }) {
+  117:     final anchor = _anchors[tableBlockId];
+  118:     if (anchor == null ||
+  119:         (blockIndex != null && anchor.blockIndex != blockIndex)) {
+  120:       return null;
+  121:     }
+  122:     return anchor;
+  123:   }
+  124: 
+  125:   void updateAnchor(TableFloatingToolbarAnchorSnapshot anchor) {
+  126:     _anchors[anchor.tableBlockId] = anchor;
+  127:   }
+  128: 
+  129:   void unregisterAnchor({required Object owner}) {
+  130:     _anchors.removeWhere((_, anchor) => identical(anchor.owner, owner));
+  131:     hide(owner: owner);
+  132:   }
+  133: 
+  134:   void show(TableFloatingToolbarOverlayRequest request) {
+  135:     _request = request;
+  136:     notifyListeners();
+  137:   }
+  138: 
+  139:   void hide({Object? owner}) {
+  140:     final current = _request;
+  141:     if (current == null) {
+  142:       return;
+  143:     }
+  144:     if (owner != null && !identical(current.owner, owner)) {
+  145:       return;
+  146:     }
+  147:     _request = null;
+  148:     notifyListeners();
+  149:   }
+  150: }
+  151: 
+  152: /// Editor-level host that renders table toolbar requests into the system overlay.
+  153: class TableFloatingToolbarOverlayHost extends StatefulWidget {
+  154:   const TableFloatingToolbarOverlayHost({
+  155:     super.key,
+  156:     required this.controller,
+  157:     required this.child,
+  158:   });
+  159: 
+  160:   final TableFloatingToolbarOverlayController controller;
+  161:   final Widget child;
+  162: 
+  163:   @override
+  164:   State<TableFloatingToolbarOverlayHost> createState() =>
+  165:       _TableFloatingToolbarOverlayHostState();
+  166: }
+  167: 
+  168: class _TableFloatingToolbarOverlayHostState
+  169:     extends State<TableFloatingToolbarOverlayHost> {
+  170:   final OverlayPortalController _portalController = OverlayPortalController();
+  171:   TableFloatingToolbarOverlayRequest? _request;
+  172: 
+  173:   @override
+  174:   void initState() {
+  175:     super.initState();
+  176:     _request = widget.controller.request;
+  177:     widget.controller.addListener(_handleControllerChanged);
+  178:     WidgetsBinding.instance.addPostFrameCallback((_) => _syncPortal());
+  179:   }
+  180: 
+  181:   @override
+  182:   void didUpdateWidget(covariant TableFloatingToolbarOverlayHost oldWidget) {
+  183:     super.didUpdateWidget(oldWidget);
+  184:     if (oldWidget.controller == widget.controller) {
+  185:       return;
+  186:     }
+  187:     oldWidget.controller.removeListener(_handleControllerChanged);
+  188:     _request = widget.controller.request;
+  189:     widget.controller.addListener(_handleControllerChanged);
+  190:     WidgetsBinding.instance.addPostFrameCallback((_) => _syncPortal());
+  191:   }
+  192: 
+  193:   @override
+  194:   void dispose() {
+  195:     widget.controller.removeListener(_handleControllerChanged);
+  196:     if (_portalController.isShowing) {
+  197:       _portalController.hide();
+  198:     }
+  199:     super.dispose();
+  200:   }
+  201: 
+  202:   @override
+  203:   Widget build(BuildContext context) {
+  204:     return OverlayPortal(
+  205:       controller: _portalController,
+  206:       overlayChildBuilder: (context) {
+  207:         final request = _request;
+  208:         if (request == null || !request.enabled) {
+  209:           return const SizedBox.shrink();
+  210:         }
+  211:         return _TableFloatingToolbarOverlayEntry(request: request);
+  212:       },
+  213:       child: widget.child,
+  214:     );
+  215:   }
+  216: 
+  217:   void _handleControllerChanged() {
+  218:     if (!mounted) {
+  219:       return;
+  220:     }
+  221:     setState(() {
+  222:       _request = widget.controller.request;
+  223:     });
+  224:     _syncPortalSafely();
+  225:   }
+  226: 
+  227:   void _syncPortalSafely() {
+  228:     if (SchedulerBinding.instance.schedulerPhase ==
+  229:         SchedulerPhase.persistentCallbacks) {
+  230:       WidgetsBinding.instance.addPostFrameCallback((_) => _syncPortal());
+  231:       return;
+  232:     }
+  233:     _syncPortal();
+  234:   }
+  235: 
+  236:   void _syncPortal() {
+  237:     if (!mounted) {
+  238:       return;
+  239:     }
+  240:     final shouldShow = _request?.enabled == true;
+--- lib/src/widgets/table_floating_toolbar_overlay.dart:240-390 ---
+  240:     final shouldShow = _request?.enabled == true;
+  241:     if (shouldShow) {
+  242:       if (!_portalController.isShowing) {
+  243:         _portalController.show();
+  244:       }
+  245:     } else if (_portalController.isShowing) {
+  246:       _portalController.hide();
+  247:     }
+  248:   }
+  249: }
+  250: 
+  251: /// Anchor installed by table renderers. It publishes or withdraws requests while
+  252: /// leaving overlay ownership with [TableFloatingToolbarOverlayHost].
+  253: class TableFloatingToolbarOverlayAnchor extends StatefulWidget {
+  254:   const TableFloatingToolbarOverlayAnchor({
+  255:     super.key,
+  256:     required this.controller,
+  257:     required this.requestBuilder,
+  258:     required this.tableBlockId,
+  259:     required this.blockIndex,
+  260:     required this.child,
+  261:   });
+  262: 
+  263:   final TableFloatingToolbarOverlayController? controller;
+  264:   final TableFloatingToolbarOverlayRequestBuilder? requestBuilder;
+  265:   final String tableBlockId;
+  266:   final int blockIndex;
+  267:   final Widget child;
+  268: 
+  269:   @override
+  270:   State<TableFloatingToolbarOverlayAnchor> createState() =>
+  271:       _TableFloatingToolbarOverlayAnchorState();
+  272: }
+  273: 
+  274: class _TableFloatingToolbarOverlayAnchorState
+  275:     extends State<TableFloatingToolbarOverlayAnchor>
+  276:     with WidgetsBindingObserver {
+  277:   final LayerLink _anchorLink = LayerLink();
+  278:   final Object _owner = Object();
+  279:   ScrollPosition? _scrollPosition;
+  280:   bool _syncScheduled = false;
+  281: 
+  282:   @override
+  283:   void initState() {
+  284:     super.initState();
+  285:     WidgetsBinding.instance.addObserver(this);
+  286:     _scheduleSync();
+  287:   }
+  288: 
+  289:   @override
+  290:   void didUpdateWidget(covariant TableFloatingToolbarOverlayAnchor oldWidget) {
+  291:     super.didUpdateWidget(oldWidget);
+  292:     if (oldWidget.controller != widget.controller ||
+  293:         oldWidget.tableBlockId != widget.tableBlockId) {
+  294:       oldWidget.controller?.unregisterAnchor(owner: _owner);
+  295:     }
+  296:     _scheduleSync();
+  297:   }
+  298: 
+  299:   @override
+  300:   void didChangeDependencies() {
+  301:     super.didChangeDependencies();
+  302:     _syncScrollPosition(Scrollable.maybeOf(context)?.position);
+  303:     _scheduleSync();
+  304:   }
+  305: 
+  306:   @override
+  307:   void didChangeMetrics() {
+  308:     _scheduleSync();
+  309:   }
+  310: 
+  311:   @override
+  312:   void dispose() {
+  313:     WidgetsBinding.instance.removeObserver(this);
+  314:     _scrollPosition?.removeListener(_scheduleSync);
+  315:     widget.controller?.unregisterAnchor(owner: _owner);
+  316:     super.dispose();
+  317:   }
+  318: 
+  319:   @override
+  320:   Widget build(BuildContext context) {
+  321:     _scheduleSync();
+  322:     return CompositedTransformTarget(
+  323:       link: _anchorLink,
+  324:       child: widget.child,
+  325:     );
+  326:   }
+  327: 
+  328:   void _scheduleSync() {
+  329:     if (_syncScheduled) {
+  330:       return;
+  331:     }
+  332:     _syncScheduled = true;
+  333:     WidgetsBinding.instance.addPostFrameCallback((_) {
+  334:       _syncScheduled = false;
+  335:       _syncRequest();
+  336:     });
+  337:   }
+  338: 
+  339:   void _syncScrollPosition(ScrollPosition? position) {
+  340:     if (identical(_scrollPosition, position)) {
+  341:       return;
+  342:     }
+  343:     _scrollPosition?.removeListener(_scheduleSync);
+  344:     _scrollPosition = position;
+  345:     _scrollPosition?.addListener(_scheduleSync);
+  346:   }
+  347: 
+  348:   void _syncRequest() {
+  349:     if (!mounted) {
+  350:       return;
+  351:     }
+  352:     final controller = widget.controller;
+  353:     if (controller == null) {
+  354:       return;
+  355:     }
+  356:     final renderObject = context.findRenderObject();
+  357:     if (renderObject is! RenderBox ||
+  358:         !renderObject.attached ||
+  359:         !renderObject.hasSize) {
+  360:       controller.unregisterAnchor(owner: _owner);
+  361:       return;
+  362:     }
+  363:     final anchorTopLeft = renderObject.localToGlobal(Offset.zero);
+  364:     final anchorRect = anchorTopLeft & renderObject.size;
+  365:     final visibleTop = _visibleTopFor(context);
+  366:     controller.updateAnchor(
+  367:       TableFloatingToolbarAnchorSnapshot(
+  368:         owner: _owner,
+  369:         anchorLink: _anchorLink,
+  370:         anchorRect: anchorRect,
+  371:         visibleTop: visibleTop,
+  372:         tableBlockId: widget.tableBlockId,
+  373:         blockIndex: widget.blockIndex,
+  374:       ),
+  375:     );
+  376:     final requestBuilder = widget.requestBuilder;
+  377:     if (requestBuilder == null) {
+  378:       controller.hide(owner: _owner);
+  379:       return;
+  380:     }
+  381:     controller.show(
+  382:       requestBuilder(
+  383:         owner: _owner,
+  384:         anchorLink: _anchorLink,
+  385:         anchorRect: anchorRect,
+  386:         visibleTop: visibleTop,
+  387:       ),
+  388:     );
+  389:   }
+  390: 
+--- lib/src/widgets/table_floating_toolbar_overlay.dart:390-490 ---
+  390: 
+  391:   double _visibleTopFor(BuildContext context) {
+  392:     final scrollable = Scrollable.maybeOf(context);
+  393:     final viewportObject = scrollable?.context.findRenderObject();
+  394:     if (viewportObject is RenderBox &&
+  395:         viewportObject.attached &&
+  396:         viewportObject.hasSize) {
+  397:       return viewportObject.localToGlobal(Offset.zero).dy;
+  398:     }
+  399:     return MediaQuery.maybeOf(context)?.padding.top ?? 0;
+  400:   }
+  401: }
+  402: 
+  403: class _TableFloatingToolbarOverlayEntry extends StatefulWidget {
+  404:   const _TableFloatingToolbarOverlayEntry({required this.request});
+  405: 
+  406:   final TableFloatingToolbarOverlayRequest request;
+  407: 
+  408:   @override
+  409:   State<_TableFloatingToolbarOverlayEntry> createState() =>
+  410:       _TableFloatingToolbarOverlayEntryState();
+  411: }
+  412: 
+  413: class _TableFloatingToolbarOverlayEntryState
+  414:     extends State<_TableFloatingToolbarOverlayEntry> {
+  415:   final GlobalKey _toolbarKey = GlobalKey();
+  416:   double? _toolbarHeight;
+  417:   bool _measureScheduled = false;
+  418: 
+  419:   @override
+  420:   Widget build(BuildContext context) {
+  421:     _scheduleMeasure();
+  422:     final request = widget.request;
+  423:     final toolbarHeight = _toolbarHeight ?? request.fallbackHeight;
+  424:     final preferredTop = -(toolbarHeight + request.gap);
+  425:     final visibleTop = request.visibleTop - request.anchorRect.top;
+  426:     final top = math.max(preferredTop, visibleTop);
+  427:     final minWidth = math.max(request.minWidth, request.anchorRect.width);
+  428: 
+  429:     return Positioned.fill(
+  430:       child: CompositedTransformFollower(
+  431:         link: request.anchorLink,
+  432:         showWhenUnlinked: false,
+  433:         targetAnchor: Alignment.topLeft,
+  434:         followerAnchor: Alignment.topLeft,
+  435:         offset: Offset(0, top),
+  436:         child: Align(
+  437:           alignment: AlignmentDirectional.topStart,
+  438:           widthFactor: 1,
+  439:           heightFactor: 1,
+  440:           child: ConstrainedBox(
+  441:             key: _toolbarKey,
+  442:             constraints: BoxConstraints(minWidth: minWidth),
+  443:             child: Listener(
+  444:               key: const ValueKey<String>(
+  445:                 'table-floating-toolbar-hit-test-blocker',
+  446:               ),
+  447:               behavior: HitTestBehavior.opaque,
+  448:               child: request.toolbarBuilder(context),
+  449:             ),
+  450:           ),
+  451:         ),
+  452:       ),
+  453:     );
+  454:   }
+  455: 
+  456:   void _scheduleMeasure() {
+  457:     if (_measureScheduled) {
+  458:       return;
+  459:     }
+  460:     _measureScheduled = true;
+  461:     WidgetsBinding.instance.addPostFrameCallback((_) {
+  462:       _measureScheduled = false;
+  463:       _syncToolbarHeight();
+  464:     });
+  465:   }
+  466: 
+  467:   void _syncToolbarHeight() {
+  468:     if (!mounted) {
+  469:       return;
+  470:     }
+  471:     final renderObject = _toolbarKey.currentContext?.findRenderObject();
+  472:     if (renderObject is! RenderBox || !renderObject.hasSize) {
+  473:       return;
+  474:     }
+  475:     final nextHeight = renderObject.size.height;
+  476:     if (_toolbarHeight != null && (_toolbarHeight! - nextHeight).abs() < 0.5) {
+  477:       return;
+  478:     }
+  479:     setState(() {
+  480:       _toolbarHeight = nextHeight;
+  481:     });
+  482:   }
+  483: }
+
+ERROR: Selected model is at capacity. Please try a different model.
+ERROR: Selected model is at capacity. Please try a different model.
+tokens used
+33,566

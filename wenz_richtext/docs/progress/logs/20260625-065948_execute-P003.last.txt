@@ -1,0 +1,14 @@
+已完成 P003，未修改 plan 文件或勾选 checkbox。
+
+**变更**
+- `lib/src/widgets/wenz_rich_text_editor.dart:48` 增加标题上下间距 token，并在虚拟列表间距中按相邻块计算。
+- `lib/src/widgets/wenz_rich_text_editor.dart:3115` 将缩进渲染集中到 helper，按 0–8 级、每级 24px 处理。
+- `lib/src/widgets/wenz_rich_text_editor.dart:7310` 优化 H1–H6 样式：H1/H2/H3/H4 为 24/21/18/16，H5/H6 使用弱权重与弱化颜色。
+- `test/widgets/wenz_rich_text_editor_test.dart:237` 补充标题层级、标题间距、段落对齐与缩进测试。
+- `test/widgets/editor_golden_test.dart:35` 补充设计基线 token 断言。
+
+**验证**
+- 通过：`flutter test test/widgets/wenz_rich_text_editor_test.dart --name "...P003相关用例..."`
+- 通过：`flutter test test/widgets/editor_golden_test.dart --plain-name "design baseline maps default renderer coverage and tokens"`
+- 通过：`dart analyze lib/src/widgets/wenz_rich_text_editor.dart test/widgets/wenz_rich_text_editor_test.dart test/widgets/editor_golden_test.dart`
+- 额外检查：`golden: paragraph code and image placeholder` 当前失败，差异 `40.94% / 68119px`；未更新 golden 图片，因为图片不在 P003 scope。

@@ -1,0 +1,8 @@
+**完成**
+- 在 `lib/src/widgets/table_floating_toolbar_overlay.dart:381` 给表格浮动工具栏外层加入 `Listener` + `HitTestBehavior.opaque`，让工具栏背景、按钮、分隔线和空白区域都有明确命中测试，不再穿透到底层编辑器。
+- 在 `test/widgets/wenz_rich_text_editor_test.dart:3321` 将旧“穿透复现”改为防回归测试：验证 toolbar blocker 命中、选区层 Listener 不入链、工具栏外单元格仍可命中、按钮只插入一行。
+- 未修改 plan 文件，也未勾选 checkbox；`selection_gesture_overlay.dart` 本任务未做改动。
+
+**验证**
+- 通过：`flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "table floating toolbar pointer does not penetrate selection layer"`
+- 额外尝试：`flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "table floating toolbar"` 仍有定位/间距类失败，失败点在 `test/widgets/wenz_rich_text_editor_test.dart:3222`、`test/widgets/wenz_rich_text_editor_test.dart:3274`、`test/widgets/wenz_rich_text_editor_test.dart:3316`，未按 P004 越界处理。

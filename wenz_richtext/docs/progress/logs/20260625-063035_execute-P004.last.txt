@@ -1,0 +1,10 @@
+**完成**
+- 已完成 P004，仅修改 scope 内文件，未修改 plan 文件或 checkbox。
+- `lib/src/widgets/wenz_rich_text_editor.dart:51` 将固定 60px 偏移改为 `工具栏实测高度 + 4px` 间距。
+- `lib/src/widgets/wenz_rich_text_editor.dart:4061` 工具栏会测量自身高度，并在靠近视口顶部时 clamp，避免被顶部裁掉。
+- `test/widgets/wenz_rich_text_editor_test.dart:1337` 补充紧凑 tap target 主题下仍保持 4px 贴近间距。
+- `test/widgets/wenz_rich_text_editor_test.dart:1382` 补充靠近视口顶部时保持可见且不压住表格顶部的用例。
+
+**验证**
+- 已运行最小相关测试：`flutter test test/widgets/wenz_rich_text_editor_test.dart --name "table floating toolbar"`
+- 结果：5 个表格浮动工具栏相关测试全部通过。

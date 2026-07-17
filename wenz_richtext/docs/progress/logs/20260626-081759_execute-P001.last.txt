@@ -1,0 +1,14 @@
+已完成 P001，未修改 `docs/plan/plan_feedback_8_20260626-025328.md:21`，也未勾选 checkbox 或更新进度区。
+
+**变更摘要**
+- 表格浮层改为测量工具栏尺寸后按锚点右侧对齐，并限制在 overlay 宽度内：`lib/src/widgets/table_floating_toolbar_overlay.dart:460`
+- 新增通用块级右上浮层容器，支持窄宽度约束与右上/右上方定位：`lib/src/widgets/wenz_rich_text_editor.dart:5643`
+- 代码块工具栏改为右上方浮出，不再占用正文布局高度：`lib/src/widgets/wenz_rich_text_editor.dart:5565`
+- 表格锚点收窄到表格内容宽度，避免按整行宽度定位：`lib/src/widgets/wenz_rich_text_editor.dart:5933`
+- 补充代码块、媒体块、表格工具栏右上定位断言：`test/widgets/wenz_rich_text_editor_test.dart:1778`
+
+**验证**
+- 已通过：`git diff --check -- ...`，未发现空白/补丁格式问题。
+- 未完成：`dart format` 被本机 Pub Cache 权限阻塞，报 `PathAccessException ... flutter_lints-3.0.2\lib\flutter.yaml`。
+- 未完成：最小相关 `flutter test ... --name ...` 120 秒超时；随后 `flutter --version` 也 60 秒超时。
+- 未运行全量测试。

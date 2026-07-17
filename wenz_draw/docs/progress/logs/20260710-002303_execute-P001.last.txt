@@ -1,0 +1,5 @@
+已完成 P001，仅修改 [toolbar.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/ui/toolbar/toolbar.dart:341)。
+
+“思维导图”菜单项现在显示独立的 `Icons.account_tree_outlined` 图标，未复用 `Icons.timeline`；曲线工具按钮和 `CurveTool.idValue` 选中态逻辑未改动。`value: 'mindmap'` 和 `onAddMindmap()` 回调分发保持不变，便签和计数器回调未受影响。
+
+按要求未修改 plan 文件，也未运行测试、构建、analyze 或 lint。

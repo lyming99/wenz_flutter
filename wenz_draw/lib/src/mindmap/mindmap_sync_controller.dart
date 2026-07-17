@@ -1,0 +1,190 @@
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+
+import 'mindmap_actions.dart';
+import 'mindmap_layout_engine.dart';
+import 'mindmap_node_data.dart';
+import 'mindmap_tree.dart';
+
+/// Keeps mind map trees visually consistent:
+///   1. Expands the selection to the whole tree when a root is selected.
+///   2. While a node drag is active ([MindmapDragSession]), drives the dragged
+///      node's world rect to follow the pointer (`session.worldPosition`) so
+///      the user sees the node being dragged. The select tool's deferred
+///      gesture (`moveSelected`) competes with this — we override its delta on
+///      every canvas change by snapping the rect back to the pointer position.
+///      When the drag ends, reorder/reparent/detach + relayout reposition
+///      everything.
+class MindmapSyncController {
+  MindmapSyncController(this._canvas, InfiniteCanvasController view)
+    : _view = view {
+    _actions = MindmapActions.attach(_canvas);
+    _canvas.addListener(_onCanvasChanged);
+    _actions.dragSession.addListener(_onCanvasChanged);
+  }
+
+  final CanvasController _canvas;
+  // ignore: unused_field
+  final InfiniteCanvasController _view;
+  late final MindmapActions _actions;
+
+  bool _applying = false;
+  bool _relayoutScheduled = false;
+  late String _layoutSignature = _mindmapLayoutSignature();
+
+  void dispose() {
+    _actions.dragSession.removeListener(_onCanvasChanged);
+    _canvas.removeListener(_onCanvasChanged);
+    MindmapActions.detach(_canvas);
+  }
+
+  void _onCanvasChanged() {
+    if (_applying) return;
+    _pinDraggedNode();
+    _scheduleRelayoutIfNeeded();
+  }
+
+  /// If a drag is active, snap the dragged node to follow the pointer
+  /// (`session.worldPosition`).
+  ///
+  /// The select tool promotes deferred widget gestures and calls
+  /// `moveSelected`, which shifts the node by a screen delta. We override that
+  /// by setting the rect so its center matches the current pointer world
+  /// position on every canvas change. The node visually trails the cursor; the
+  /// connection layer additionally renders a drop shadow at the predicted
+  /// landing rect.
+  void _pinDraggedNode() {
+    final session = _actions.dragSession;
+    if (!session.isActive) return;
+    final delta = session.worldPosition - session.origin;
+    final movingIds = session.movingNodeIds;
+    if (movingIds.isEmpty) return;
+
+    _applying = true;
+    try {
+      for (final id in movingIds) {
+        final origin = session.originOf(id);
+        if (origin == null) continue;
+        final el = _canvas.elementById(id);
+        if (el is! CanvasWidgetElement) continue;
+
+        final pinned = Rect.fromCenter(
+          center: origin + delta,
+          width: el.worldRect.width,
+          height: el.worldRect.height,
+        );
+        if (el.worldRect != pinned) {
+          _canvas.applyElementUpdated(id, el.copyWith(worldRect: pinned));
+        }
+      }
+    } finally {
+      _applying = false;
+    }
+  }
+
+  // ── Selection expansion ────────────────────────────────────────────
+  void _scheduleRelayoutIfNeeded() {
+    if (_actions.dragSession.isActive) return;
+    final next = _mindmapLayoutSignature();
+    final signatureChanged = next != _layoutSignature;
+    if (!signatureChanged && !_hasLayoutMismatch()) return;
+    _layoutSignature = next;
+    if (_relayoutScheduled) return;
+    _relayoutScheduled = true;
+    Future.microtask(() {
+      _relayoutScheduled = false;
+      if (_applying || _actions.dragSession.isActive) return;
+      _relayoutAllMindmaps();
+      _layoutSignature = _mindmapLayoutSignature();
+    });
+  }
+
+  bool _hasLayoutMismatch() {
+    final trees = MindmapTreeBuilder.buildAll(_canvas.elements);
+    if (trees.isEmpty) return false;
+
+    for (final tree in trees) {
+      final result = MindmapLayoutEngine.layout(tree);
+      final visibleIds = result.rects.keys.toSet();
+
+      for (final entry in result.rects.entries) {
+        final element = _canvas.elementById(entry.key);
+        if (element is! CanvasWidgetElement) continue;
+        if (element.worldRect != entry.value || !element.visible) {
+          return true;
+        }
+      }
+
+      for (final id in tree.allNodes.keys) {
+        if (visibleIds.contains(id)) continue;
+        final element = _canvas.elementById(id);
+        if (element is CanvasWidgetElement && element.visible) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  void _relayoutAllMindmaps() {
+    final trees = MindmapTreeBuilder.buildAll(_canvas.elements);
+    if (trees.isEmpty) return;
+
+    _applying = true;
+    try {
+      for (final tree in trees) {
+        final result = MindmapLayoutEngine.layout(tree);
+        final visibleIds = result.rects.keys.toSet();
+
+        for (final entry in result.rects.entries) {
+          final element = _canvas.elementById(entry.key);
+          if (element is! CanvasWidgetElement) continue;
+          final next = element.copyWith(worldRect: entry.value, visible: true);
+          if (next.worldRect == element.worldRect && element.visible) {
+            continue;
+          }
+          _canvas.applyElementUpdated(element.id, next);
+        }
+
+        for (final id in tree.allNodes.keys) {
+          if (visibleIds.contains(id)) continue;
+          final element = _canvas.elementById(id);
+          if (element is! CanvasWidgetElement || !element.visible) continue;
+          _canvas.applyElementUpdated(id, element.copyWith(visible: false));
+        }
+      }
+    } finally {
+      _applying = false;
+    }
+  }
+
+  String _mindmapLayoutSignature() {
+    final parts = <String>[];
+    for (final element in _canvas.elements) {
+      if (element is! CanvasWidgetElement) continue;
+      if (element.widgetType != kMindmapNodeWidgetType) continue;
+      final data = MindmapNodeData.fromWidgetData(element.widgetData);
+      parts.add(
+        [
+          element.id,
+          data.id,
+          data.text,
+          data.parentId ?? '',
+          data.side.toValueString(),
+          data.isRoot,
+          data.isCollapsed,
+          data.collapsedLeft,
+          data.collapsedRight,
+          data.order,
+          data.isRoot ? element.worldRect.center.dx : '',
+          data.isRoot ? element.worldRect.center.dy : '',
+        ].join(':'),
+      );
+    }
+    parts.sort();
+    return parts.join('|');
+  }
+}

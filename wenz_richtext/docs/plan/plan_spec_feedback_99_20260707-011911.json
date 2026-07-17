@@ -1,0 +1,59 @@
+{
+  "title": "修复默认工具栏布局问题",
+  "summary": "反馈 #99 指出默认工具栏存在布局问题。经代码核查，默认桌面工具栏 WenzDefaultDesktopToolbar 的 _DefaultDesktopToolbarLayout 用外层 Row(crossAxisAlignment: CrossAxisAlignment.start) 承载主格式分组（Expanded+Wrap）与尾部分组（无序列表 / 对齐 / 插入），尾部又被包在 Align(AlignmentDirectional.topEnd) 与按手算常量推导的固定宽度 _kTrailingToolbarWidth 的 SizedBox 中。由此产生三类布局缺陷：其一，当主分组在窄宽度下换行为多行时，尾部分组被钉在顶部、与主分组垂直方向错位并留下大片空白；其二，主/尾两个分组按顶部对齐而非居中对齐，行高一旦不一致（换行或加入表格结构按钮、注册表扩展项）中心线即不齐；其三，尾部预留宽度由手算常量推导，新增/删除尾部按钮或分隔符时会与实际内容宽度不同步，造成多余间隙或在极窄宽度下溢出。example 在所有宽度下都挂载该桌面工具栏（_buildEditorColumn 始终调用 buildDefaultDesktopToolbar），因此窄宽度下的换行错位会直接暴露。同属默认工具栏体系、新增的 WenzDefaultMobileToolbar 也需一并审查其主轨道高度/垂直居中与展开面板分节对齐。本次修复统一默认工具栏的主/尾分组垂直对齐、换行不溢出、尾部贴右且宽度跟随内容，并补充对应布局 widget 测试，不改变任何命令、权限置灰与菜单行为。",
+  "tasks": [
+    {
+      "title": "重构桌面默认工具栏主/尾分组布局（垂直对齐、换行、尾部宽度跟随内容）",
+      "scope": [
+        "lib/src/widgets/default_desktop_toolbar.dart"
+      ],
+      "acceptance": [
+        "宽宽度单行渲染时，主格式分组与尾部分组（无序列表/对齐/插入）按中心线垂直居中对齐，而不仅是顶部对齐。",
+        "窄宽度下主分组换行为多行时，尾部分组随工具栏整体居中（或与首行一致对齐），不再浮在顶部留下空白。",
+        "尾部分组始终贴齐工具栏右端，插入元素按钮距右内边距保持预期 padding。",
+        "尾部分组的预留宽度由实际内容推导，不再依赖手算常量 _kTrailingToolbarWidth；新增/删除尾部按钮或分隔符后宽度自动跟随，无多余间隙、无被截断。",
+        "带 preserveWidth 的分隔符仍按预期占位，分隔符显隐不影响尾部按钮间距。",
+        "极窄宽度下不产生框架溢出异常，主分组可继续换行吸收空间。",
+        "表格上下文出现的表格结构按钮、注册表扩展按钮加入主分组后，换行与对齐行为保持一致。",
+        "现有工具栏命令、可用态、权限置灰、tooltip 文案与菜单行为保持不变。"
+      ]
+    },
+    {
+      "title": "审查并修正默认移动工具栏布局",
+      "scope": [
+        "lib/src/widgets/default_mobile_toolbar.dart",
+        "lib/src/widgets/editor_tokens.dart"
+      ],
+      "acceptance": [
+        "主轨道按钮在轨道高度内垂直居中，纵向 padding 不被重复计算导致按钮整体偏移。",
+        "展开面板（块样式/对齐/颜色/段落/插入/扩展）各分节标签与内容对齐一致，Wrap 换行不溢出。",
+        "注册表扩展项或插入项较多时，主轨道可横向滚动、展开面板可纵向滚动而不溢出。",
+        "按钮尺寸继续来自 EditorTokens.mobile，键盘抬升（aboveKeyboard）策略下布局不错位。",
+        "主轨道与展开面板的选中态、可用态读取自共享 ToolbarState，行为与桌面工具栏一致。"
+      ]
+    },
+    {
+      "title": "补充并更新默认工具栏布局 widget 测试",
+      "scope": [
+        "test/widgets/default_desktop_toolbar_test.dart",
+        "test/widgets/default_mobile_toolbar_test.dart"
+      ],
+      "acceptance": [
+        "桌面工具栏测试在默认宽度与窄宽度下断言主/尾分组垂直对齐在几何容差内一致。",
+        "桌面工具栏测试断言窄宽度换行不抛溢出异常且尾部分组贴右。",
+        "桌面工具栏测试保留并继续通过 _expectInsertMenuAtToolbarEnd / _expectSameTrailingFootprint 等几何断言（必要时按新布局调整阈值与断言口径）。",
+        "新增移动工具栏测试覆盖主轨道高度/居中、展开面板分节渲染与换行不溢出。",
+        "测试仅锁定布局几何与渲染，不重复执行命令/权限逻辑断言。"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter analyze",
+    "criteria": [
+      "flutter analyze 在 lib/src/widgets/default_desktop_toolbar.dart、lib/src/widgets/default_mobile_toolbar.dart、lib/src/widgets/editor_tokens.dart 及 test/widgets 下相关测试文件无新增告警或错误。",
+      "桌面默认工具栏在宽宽度与窄宽度下主/尾分组垂直对齐、尾部贴右、换行不溢出，尾部宽度跟随实际内容。",
+      "移动默认工具栏主轨道与展开面板对齐一致、尺寸遵循 EditorTokens、内容增多时可滚动且不溢出。",
+      "现有工具栏命令、权限置灰、菜单与 tooltip 行为未受布局改动影响。"
+    ]
+  }
+}

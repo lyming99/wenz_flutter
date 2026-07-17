@@ -1,0 +1,155 @@
+import 'package:flutter/foundation.dart';
+
+import '../utils/uuid_generator.dart';
+import 'canvas_layer.dart';
+
+class LayerManager extends ChangeNotifier {
+  LayerManager({List<CanvasLayer>? layers, String? activeLayerId})
+    : _layers = List<CanvasLayer>.from(
+        layers ??
+            const [
+              CanvasLayer(id: CanvasLayer.defaultLayerId, name: 'Layer 1'),
+            ],
+      ),
+      _activeLayerId = activeLayerId ?? CanvasLayer.defaultLayerId;
+
+  final List<CanvasLayer> _layers;
+  String _activeLayerId;
+
+  List<CanvasLayer> get layers => List<CanvasLayer>.unmodifiable(_layers);
+  String get activeLayerId => _activeLayerId;
+
+  CanvasLayer get activeLayer {
+    return _layers.firstWhere(
+      (layer) => layer.id == _activeLayerId,
+      orElse: () => _layers.first,
+    );
+  }
+
+  List<CanvasLayer> get visibleLayers {
+    return List<CanvasLayer>.unmodifiable(
+      _layers.where((layer) => layer.isVisible),
+    );
+  }
+
+  void addLayer({String? name}) {
+    final layer = CanvasLayer(
+      id: UuidGenerator.create(),
+      name: name ?? 'Layer ${_layers.length + 1}',
+    );
+    _layers.add(layer);
+    _activeLayerId = layer.id;
+    notifyListeners();
+  }
+
+  void removeLayer(String id) {
+    if (_layers.length == 1) {
+      return;
+    }
+    _layers.removeWhere((layer) => layer.id == id);
+    if (_activeLayerId == id) {
+      _activeLayerId = _layers.last.id;
+    }
+    notifyListeners();
+  }
+
+  /// Replaces all layers with [layers] and sets [activeLayerId] as active.
+  /// If [activeLayerId] is null or not found, the first layer becomes active.
+  void replaceLayers(List<CanvasLayer> layers, {String? activeLayerId}) {
+    _layers
+      ..clear()
+      ..addAll(layers);
+    _activeLayerId = (activeLayerId != null &&
+            _layers.any((layer) => layer.id == activeLayerId))
+        ? activeLayerId
+        : (_layers.isNotEmpty ? _layers.first.id : CanvasLayer.defaultLayerId);
+    notifyListeners();
+  }
+
+  void insertLayer(CanvasLayer layer, int index) {
+    final clampedIndex = index.clamp(0, _layers.length);
+    _layers.insert(clampedIndex, layer);
+    notifyListeners();
+  }
+
+  /// Replaces a layer by id with [layer]. Used by undo/redo commands.
+  void replaceLayer(CanvasLayer layer) {
+    final index = _layers.indexWhere((l) => l.id == layer.id);
+    if (index == -1) {
+      return;
+    }
+    _layers[index] = layer;
+    notifyListeners();
+  }
+
+  void setActiveLayer(String id) {
+    if (_activeLayerId == id || !_layers.any((layer) => layer.id == id)) {
+      return;
+    }
+    _activeLayerId = id;
+    notifyListeners();
+  }
+
+  void toggleVisibility(String id) {
+    _updateLayer(id, (layer) => layer.copyWith(isVisible: !layer.isVisible));
+  }
+
+  void toggleLock(String id) {
+    _updateLayer(id, (layer) => layer.copyWith(isLocked: !layer.isLocked));
+  }
+
+  void setOpacity(String id, double opacity) {
+    _updateLayer(
+      id,
+      (layer) => layer.copyWith(opacity: opacity.clamp(0.0, 1.0)),
+    );
+  }
+
+  void reorder(int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= _layers.length) {
+      return;
+    }
+    if (oldIndex == newIndex || oldIndex == newIndex - 1) {
+      return;
+    }
+    final layer = _layers.removeAt(oldIndex);
+    // After removal the list is shorter; clamp to the new valid range.
+    final targetIndex = newIndex.clamp(0, _layers.length);
+    _layers.insert(targetIndex, layer);
+    notifyListeners();
+  }
+
+  /// Returns the index of the layer with the given id, or -1 if not found.
+  /// A return of -1 indicates the element's layer no longer exists.
+  int layerIndexOf(String id) {
+    return _layers.indexWhere((layer) => layer.id == id);
+  }
+
+  CanvasLayer? layerById(String id) {
+    for (final layer in _layers) {
+      if (layer.id == id) {
+        return layer;
+      }
+    }
+    return null;
+  }
+
+  bool isLayerVisible(String id) {
+    final layer = layerById(id);
+    // If the layer no longer exists, the element should not be visible.
+    return layer?.isVisible ?? false;
+  }
+
+  bool isLayerLocked(String id) {
+    return layerById(id)?.isLocked ?? false;
+  }
+
+  void _updateLayer(String id, CanvasLayer Function(CanvasLayer) update) {
+    final index = _layers.indexWhere((layer) => layer.id == id);
+    if (index == -1) {
+      return;
+    }
+    _layers[index] = update(_layers[index]);
+    notifyListeners();
+  }
+}

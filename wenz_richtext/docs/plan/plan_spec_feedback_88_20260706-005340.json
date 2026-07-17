@@ -1,0 +1,66 @@
+{
+  "title": "修复链接打开与中文文案",
+  "summary": "反馈 #88 指出链接无法打开且需要显示中文。附件截图显示链接悬浮浮层仍展示英文 Edit/Open，且 Open 处于禁用态；结合代码可知链接打开依赖 WenzRichTextEditor.onOpenLink 回调，example 侧通过 url_launcher 执行实际打开。计划需要打通示例/集成层链接打开路径，并将链接相关默认 UI 文案中文化。",
+  "tasks": [
+    {
+      "title": "打通链接打开回调到实际浏览器打开",
+      "scope": [
+        "example/lib/main.dart",
+        "lib/src/integration/wenz_editor_bootstrap.dart",
+        "lib/src/widgets/wenz_rich_text_editor.dart"
+      ],
+      "acceptance": [
+        "example 工作台中的正文链接在悬浮时“打开”按钮为可点击状态，而不是灰色禁用态。",
+        "点击“打开”或 Ctrl/Cmd+点击链接时，http/https 链接会通过宿主 onOpenLink 路径交给 url_launcher 打开。",
+        "空 URL、无法解析的 URL 或不支持的 scheme 不抛异常，并且不会改变当前文档内容或选择状态。",
+        "核心包仍保持回调优先的设计，不在 wenz_richtext 核心依赖中直接引入平台 URL launcher。"
+      ]
+    },
+    {
+      "title": "中文化链接悬浮浮层",
+      "scope": [
+        "lib/src/widgets/link_hover_overlay.dart"
+      ],
+      "acceptance": [
+        "链接悬浮浮层按钮显示“编辑”和“打开”，不再显示“Edit”或“Open”。",
+        "只读模式仍隐藏“编辑”并保留“打开”；未配置打开回调时“打开”仍以禁用态显示。",
+        "长链接截断、浮层定位、悬停保活和离开隐藏行为保持现有交互不变。"
+      ]
+    },
+    {
+      "title": "中文化链接编辑弹窗",
+      "scope": [
+        "lib/src/widgets/link_edit_dialog.dart",
+        "lib/src/widgets/default_desktop_toolbar.dart"
+      ],
+      "acceptance": [
+        "链接编辑弹窗标题、输入框标签、移除、取消、应用等可见文案显示中文。",
+        "从工具栏新增/编辑链接和从悬浮浮层编辑链接时，共用同一套中文链接编辑弹窗。",
+        "移除链接、取消编辑、提交修剪后的 URL 的返回值语义保持不变。"
+      ]
+    },
+    {
+      "title": "更新链接交互覆盖",
+      "scope": [
+        "test/widgets/link_edit_dialog_test.dart",
+        "test/widgets/wenz_rich_text_editor_test.dart",
+        "example/test/widget_test.dart"
+      ],
+      "acceptance": [
+        "覆盖链接悬浮浮层中文按钮和中文链接编辑弹窗文案。",
+        "覆盖 onOpenLink 存在时，悬浮浮层“打开”和 Ctrl/Cmd+点击都会传回 URL 与 DocumentPosition。",
+        "覆盖 onOpenLink 缺失时，“打开”禁用且普通点击仍按现有规则放置光标。",
+        "覆盖 example 工作台会向 WenzRichTextEditor 传入链接打开回调。"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter analyze",
+    "criteria": [
+      "命令退出码为 0，且没有新的 Dart/Flutter analyze 错误。",
+      "链接悬浮浮层和链接编辑弹窗的默认可见文案已中文化。",
+      "配置了 onOpenLink 的场景中，链接悬浮“打开”和 Ctrl/Cmd+点击均能触发链接打开路径。",
+      "未配置 onOpenLink 的场景仍安全降级为禁用打开，不破坏编辑、选择和链接修改行为。"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+**完成情况**
+- 已完成 P001，仅在任务 scope 内补充规则说明与手验口径。
+- `lib/src/controller/outline_controller.dart:13` 明确非标题块不拥有折叠入口、无子内容标题为禁用/no-op。
+- `lib/src/controller/outline_controller.dart:86` 明确 H1-H6 折叠范围按下一个同级或更高级标题截止。
+- `lib/src/controller/outline_controller.dart:275` 补充空文档、空标题、连续标题、文档末尾标题等边界规则。
+- `lib/src/widgets/wenz_rich_text_editor.dart:968` 明确只有顶层 heading 文本块暴露左侧折叠 slot。
+- `docs/acceptance_manual_checklist.md:93` 新增 REQ-013-P001 手动验收清单。
+
+**验证**
+- 已运行 `git diff --check -- lib/src/controller/outline_controller.dart lib/src/widgets/wenz_rich_text_editor.dart docs/acceptance_manual_checklist.md`：通过。
+- 未修改 plan 文件，未勾选 checkbox，未更新进度区；未运行全量测试。

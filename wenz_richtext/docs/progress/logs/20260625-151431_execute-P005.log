@@ -1,0 +1,390 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efda1-5d86-72f3-9ef5-217b227db00e
+--------
+user
+你是开发执行者。
+请只执行指定任务 P005，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_6_20260625-035040.md
+指定任务：
+- [ ] P005: 保持表格操作与生命周期一致 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/core/commands/table_commands.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+任务 scope：lib/src/widgets/wenz_rich_text_editor.dart, lib/src/widgets/table_floating_toolbar_overlay.dart, lib/src/core/commands/table_commands.dart, test/widgets/wenz_rich_text_editor_test.dart
+
+完成后必须：
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 如需测试，只运行与当前任务直接相关的最小测试集，不要运行全量测试或与本任务无关的测试
+- 只有当前任务本身明确要求全量验证时，才允许运行全量测试
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+**Exploring codegraph options**
+
+I think the next step is to explore codegraph, and we might want to read the plan file using a shell command, like Get-Content. It could be useful to access files through codegraph. I'm also considering whether we need to find AGENTS as part of this process. Hm, I should check that out. Let’s get started on this exploration!
+codex
+我会先只读取 P005 的计划上下文和限定文件，确保不碰其它任务。
+  → 读取 P005 相关上下文
+  • 定位生命周期不一致点
+  • 修改限定作用域文件
+  • 运行最小相关测试
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+codex
+上下文索引已定位相关区域；接下来读取只读计划和仓库指引。
+exec
+powershell.exe -Command "Get-ChildItem -Path .. -Filter AGENTS.md -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName; Write-Output '---PLAN P005---'; Select-String -Path 'D:\\project\\GitHub\\wenz_flutter\\wenz_richtext\\docs\\plan\\plan_feedback_6_20260625-035040.md' -Pattern 'P005|保持表格操作与生命周期一致' -Context 3,8" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 295ms:
+---PLAN P005---
+
+  docs\plan\plan_feedback_6_20260625-035040.md:35:  - 验收要点：工具栏按钮点击只触发对应 `TableToolbarActionIntent` 一次，不额外产生底层 tap、long 
+press、drag 或 selection change。
+  docs\plan\plan_feedback_6_20260625-035040.md:36:  - 验收要点：工具栏之外的编辑器区域仍可正常点击、拖选、滚动和唤起表格选区，不因 overlay 引入全屏遮罩阻塞正常交互。
+  docs\plan\plan_feedback_6_20260625-035040.md:37:
+> docs\plan\plan_feedback_6_20260625-035040.md:38:- [ ] P005: 保持表格操作与生命周期一致 <!-- scope: lib/src/widgets/wenz_rich_text_
+editor.dart,lib/src/widgets/table_floating_toolbar_overlay.dart,lib/src/core/commands/table_commands.dart,test/widgets/
+wenz_rich_text_editor_test.dart -->
+  docs\plan\plan_feedback_6_20260625-035040.md:39:  - 验收要点：插入/删除行列、切换表头、设置/清除背景色、列对齐、合并/拆分单元格、重置列宽等原有工具栏操作行为不回归。
+  docs\plan\plan_feedback_6_20260625-035040.md:40:  - 验收要点：工具栏 action 执行后，表格选区、焦点、撤销/重做、文档变更通知和 overlay 刷新顺序保持一致，不出现 st
+ale range 或空引用。
+  docs\plan\plan_feedback_6_20260625-035040.md:41:  - 验收要点：多表格文档中只显示当前活动表格的工具栏，选区跨表格或表格被删除后 overlay 自动关闭。
+  docs\plan\plan_feedback_6_20260625-035040.md:42:
+  docs\plan\plan_feedback_6_20260625-035040.md:43:- [ ] P006: 补充自动化与手工验收记录 <!-- scope: test/widgets/wenz_rich_text_edit
+or_test.dart,docs/acceptance_manual_checklist.md,docs/plan/plan_feedback_6_20260625-035040.md -->
+  docs\plan\plan_feedback_6_20260625-035040.md:44:  - 验收要点：新增或更新 widget 测试，覆盖工具栏显示于 overlay、按钮点击不穿透、点击工具栏外仍能编辑、滚动后工具栏跟随
+、选区取消后 overlay 消失。
+  docs\plan\plan_feedback_6_20260625-035040.md:45:  - 验收要点：执行 `flutter analyze`、相关 widget 测试和必要的回归测试；若存在失败，需区分本次改动导致失败与
+既有失败。
+  docs\plan\plan_feedback_6_20260625-035040.md:46:  - 验收要点：在本计划进度区记录每个任务的完成范围、验证命令、验证结果、遗留风险和后续建议。
+
+
+
+codex
+P005 验收点明确了；现在只在限定文件里追踪表格操作链路。
+exec
+powershell.exe -Command 'rg -n "TableToolbar|tableToolbar|table toolbar|FloatingToolbar|_tableToolbar|TableCommand|table command|insert.*row|delete.*row|header|background|alignment|merge|split|column width|columnWidth|reset" lib/src/widgets/wenz_rich_text_editor.dart lib/src/widgets/table_floating_toolbar_overlay.dart lib/src/core/commands/table_commands.dart test/widgets/wenz_rich_text_editor_test.dart' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 175ms:
+lib/src/core/commands/table_commands.dart:14:class InsertTableCommand extends EditorCommand {
+lib/src/core/commands/table_commands.dart:15:  const InsertTableCommand({
+lib/src/core/commands/table_commands.dart:113:    // Reindex alignments so columns that were at/after the insertion point
+lib/src/core/commands/table_commands.dart:114:    // keep their alignment on the shifted column index. Mirrors the reverse
+lib/src/core/commands/table_commands.dart:116:    final alignments = shiftColumnMapOnInsert(
+lib/src/core/commands/table_commands.dart:121:      tableBlock.table.columnWidths,
+lib/src/core/commands/table_commands.dart:129:      columnAlignments: alignments,
+lib/src/core/commands/table_commands.dart:130:      columnWidths: widths,
+lib/src/core/commands/table_commands.dart:192:    final alignments = shiftColumnMapOnDelete(
+lib/src/core/commands/table_commands.dart:197:      tableBlock.table.columnWidths,
+lib/src/core/commands/table_commands.dart:205:      columnAlignments: alignments,
+lib/src/core/commands/table_commands.dart:206:      columnWidths: widths,
+lib/src/core/commands/table_commands.dart:215:    required this.alignment,
+lib/src/core/commands/table_commands.dart:220:  final String? alignment;
+lib/src/core/commands/table_commands.dart:233:    final alignments = Map<int, String>.from(tableBlock.table.columnAlignments);
+lib/src/core/commands/table_commands.dart:234:    if (alignment == null) {
+lib/src/core/commands/table_commands.dart:235:      alignments.remove(columnIndex);
+lib/src/core/commands/table_commands.dart:237:      alignments[columnIndex] = alignment!;
+lib/src/core/commands/table_commands.dart:244:      columnAlignments: alignments,
+lib/src/core/commands/table_commands.dart:271:    final widths = Map<int, double>.from(tableBlock.table.columnWidths);
+lib/src/core/commands/table_commands.dart:282:      columnWidths: widths,
+lib/src/core/commands/table_commands.dart:316:        backgroundColor: cell.backgroundColor,
+lib/src/core/commands/table_commands.dart:328:    required this.backgroundColor,
+lib/src/core/commands/table_commands.dart:334:  final int? backgroundColor;
+lib/src/core/commands/table_commands.dart:352:        backgroundColor: backgroundColor,
+lib/src/core/commands/table_commands.dart:375:  String get description => 'mergeTableCells';
+lib/src/core/commands/table_commands.dart:415:          backgroundColor: cell.backgroundColor,
+lib/src/core/commands/table_commands.dart:426:      columnWidths: tableBlock.table.columnWidths,
+lib/src/core/commands/table_commands.dart:443:  String get description => 'splitTableCell';
+lib/src/core/commands/table_commands.dart:469:          backgroundColor: cell.backgroundColor,
+lib/src/core/commands/table_commands.dart:479:      columnWidths: tableBlock.table.columnWidths,
+lib/src/core/commands/table_commands.dart:593:  final insertIndex = rowIndex.clamp(0, tableBlock.table.rowCount).toInt();
+lib/src/core/commands/table_commands.dart:595:    for (var i = 0; i < insertIndex; i++) copyRow(tableBlock.table.rows[i]),
+lib/src/core/commands/table_commands.dart:602:    for (var i = insertIndex; i < tableBlock.table.rowCount; i++)
+lib/src/widgets/table_floating_toolbar_overlay.dart:8:/// Builds the visible table toolbar for an overlay request.
+lib/src/widgets/table_floating_toolbar_overlay.dart:9:typedef TableFloatingToolbarOverlayBuilder = Widget Function(
+lib/src/widgets/table_floating_toolbar_overlay.dart:14:typedef TableFloatingToolbarOverlayRequestBuilder
+lib/src/widgets/table_floating_toolbar_overlay.dart:15:    = TableFloatingToolbarOverlayRequest Function({
+lib/src/widgets/table_floating_toolbar_overlay.dart:25:/// editor owns [TableFloatingToolbarOverlayHost], which renders this payload with
+lib/src/widgets/table_floating_toolbar_overlay.dart:31:class TableFloatingToolbarOverlayRequest {
+lib/src/widgets/table_floating_toolbar_overlay.dart:32:  const TableFloatingToolbarOverlayRequest({
+lib/src/widgets/table_floating_toolbar_overlay.dart:70:  final TableFloatingToolbarOverlayBuilder toolbarBuilder;
+lib/src/widgets/table_floating_toolbar_overlay.dart:85:/// Editor-owned controller for the active table toolbar overlay request.
+lib/src/widgets/table_floating_toolbar_overlay.dart:86:class TableFloatingToolbarOverlayController extends ChangeNotifier {
+lib/src/widgets/table_floating_toolbar_overlay.dart:87:  TableFloatingToolbarOverlayRequest? _request;
+lib/src/widgets/table_floating_toolbar_overlay.dart:89:  TableFloatingToolbarOverlayRequest? get request => _request;
+lib/src/widgets/table_floating_toolbar_overlay.dart:91:  void show(TableFloatingToolbarOverlayRequest request) {
+lib/src/widgets/table_floating_toolbar_overlay.dart:109:/// Editor-level host that renders table toolbar requests into the system overlay.
+lib/src/widgets/table_floating_toolbar_overlay.dart:110:class TableFloatingToolbarOverlayHost extends StatefulWidget {
+lib/src/widgets/table_floating_toolbar_overlay.dart:111:  const TableFloatingToolbarOverlayHost({
+lib/src/widgets/table_floating_toolbar_overlay.dart:117:  final TableFloatingToolbarOverlayController controller;
+lib/src/widgets/table_floating_toolbar_overlay.dart:121:  State<TableFloatingToolbarOverlayHost> createState() =>
+lib/src/widgets/table_floating_toolbar_overlay.dart:122:      _TableFloatingToolbarOverlayHostState();
+lib/src/widgets/table_floating_toolbar_overlay.dart:125:class _TableFloatingToolbarOverlayHostState
+lib/src/widgets/table_floating_toolbar_overlay.dart:126:    extends State<TableFloatingToolbarOverlayHost> {
+lib/src/widgets/table_floating_toolbar_overlay.dart:128:  TableFloatingToolbarOverlayRequest? _request;
+lib/src/widgets/table_floating_toolbar_overlay.dart:139:  void didUpdateWidget(covariant TableFloatingToolbarOverlayHost oldWidget) {
+lib/src/widgets/table_floating_toolbar_overlay.dart:168:        return _TableFloatingToolbarOverlayEntry(request: request);
+lib/src/widgets/table_floating_toolbar_overlay.dart:209:/// leaving overlay ownership with [TableFloatingToolbarOverlayHost].
+lib/src/widgets/table_floating_toolbar_overlay.dart:210:class TableFloatingToolbarOverlayAnchor extends StatefulWidget {
+lib/src/widgets/table_floating_toolbar_overlay.dart:211:  const TableFloatingToolbarOverlayAnchor({
+lib/src/widgets/table_floating_toolbar_overlay.dart:218:  final TableFloatingToolbarOverlayController? controller;
+lib/src/widgets/table_floating_toolbar_overlay.dart:219:  final TableFloatingToolbarOverlayRequestBuilder? requestBuilder;
+lib/src/widgets/table_floating_toolbar_overlay.dart:223:  State<TableFloatingToolbarOverlayAnchor> createState() =>
+lib/src/widgets/table_floating_toolbar_overlay.dart:224:      _TableFloatingToolbarOverlayAnchorState();
+lib/src/widgets/table_floating_toolbar_overlay.dart:227:class _TableFloatingToolbarOverlayAnchorState
+lib/src/widgets/table_floating_toolbar_overlay.dart:228:    extends State<TableFloatingToolbarOverlayAnchor>
+lib/src/widgets/table_floating_toolbar_overlay.dart:243:  void didUpdateWidget(covariant TableFloatingToolbarOverlayAnchor oldWidget) {
+lib/src/widgets/table_floating_toolbar_overlay.dart:341:class _TableFloatingToolbarOverlayEntry extends StatefulWidget {
+lib/src/widgets/table_floating_toolbar_overlay.dart:342:  const _TableFloatingToolbarOverlayEntry({required this.request});
+lib/src/widgets/table_floating_toolbar_overlay.dart:344:  final TableFloatingToolbarOverlayRequest request;
+lib/src/widgets/table_floating_toolbar_overlay.dart:347:  State<_TableFloatingToolbarOverlayEntry> createState() =>
+lib/src/widgets/table_floating_toolbar_overlay.dart:348:      _TableFloatingToolbarOverlayEntryState();
+lib/src/widgets/table_floating_toolbar_overlay.dart:351:class _TableFloatingToolbarOverlayEntryState
+lib/src/widgets/table_floating_toolbar_overlay.dart:352:    extends State<_TableFloatingToolbarOverlayEntry> {
+lib/src/widgets/table_floating_toolbar_overlay.dart:375:          alignment: AlignmentDirectional.topStart,
+test/widgets/wenz_rich_text_editor_test.dart:161:                attributes: TextAttributes(background: 0xFFFFF59D),
+test/widgets/wenz_rich_text_editor_test.dart:239:    expect(styleOf('highlight').backgroundColor, const Color(0xFFFFF59D));
+test/widgets/wenz_rich_text_editor_test.dart:251:      styleOf('revision').backgroundColor,
+test/widgets/wenz_rich_text_editor_test.dart:885:  testWidgets('applies paragraph alignment and indent within bounds', (
+test/widgets/wenz_rich_text_editor_test.dart:894:            attributes: BlockAttributes(alignment: 'left'),
+test/widgets/wenz_rich_text_editor_test.dart:900:            attributes: BlockAttributes(alignment: 'center'),
+test/widgets/wenz_rich_text_editor_test.dart:906:            attributes: BlockAttributes(alignment: 'right'),
+test/widgets/wenz_rich_text_editor_test.dart:912:            attributes: BlockAttributes(alignment: 'justify'),
+test/widgets/wenz_rich_text_editor_test.dart:1041:  testWidgets('renders quote blocks with themed background', (tester) async {
+test/widgets/wenz_rich_text_editor_test.dart:1100:    final backgroundFinder = find.byKey(
+test/widgets/wenz_rich_text_editor_test.dart:1101:      const ValueKey<String>('wenz-richtext-quote-background'),
+test/widgets/wenz_rich_text_editor_test.dart:1103:    expect(backgroundFinder, findsNWidgets(2));
+test/widgets/wenz_rich_text_editor_test.dart:1108:    final background = tester.widgetList<DecoratedBox>(backgroundFinder).first;
+test/widgets/wenz_rich_text_editor_test.dart:1109:    final decoration = background.decoration as BoxDecoration;
+test/widgets/wenz_rich_text_editor_test.dart:2138:  testWidgets('block drag handles reset drag state after pointer cancel', (
+test/widgets/wenz_rich_text_editor_test.dart:2362:  testWidgets('image object toolbar updates and resets display size', (
+test/widgets/wenz_rich_text_editor_test.dart:2790:      Color background,
+test/widgets/wenz_rich_text_editor_test.dart:2797:      expect(decoration.color, background);
+test/widgets/wenz_rich_text_editor_test.dart:3019:  testWidgets('exposes table and merged cell semantics labels', (
+test/widgets/wenz_rich_text_editor_test.dart:3033:                      id: 'header',
+test/widgets/wenz_rich_text_editor_test.dart:3039:                          id: 'header-text',
+test/widgets/wenz_rich_text_editor_test.dart:3111:          'Table cell row 1 column 1, header, spans 2 rows, '
+test/widgets/wenz_rich_text_editor_test.dart:3174:    expect(table.table.cellAt(0, 0)!.backgroundColor, 0xFFFFF3CD);
+test/widgets/wenz_rich_text_editor_test.dart:3485:  testWidgets('table cells use design padding and backgrounds', (
+test/widgets/wenz_rich_text_editor_test.dart:3509:    final headerBorder = _paintedTableCellBorder(tester, 'table-style', 0, 0);
+test/widgets/wenz_rich_text_editor_test.dart:3510:    expect(headerBorder.top.color, const Color(0xFFECE9F5));
+test/widgets/wenz_rich_text_editor_test.dart:3512:    final headerCellFinder = find.byKey(
+test/widgets/wenz_rich_text_editor_test.dart:3515:    final headerPaddings = tester.widgetList<Padding>(
+test/widgets/wenz_rich_text_editor_test.dart:3517:        of: headerCellFinder,
+test/widgets/wenz_rich_text_editor_test.dart:3522:      headerPaddings.map((padding) => padding.padding),
+test/widgets/wenz_rich_text_editor_test.dart:3526:    final headerRichText = tester
+test/widgets/wenz_rich_text_editor_test.dart:3529:            of: headerCellFinder,
+test/widgets/wenz_rich_text_editor_test.dart:3534:    expect(headerRichText.text.style?.fontSize, 15);
+test/widgets/wenz_rich_text_editor_test.dart:3535:    expect(headerRichText.text.style?.fontWeight, FontWeight.w700);
+test/widgets/wenz_rich_text_editor_test.dart:3537:        headerRichText.text.style?.color, theme.colorScheme.onSurfaceVariant);
+test/widgets/wenz_rich_text_editor_test.dart:3539:    final headerBackground = _tableCellBackgroundBox(
+test/widgets/wenz_rich_text_editor_test.dart:3546:      (headerBackground.decoration as BoxDecoration).color,
+test/widgets/wenz_rich_text_editor_test.dart:3604:    expect(table.table.columnWidths[0], isNotNull);
+test/widgets/wenz_rich_text_editor_test.dart:3605:    expect(table.table.columnWidths[0]!, greaterThan(48));
+test/widgets/wenz_rich_text_editor_test.dart:3702:    addTearDown(tester.view.resetPhysicalSize);
+test/widgets/wenz_rich_text_editor_test.dart:3703:    addTearDown(tester.view.resetDevicePixelRatio);
+test/widgets/wenz_rich_text_editor_test.dart:3725:            content: <InlineNode>[TextRun(text: 'Quoted background')],
+test/widgets/wenz_rich_text_editor_test.dart:3835:      const ValueKey<String>('wenz-richtext-quote-background'),
+test/widgets/wenz_rich_text_editor_test.dart:4059:      addTearDown(tester.view.resetPhysicalSize);
+test/widgets/wenz_rich_text_editor_test.dart:4060:      addTearDown(tester.view.resetDevicePixelRatio);
+test/widgets/wenz_rich_text_editor_test.dart:4584:    // Forward Tab on the last cell inserts a new row and lands the caret in
+test/widgets/wenz_rich_text_editor_test.dart:5791:  testWidgets('merged table cell spans covered columns for hit testing', (
+test/widgets/wenz_rich_text_editor_test.dart:5857:  testWidgets('merged table cell spans covered rows for hit testing', (
+test/widgets/wenz_rich_text_editor_test.dart:7530:              alignment: Alignment.centerLeft,
+test/widgets/wenz_rich_text_editor_test.dart:8136:                backgroundColor: 0xFFEAF4FF,
+test/widgets/wenz_rich_text_editor_test.dart:8148:                id: 'table-style-merge-a',
+test/widgets/wenz_rich_text_editor_test.dart:8151:                backgroundColor: 0xFFEAF4FF,
+test/widgets/wenz_rich_text_editor_test.dart:8154:                    id: 'table-style-merge-a-text',
+test/widgets/wenz_rich_text_editor_test.dart:8160:              TableCellNode(id: 'table-style-merge-b', covered: true),
+test/widgets/wenz_rich_text_editor_test.dart:8163:              TableCellNode(id: 'table-style-merge-c', covered: true),
+test/widgets/wenz_rich_text_editor_test.dart:8165:                id: 'table-style-merge-d',
+test/widgets/wenz_rich_text_editor_test.dart:8168:                    id: 'table-style-merge-d-text',
+lib/src/widgets/wenz_rich_text_editor.dart:66:const double _kTableToolbarMinWidth = 620.0;
+lib/src/widgets/wenz_rich_text_editor.dart:67:const double _kTableFloatingToolbarGap = 4.0;
+lib/src/widgets/wenz_rich_text_editor.dart:68:const double _kTableFloatingToolbarEstimatedHeight = 56.0;
+lib/src/widgets/wenz_rich_text_editor.dart:69:const int _kTableToolbarBackgroundColor = 0xFFFFF3CD;
+lib/src/widgets/wenz_rich_text_editor.dart:78:const double _kImageFloatingToolbarGap = 6.0;
+lib/src/widgets/wenz_rich_text_editor.dart:276:    'inline.highlight': '#fff59d background with 2px horizontal padding',
+lib/src/widgets/wenz_rich_text_editor.dart:292:    'table': 'style+golden: 15px text, padding, header/even rows, shadow.',
+lib/src/widgets/wenz_rich_text_editor.dart:523:  late final TableFloatingToolbarOverlayController
+lib/src/widgets/wenz_rich_text_editor.dart:524:      _tableToolbarOverlayController = TableFloatingToolbarOverlayController();
+lib/src/widgets/wenz_rich_text_editor.dart:671:    _hideStaleTableToolbarOverlay();
+lib/src/widgets/wenz_rich_text_editor.dart:690:    _tableToolbarOverlayController.hide();
+lib/src/widgets/wenz_rich_text_editor.dart:691:    _tableToolbarOverlayController.dispose();
+lib/src/widgets/wenz_rich_text_editor.dart:730:      _hideStaleTableToolbarOverlay();
+lib/src/widgets/wenz_rich_text_editor.dart:794:  void _hideStaleTableToolbarOverlay() {
+lib/src/widgets/wenz_rich_text_editor.dart:795:    final currentRequest = _tableToolbarOverlayController.request;
+lib/src/widgets/wenz_rich_text_editor.dart:804:      _tableToolbarOverlayController.hide();
+lib/src/widgets/wenz_rich_text_editor.dart:1022:          onTableToolbarAction:
+lib/src/widgets/wenz_rich_text_editor.dart:1023:              widget.readOnly ? null : _handleTableToolbarAction,
+lib/src/widgets/wenz_rich_text_editor.dart:1024:          tableToolbarOverlayController: _tableToolbarOverlayController,
+lib/src/widgets/wenz_rich_text_editor.dart:1092:            TableFloatingToolbarOverlayHost(
+lib/src/widgets/wenz_rich_text_editor.dart:1093:              controller: _tableToolbarOverlayController,
+lib/src/widgets/wenz_rich_text_editor.dart:1196:  void _handleTableToolbarAction(TableToolbarActionIntent intent) {
+lib/src/widgets/wenz_rich_text_editor.dart:1213:      case TableToolbarAction.insertRowAbove:
+lib/src/widgets/wenz_rich_text_editor.dart:1219:      case TableToolbarAction.insertRowBelow:
+lib/src/widgets/wenz_rich_text_editor.dart:1225:      case TableToolbarAction.deleteRow:
+lib/src/widgets/wenz_rich_text_editor.dart:1237:      case TableToolbarAction.insertColumnBefore:
+lib/src/widgets/wenz_rich_text_editor.dart:1243:      case TableToolbarAction.insertColumnAfter:
+lib/src/widgets/wenz_rich_text_editor.dart:1249:      case TableToolbarAction.deleteColumn:
+lib/src/widgets/wenz_rich_text_editor.dart:1263:      case TableToolbarAction.toggleHeader:
+lib/src/widgets/wenz_rich_text_editor.dart:1278:      case TableToolbarAction.setBackgroundColor:
+lib/src/widgets/wenz_rich_text_editor.dart:1284:            backgroundColor: intent.backgroundColor,
+lib/src/widgets/wenz_rich_text_editor.dart:1288:      case TableToolbarAction.clearBackgroundColor:
+lib/src/widgets/wenz_rich_text_editor.dart:1294:            backgroundColor: null,
+lib/src/widgets/wenz_rich_text_editor.dart:1298:      case TableToolbarAction.alignLeft:
+lib/src/widgets/wenz_rich_text_editor.dart:1301:      case TableToolbarAction.alignCenter:
+lib/src/widgets/wenz_rich_text_editor.dart:1304:      case TableToolbarAction.alignRight:
+lib/src/widgets/wenz_rich_text_editor.dart:1307:      case TableToolbarAction.clearAlignment:
+lib/src/widgets/wenz_rich_text_editor.dart:1310:      case TableToolbarAction.mergeCells:
+lib/src/widgets/wenz_rich_text_editor.dart:1312:          widget.controller.mergeTableCells(
+lib/src/widgets/wenz_rich_text_editor.dart:1321:      case TableToolbarAction.splitCell:
+lib/src/widgets/wenz_rich_text_editor.dart:1322:        widget.controller.splitTableCell(
+lib/src/widgets/wenz_rich_text_editor.dart:1328:      case TableToolbarAction.resetColumnWidth:
+lib/src/widgets/wenz_rich_text_editor.dart:1382:    TableToolbarActionIntent intent,
+lib/src/widgets/wenz_rich_text_editor.dart:1431:    String? alignment,
+lib/src/widgets/wenz_rich_text_editor.dart:1437:        alignment: alignment,
+lib/src/widgets/wenz_rich_text_editor.dart:1501:      case ObjectBlockAction.resetImageSize:
+lib/src/widgets/wenz_rich_text_editor.dart:1729:                        backgroundColor: cell.backgroundColor,
+lib/src/widgets/wenz_rich_text_editor.dart:1737:          columnWidths: Map<int, double>.from(block.table.columnWidths),
+lib/src/widgets/wenz_rich_text_editor.dart:2090:  /// Resolution is split in two:
+lib/src/widgets/wenz_rich_text_editor.dart:2323:        // available for pixel-accurate alignment. Bound the re-arm depth so a
+lib/src/widgets/wenz_rich_text_editor.dart:3212:    this.onTableToolbarAction,
+lib/src/widgets/wenz_rich_text_editor.dart:3213:    this.tableToolbarOverlayController,
+lib/src/widgets/wenz_rich_text_editor.dart:3242:  final TableToolbarActionHandler? onTableToolbarAction;
+lib/src/widgets/wenz_rich_text_editor.dart:3243:  final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+lib/src/widgets/wenz_rich_text_editor.dart:3298:        oldWidget.onTableToolbarAction != widget.onTableToolbarAction ||
+lib/src/widgets/wenz_rich_text_editor.dart:3299:        oldWidget.tableToolbarOverlayController !=
+lib/src/widgets/wenz_rich_text_editor.dart:3300:            widget.tableToolbarOverlayController ||
+lib/src/widgets/wenz_rich_text_editor.dart:3340:      onTableToolbarAction: widget.onTableToolbarAction,
+lib/src/widgets/wenz_rich_text_editor.dart:3341:      tableToolbarOverlayController: widget.tableToolbarOverlayController,
+lib/src/widgets/wenz_rich_text_editor.dart:3404:    this.onTableToolbarAction,
+lib/src/widgets/wenz_rich_text_editor.dart:3405:    this.tableToolbarOverlayController,
+lib/src/widgets/wenz_rich_text_editor.dart:3432:  final TableToolbarActionHandler? onTableToolbarAction;
+lib/src/widgets/wenz_rich_text_editor.dart:3433:  final TableFloatingToolbarOverlayController? tableToolbarOverlayController;
+lib/src/widgets/wenz_rich_text_editor.dart:3461:      onTableToolbarAction: onTableToolbarAction,
+lib/src/widgets/wenz_rich_text_editor.dart:3462:      tableToolbarOverlayController: tableToolbarOverlayController,
+lib/src/widgets/wenz_rich_text_editor.dart:3682:      _resetPointerGesture();
+lib/src/widgets/wenz_rich_text_editor.dart:3705:    final backgroundColor = active
+lib/src/widgets/wenz_rich_text_editor.dart:3748:                        color: backgroundColor,
+lib/src/widgets/wenz_rich_text_editor.dart:3795:      _resetPointerGesture();
+lib/src/widgets/wenz_rich_text_editor.dart:3834:    _resetPointerGesture();
+lib/src/widgets/wenz_rich_text_editor.dart:3846:      _resetPointerGesture();
+lib/src/widgets/wenz_rich_text_editor.dart:3858:  void _resetPointerGesture() {
+lib/src/widgets/wenz_rich_text_editor.dart:4195:    onToolbarAction: rc.onTableToolbarAction,
+lib/src/widgets/wenz_rich_text_editor.dart:4253:    onToolbarAction: rc.onTableToolbarAction,
+lib/src/widgets/wenz_rich_text_editor.dart:4254:    toolbarOverlayController: rc.tableToolbarOverlayController,
+lib/src/widgets/wenz_rich_text_editor.dart:4518:  final TableToolbarActionHandler? onToolbarAction;
+lib/src/widgets/wenz_rich_text_editor.dart:4566:      textAlign: _textAlign(block.attributes.alignment),
+lib/src/widgets/wenz_rich_text_editor.dart:4746:          alignment: AlignmentDirectional.topStart,
+lib/src/widgets/wenz_rich_text_editor.dart:4801:        alignment: Alignment.center,
+lib/src/widgets/wenz_rich_text_editor.dart:4919:          alignment: AlignmentDirectional.topCenter,
+lib/src/widgets/wenz_rich_text_editor.dart:4947:      key: const ValueKey<String>('wenz-richtext-quote-background'),
+lib/src/widgets/wenz_rich_text_editor.dart:5248:  final TableToolbarActionHandler? onToolbarAction;
+lib/src/widgets/wenz_rich_text_editor.dart:5249:  final TableFloatingToolbarOverlayController? toolbarOverlayController;
+lib/src/widgets/wenz_rich_text_editor.dart:5356:                      column < metrics.columnWidths.length;
+lib/src/widgets/wenz_rich_text_editor.dart:5360:                          metrics.columnWidths[column] -
+lib/src/widgets/wenz_rich_text_editor.dart:5370:                        width: metrics.columnWidths[column],
+lib/src/widgets/wenz_rich_text_editor.dart:5383:          return TableFloatingToolbarOverlayAnchor(
+lib/src/widgets/wenz_rich_text_editor.dart:5392:                    TableFloatingToolbarOverlayRequest(
+lib/src/widgets/wenz_rich_text_editor.dart:5400:                      minWidth: _kTableToolbarMinWidth,
+lib/src/widgets/wenz_rich_text_editor.dart:5401:                      gap: _kTableFloatingToolbarGap,
+lib/src/widgets/wenz_rich_text_editor.dart:5402:                      fallbackHeight: _kTableFloatingToolbarEstimatedHeight,
+lib/src/widgets/wenz_rich_text_editor.dart:5403:                      toolbarBuilder: (context) => _TableFloatingToolbar(
+lib/src/widgets/wenz_rich_text_editor.dart:5433:class _TableFloatingToolbar extends StatelessWidget {
+lib/src/widgets/wenz_rich_text_editor.dart:5434:  const _TableFloatingToolbar({
+lib/src/widgets/wenz_rich_text_editor.dart:5444:  final TableToolbarActionHandler onAction;
+lib/src/widgets/wenz_rich_text_editor.dart:5475:                action: TableToolbarAction.insertRowAbove,
+lib/src/widgets/wenz_rich_text_editor.dart:5480:                action: TableToolbarAction.insertRowBelow,
+lib/src/widgets/wenz_rich_text_editor.dart:5485:                action: TableToolbarAction.deleteRow,
+lib/src/widgets/wenz_rich_text_editor.dart:5492:                action: TableToolbarAction.insertColumnBefore,
+lib/src/widgets/wenz_rich_text_editor.dart:5497:                action: TableToolbarAction.insertColumnAfter,
+lib/src/widgets/wenz_rich_text_editor.dart:5502:                action: TableToolbarAction.deleteColumn,
+lib/src/widgets/wenz_rich_text_editor.dart:5509:                action: TableToolbarAction.toggleHeader,
+lib/src/widgets/wenz_rich_text_editor.dart:5514:                action: TableToolbarAction.setBackgroundColor,
+lib/src/widgets/wenz_rich_text_editor.dart:5515:                backgroundColor: _kTableToolbarBackgroundColor,
+lib/src/widgets/wenz_rich_text_editor.dart:5518:                icon: Icons.format_color_reset,
+lib/src/widgets/wenz_rich_text_editor.dart:5520:                action: TableToolbarAction.clearBackgroundColor,
+lib/src/widgets/wenz_rich_text_editor.dart:5526:                action: TableToolbarAction.alignLeft,
+lib/src/widgets/wenz_rich_text_editor.dart:5531:                action: TableToolbarAction.alignCenter,
+lib/src/widgets/wenz_rich_text_editor.dart:5536:                action: TableToolbarAction.alignRight,
+lib/src/widgets/wenz_rich_text_editor.dart:5541:                action: TableToolbarAction.clearAlignment,
+lib/src/widgets/wenz_rich_text_editor.dart:5545:                icon: Icons.call_merge,
+lib/src/widgets/wenz_rich_text_editor.dart:5547:                action: TableToolbarAction.mergeCells,
+lib/src/widgets/wenz_rich_text_editor.dart:5551:                icon: Icons.call_split,
+lib/src/widgets/wenz_rich_text_editor.dart:5553:                action: TableToolbarAction.splitCell,
+lib/src/widgets/wenz_rich_text_editor.dart:5559:                action: TableToolbarAction.resetColumnWidth,
+lib/src/widgets/wenz_rich_text_editor.dart:5571:    required TableToolbarAction action,
+lib/src/widgets/wenz_rich_text_editor.dart:5573:    int? backgroundColor,
+lib/src/widgets/wenz_rich_text_editor.dart:5584:                TableToolbarActionIntent(
+lib/src/widgets/wenz_rich_text_editor.dart:5591:                  backgroundColor: backgroundColor,
+lib/src/widgets/wenz_rich_text_editor.dart:5696:    header: headingLevel != null,
+lib/src/widgets/wenz_rich_text_editor.dart:5753:    required this.columnWidths,
+lib/src/widgets/wenz_rich_text_editor.dart:5760:  final List<double> columnWidths;
+lib/src/widgets/wenz_rich_text_editor.dart:5772:    final columnWidths = _resolveTableColumnWidths(table, maxWidth);
+lib/src/widgets/wenz_rich_text_editor.dart:5790:        final cellWidth = _sumTableRange(columnWidths, column, columnSpan);
+lib/src/widgets/wenz_rich_text_editor.dart:5807:    final lefts = _tableOffsets(columnWidths);
+lib/src/widgets/wenz_rich_text_editor.dart:5831:            width: _sumTableRange(columnWidths, column, columnSpan),
+lib/src/widgets/wenz_rich_text_editor.dart:5839:      width: _sumTableRange(columnWidths, 0, columnWidths.length),
+lib/src/widgets/wenz_rich_text_editor.dart:5841:      columnWidths: columnWidths,
+lib/src/widgets/wenz_rich_text_editor.dart:5878:    final explicit = table.columnWidths[i];
+lib/src/widgets/wenz_rich_text_editor.dart:5956:  if (cell.backgroundColor != null) {
+lib/src/widgets/wenz_rich_text_editor.dart:5957:    return Color(cell.backgroundColor!);
+lib/src/widgets/wenz_rich_text_editor.dart:6087:  /// GlobalKey on the cell's outer frame — the whole cell (background +
+lib/src/widgets/wenz_rich_text_editor.dart:6129:    final backgroundColor = _tableCellBackgroundColor(
+lib/src/widgets/wenz_rich_text_editor.dart:6188:          color: backgroundColor,
+lib/src/widgets/wenz_rich_text_editor.dart:6221:    parts.add('header');
+lib/src/widgets/wenz_rich_text_editor.dart:6546:    // keys, programmatic moves), reset the blink phase so the caret is shown
+lib/src/widgets/wenz_rich_text_editor.dart:6551:      _resetBlinkPhase();
+lib/src/widgets/wenz_rich_text_editor.dart:6601:  void _resetBlinkPhase() {
+lib/src/widgets/wenz_rich_text_editor.dart:7586:      backgroundColor: const Color(_kEmbedBlockBackgroundColor),
+lib/src/widgets/wenz_rich_text_editor.dart:7657:      backgroundColor: const Color(_kFormulaBlockBackgroundColor),
+lib/src/widgets/wenz_rich_text_editor.dart:7813:                  alignment: AlignmentDirectional.centerStart,
+lib/src/widgets/wenz_rich_text_editor.dart:7828:                  alignment: Alignment.center,
+lib/src/widgets/wenz_rich_text_editor.dart:7917:    required this.backgroundColor,
+lib/src/widgets/wenz_rich_text_editor.dart:7928:  final Color backgroundColor;
+lib/src/widgets/wenz_rich_text_editor.dart:7950:            color: backgroundColor,
+lib/src/widgets/wenz_rich_text_editor.dart:7961:                    alignment: AlignmentDirectional.centerStart,
+lib/src/widgets/wenz_rich_text_editor.dart:8142:                alignment: AlignmentDirectional.centerStart,
+lib/src/widgets/wenz_rich_text_editor.dart:8232:                  ? () => _dispatch(ObjectBlockAction.resetImageSize)
+lib/src/widgets/wenz_rich_text_editor.dart:8556:    final backgroundColor = failed
+lib/src/widgets/wenz_rich_text_editor.dart:8565:          color: backgroundColor,
+lib/src/widgets/wenz_rich_text_editor.dart:8701:              alignment: AlignmentDirectional.center,
+lib/src/widgets/wenz_rich_text_editor.dart:8778:        const SizedBox(height: _kImageFloatingToolbarGap),
+lib/src/widgets/wenz_rich_text_editor.dart:8783:      alignment: AlignmentDirectional.centerStart,
+lib/src/widgets/wenz_rich_text_editor.dart:9089:    BlockType.heading => baseStyle.merge(
+lib/src/widgets/wenz_rich_text_editor.dart:9092:    BlockType.quote => baseStyle.merge(
+lib/src/widgets/wenz_rich_text_editor.dart:9108:  return overrideStyle == null ? baseline : baseline.merge(overrideStyle);
+lib/src/widgets/wenz_rich_text_editor.dart:9342:    alignment: PlaceholderAlignment.middle,
+lib/src/widgets/wenz_rich_text_editor.dart:9385:            alignment: Alignment.center,
+lib/src/widgets/wenz_rich_text_editor.dart:9520:        backgroundColor: scheme.primaryContainer.withAlpha(80),
+lib/src/widgets/wenz_rich_text_editor.dart:9524:        backgroundColor: scheme.secondaryContainer.withAlpha(90),
+lib/src/widgets/wenz_rich_text_editor.dart:9856:  final backgroundColor = attrs.background != null
+lib/src/widgets/wenz_rich_text_editor.dart:9857:      ? Color(attrs.background!)
+lib/src/widgets/wenz_rich_text_editor.dart:9860:          : baseStyle.backgroundColor;
+lib/src/widgets/wenz_rich_text_editor.dart:9867:    backgroundColor: backgroundColor,
+lib/src/widgets/wenz_rich_text_editor.dart:9881:TextAlign _textAlign(String? alignment) {
+lib/src/widgets/wenz_rich_text_editor.dart:9882:  return switch (alignment) {
+lib/src/widgets/wenz_rich_text_editor.dart:10095:      subtype.split(RegExp(r'[+;]')).first,
+lib/src/widgets/wenz_rich_text_editor.dart:10105:  final cleanName = displayName.split('?').first.trim();
+
+**Exploring data files**
+
+I need to narrow down my focus and understand the overlay file better. It might be useful to use Codegraph to explore this specific file, as it can provide insights. I'll look into what the codegraph offers and how it can help clarify what I need to know about the overlay file. This feels like a good step to take to get the information I need!
+codex
+命令链路在这几个文件内；我会分段查看关键符号，避免读无关内容。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+codex
+定位到 overlay 控制器名；现在展开这些具体定义。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+ERROR: You've hit your usage limit. Try again later.
+ERROR: You've hit your usage limit. Try again later.
+tokens used
+11,529

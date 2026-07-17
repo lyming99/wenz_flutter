@@ -1,0 +1,74 @@
+{
+  "title": "修复链接打开按钮置灰且不可点击",
+  "summary": "反馈指出链接打开入口显示灰色且无法点击。结合当前代码，链接文本本身已有蓝色下划线渲染、悬浮弹层和 Ctrl/Cmd+点击逻辑，但“Open”动作依赖 WenzRichTextEditor.onOpenLink；标准集成配置 WenzEditorConfiguration 没有持久化该回调，WenzEditorBootstrap.buildEditor 只接受临时参数，遗漏时 link_hover_overlay 会把 Open 渲染成禁用灰色。计划补齐标准配置路径的链接打开回调透传，校准悬浮弹层和修饰键点击的启用条件，并补充覆盖正常编辑、只读、表格内链接和无回调禁用态的回归用例。",
+  "tasks": [
+    {
+      "title": "补齐标准集成配置中的链接打开回调",
+      "scope": [
+        "lib/src/integration/wenz_editor_configuration.dart",
+        "lib/src/integration/wenz_editor_bootstrap.dart",
+        "test/integration/wenz_editor_bootstrap_test.dart"
+      ],
+      "acceptance": [
+        "WenzEditorConfiguration 支持声明 onOpenLink，并在 copy/装配语义中保持与 onMentionTap 等宿主回调一致的不可变配置行为。",
+        "WenzEditorBootstrap.buildEditor 默认把 configuration.onOpenLink 传给 WenzRichTextEditor，显式传入的 onOpenLink 仍可覆盖配置值。",
+        "使用 WenzEditorBootstrap.create + buildEditor 的标准路径在配置了 onOpenLink 时，链接悬浮弹层的 Open 不再是灰色禁用态。",
+        "未配置任何链接打开回调时，零配置编辑器仍可正常渲染和编辑链接，不因缺少回调抛异常。"
+      ]
+    },
+    {
+      "title": "校准链接悬浮弹层和修饰键点击的启用状态",
+      "scope": [
+        "lib/src/widgets/wenz_rich_text_editor.dart",
+        "lib/src/widgets/link_hover_overlay.dart",
+        "lib/src/widgets/selection_gesture_overlay.dart"
+      ],
+      "acceptance": [
+        "当存在有效链接打开处理器时，悬浮弹层 Open 按钮使用可点击样式并触发同一条链接打开路径。",
+        "Ctrl/Cmd+点击链接仅在存在有效打开处理器时拦截普通选区行为；成功打开时保持原有不移动光标的交互语义。",
+        "只读模式下隐藏 Edit 但保留可点击的 Open，前提是宿主已提供链接打开处理器。",
+        "无打开处理器时 Open 的禁用态应清晰可识别，且不会误吞普通点击、选区、拖拽或表格内文本交互。",
+        "链接命中范围继续按相同 URL 的连续 run 合并，表格单元格内链接与普通段落链接使用一致的打开行为。"
+      ]
+    },
+    {
+      "title": "补充链接打开交互回归覆盖",
+      "scope": [
+        "test/widgets/wenz_rich_text_editor_test.dart",
+        "test/integration/wenz_editor_bootstrap_test.dart"
+      ],
+      "acceptance": [
+        "覆盖通过 WenzEditorConfiguration.onOpenLink 注入回调后，hover 弹层 Open 可点击并把 URL 与文档位置传给宿主。",
+        "覆盖 buildEditor 显式 onOpenLink 覆盖配置回调的场景，避免同一链接被重复或错误回调。",
+        "覆盖未提供 onOpenLink 时 Open 仍为禁用态，且普通点击链接只放置光标不触发打开。",
+        "覆盖只读编辑器中链接 Open 可用、Edit 不显示的场景。",
+        "保留并强化普通段落、表格单元格、拆分为相同 URL 多个 run 的链接 hover 与 Ctrl/Cmd+点击行为断言。"
+      ]
+    },
+    {
+      "title": "同步示例与集成文档的链接打开说明",
+      "scope": [
+        "example/lib/main.dart",
+        "example/pubspec.yaml",
+        "docs/integration_guide.md",
+        "docs/api_reference.md",
+        "docs/running_guide.md"
+      ],
+      "acceptance": [
+        "示例 App 继续通过宿主侧 url_launcher 打开链接，hover Open 和 Ctrl/Cmd+点击均可触发浏览器打开。",
+        "文档说明核心包不直接依赖平台 URL launcher，宿主需要通过 WenzEditorConfiguration.onOpenLink 或 WenzRichTextEditor.onOpenLink 提供打开策略。",
+        "文档明确未提供 onOpenLink 时 Open 会禁用，避免用户把灰色按钮误判为链接渲染失败。",
+        "示例和文档中的链接打开入口与实际 API 命名一致，不引入新的核心包运行时依赖。"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter analyze",
+    "criteria": [
+      "项目静态分析通过，无新增 Dart analyzer error 或 warning。",
+      "WenzEditorConfiguration、WenzEditorBootstrap、WenzRichTextEditor 与链接弹层相关 API 引用均能被 analyzer 正确解析。",
+      "链接打开回调透传不破坏零配置装配、mention 回调、只读模式、表格内文本交互和现有链接编辑能力。",
+      "最终仅由 AutoPlan 渲染 Markdown plan；本 PlanSpec 生成任务本身不创建或修改最终 Markdown plan 文件。"
+    ]
+  }
+}

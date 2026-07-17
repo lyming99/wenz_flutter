@@ -1,0 +1,59 @@
+{
+  "title": "隐藏图片块可见文字描述",
+  "summary": "反馈 #27 要求图片不需要显示文字描述。结合当前实现，图片块会在 `_ImageBlockContent` 中把 `ImageBlockNode.caption` 渲染为图片下方可见 figcaption，同时 `_ImageBlockPlaceholder` 在空态、上传中和加载失败状态中显示标题与提示文案；这些都会让图片块出现额外文字。计划应收敛为图片块默认只显示图片 frame、图标/进度/状态视觉和选中交互，不再显示 caption 或占位提示文案；但保留 `caption` 与 `altText` 的数据、编辑、导入导出和无障碍朗读能力，避免破坏既有内容模型与业务集成。",
+  "tasks": [
+    {
+      "title": "隐藏图片块内的可见说明文字",
+      "scope": [
+        "lib/src/widgets/wenz_rich_text_editor.dart"
+      ],
+      "acceptance": [
+        "带有 `caption` 的 ImageBlockNode 在编辑器内只显示图片 frame 或 resolver 内容，不再在 frame 下方渲染可见 caption，也不再产生 caption gap 或额外块高度。",
+        "`_ImageBlockPlaceholder` 的 empty、loading、failed 状态不再显示“图片占位”“插入后将在此显示图片”“图片上传中”“图片加载失败”“无法显示该图片”等可见文案，只保留图标、进度、颜色或其他非文本状态提示。",
+        "隐藏可见文字后，图片 frame、selection stroke、resize hit zones、对象工具栏 anchor、左中右对齐和双击预览的几何尺寸仍以同一图片 frame 为准，不因 caption 移除产生错位。",
+        "`caption` 与 `altText` 字段继续保留在 ImageBlockNode 中，图片描述编辑入口、复制粘贴、撤销重做和 controller 更新逻辑不删除或清空这些数据。",
+        "`_imageAccessibleLabel` 继续优先使用 altText，其次 caption，再其次 asset/file label，保证读屏和预览 dialog 的语义标签不因为隐藏可见文字而退化。"
+      ]
+    },
+    {
+      "title": "更新图片块显示相关回归测试",
+      "scope": [
+        "test/widgets/wenz_rich_text_editor_test.dart",
+        "test/widgets/media_resolver_test.dart"
+      ],
+      "acceptance": [
+        "原本断言图片 caption 可见的用例更新为断言 caption 不在编辑器正文中显示，同时验证 ImageBlockNode.caption 数据仍保持原值。",
+        "原本断言图片空态、上传中或失败态文案可见的用例更新为断言这些文案不可见，并继续验证对应图标、进度、状态 key 或 frame 仍存在。",
+        "新增或调整几何断言，覆盖有 caption 和无 caption 的图片块高度一致或不再因 caption 文本额外增高，selection stroke 仍贴合 frame。",
+        "MediaResolver 自定义图片、resolver 返回 null、resolver 抛错三类路径都覆盖无可见图片文字描述的行为，并确认 resolver 接收的 block 字段不变。",
+        "图片描述编辑弹窗、caption/altText 保存、复制粘贴图片 metadata 和无障碍语义相关既有覆盖保持有效。"
+      ]
+    },
+    {
+      "title": "同步图片显示契约文档",
+      "scope": [
+        "docs/design/media_block_display_spec.md",
+        "docs/rendering.md",
+        "docs/api_reference.md",
+        "ui/media_block_display_design.html"
+      ],
+      "acceptance": [
+        "文档明确图片块默认不显示可见 caption 或占位说明文字，图片区域仅呈现媒体内容、图标/进度/状态视觉、选中描边和 resize 交互。",
+        "文档继续说明 `caption` 与 `altText` 是模型 metadata、导入导出字段和无障碍标签来源，不应因隐藏可见文字而从 schema、codecs 或编辑入口移除。",
+        "设计稿和渲染说明中关于 figcaption、placeholder title/hint、caption gap、caption 跟随 resize 的描述调整为新的无可见文字口径。",
+        "导入导出说明保留 Markdown title、HTML figcaption、plain text sentinel 等现有数据协议说明，并注明这些字段不代表编辑器内默认可见展示。",
+        "文档不引入新的配置开关或业务方迁移要求，除非实现层已有明确可复用配置入口。"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter analyze; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; flutter test --no-pub test/widgets/wenz_rich_text_editor_test.dart test/widgets/media_resolver_test.dart",
+    "criteria": [
+      "静态分析通过，无新增 Dart analyzer error 或 warning。",
+      "图片块在有 caption、无 caption、resolver 成功、resolver 返回 null、resolver 抛错、上传中和加载失败场景中均不显示可见文字描述。",
+      "ImageBlockNode.caption 和 altText 的编辑、保存、复制粘贴、导入导出 metadata 与无障碍语义标签能力保持兼容。",
+      "图片选中描边、resize 命中区、对象工具栏、对齐、预览和 MediaResolver finite frame 布局不因隐藏文字描述回归。",
+      "`test/widgets/wenz_rich_text_editor_test.dart` 与 `test/widgets/media_resolver_test.dart` 全部通过。"
+    ]
+  }
+}

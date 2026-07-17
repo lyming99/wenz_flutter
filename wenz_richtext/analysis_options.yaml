@@ -1,0 +1,12 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - .autoplan-runtime/**
+    - _temp/**
+    - hosted/**
+
+linter:
+  rules:
+    prefer_single_quotes: true
+

@@ -1,0 +1,10 @@
+P002 未能落地，环境写入被阻塞。
+
+我已定位到需要修改的位置：[toolbar.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/ui/toolbar/toolbar.dart:335)。目标改动是把便签、计数器、思维导图三项统一成同一个 `Icon + Text` 菜单行，并保持 `showAnchoredMenu`、`value` 和回调分发不变。
+
+阻塞点：
+`apply_patch` 被当前 Windows 受限沙箱拒绝执行；改用 UTF-8 的 `git apply` 后能正确定位补丁，但写入时报错：
+
+`unable to write file 'wenz_draw/lib/src/ui/toolbar/toolbar.dart' mode 100644: Permission denied`
+
+按任务约束，遇到 `Permission denied` 后已停止继续重试。未修改 plan 文件，未运行测试、构建、analyze 或 lint。

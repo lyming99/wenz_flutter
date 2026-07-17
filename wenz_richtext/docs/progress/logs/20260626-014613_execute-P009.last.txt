@@ -1,0 +1,13 @@
+已完成 P009，未修改 plan 文件。
+
+**完成内容**
+- `lib/src/widgets/wenz_rich_text_editor.dart:4513` 新增图片/视频预览弹窗入口。
+- `lib/src/widgets/wenz_rich_text_editor.dart:4603` 图片/视频选中后使用轻量工具栏：`预览媒体` + `更多块操作`。
+- `lib/src/widgets/wenz_rich_text_editor.dart:8071` 视频块默认不再显示标题/描述文本区域。
+- `lib/src/widgets/wenz_rich_text_editor.dart:9084` 图片块默认不再显示 caption，但模型数据保留。
+- `test/widgets/wenz_rich_text_editor_test.dart:113` 更新 caption 隐藏但数据保留断言，并补充媒体工具栏/预览测试。
+
+**验证**
+- 通过：`dart analyze lib/src/widgets/wenz_rich_text_editor.dart`
+- 阻塞：`flutter test test/widgets/wenz_rich_text_editor_test.dart --name "(...P009相关用例...)"` 无法加载测试文件。
+- 阻塞原因：`test/widgets/wenz_rich_text_editor_test.dart:6199`、`:6200`、`:6398` 已存在未定义 `_caretRenderOffsetForLogicalOffset`，与本次 P009 改动无关，按要求未顺手修复。

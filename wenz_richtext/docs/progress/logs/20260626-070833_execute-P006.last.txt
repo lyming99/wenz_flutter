@@ -1,0 +1,9 @@
+**P006 完成**
+- 已检查 P006 scope，现有实现已满足：导入导出不持久化折叠视图状态，导入后默认展开，扩展 renderer/resolver 跳过隐藏 block。
+- 关键契约位于 `lib/src/codecs/rich_text_json_codec.dart:16`、`lib/src/codecs/html_codec.dart:30`、`lib/src/codecs/markdown_codec.dart:27`、`lib/src/widgets/block_renderer_registry.dart:365`。
+- 对应测试覆盖位于 `test/codecs/rich_text_json_codec_test.dart:114`、`test/codecs/html_codec_test.dart:30`、`test/codecs/html_codec_test.dart:420`、`test/codecs/markdown_codec_test.dart:30`、`test/codecs/markdown_codec_test.dart:356`、`test/plugins/editor_plugin_test.dart:117`。
+- 本次无需额外补丁，未修改 plan 文件、未勾选 checkbox、未更新进度区。
+
+**验证**
+- 已运行最小相关测试：`flutter test test/codecs/rich_text_json_codec_test.dart test/codecs/html_codec_test.dart test/codecs/markdown_codec_test.dart test/plugins/editor_plugin_test.dart`
+- 结果：`All tests passed!`

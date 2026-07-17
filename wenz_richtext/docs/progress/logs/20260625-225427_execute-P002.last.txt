@@ -1,0 +1,7 @@
+已完成 P002，未修改 plan 文件。
+
+- `lib/src/widgets/wenz_rich_text_editor.dart:5002`：引用块在有限宽度约束下强制扩展到整行，背景、左边框、内边距和命中区域随编辑器内容宽度铺满。
+- `test/widgets/editor_golden_test.dart:164`：新增短引用、空引用、缩进多行引用的整行宽度回归测试。
+- `test/widgets/wenz_rich_text_editor_test.dart:1120`：扩展现有引用块测试，校验整行宽度和空引用右侧点击选中。
+- 已运行：`flutter test test/widgets/editor_golden_test.dart --plain-name "quote blocks fill the editable row width"`，通过。
+- 另试运行 `test/widgets/wenz_rich_text_editor_test.dart` 的引用块单测时，加载被非本任务的未定义 helper 阻塞：`test/widgets/wenz_rich_text_editor_test.dart:5933`。

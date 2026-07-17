@@ -1,0 +1,9 @@
+已完成 P006，并只更新了计划文件中的 P006 状态与进度区。
+
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart`：通过，78 项全部通过
+- `flutter test test/core/selection_commands_test.dart`：通过，27 项全部通过
+- 已勾选 `docs/plan/plan_feedback_1_20260624-220759.md:37`
+- 已更新进度区当前状态与下一步：`docs/plan/plan_feedback_1_20260624-220759.md:54`
+- 已追加 P006 验证记录：`docs/plan/plan_feedback_1_20260624-220759.md:76`
+
+未执行 P007 或其它后续任务。

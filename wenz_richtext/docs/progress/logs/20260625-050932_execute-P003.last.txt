@@ -1,0 +1,14 @@
+完成 P003，未修改 plan 文件、未勾选 checkbox。
+
+**改动**
+- `lib/src/widgets/wenz_rich_text_editor.dart:3235` 接入默认视频 fallback 预览卡。
+- `lib/src/widgets/wenz_rich_text_editor.dart:6036` 新增无 `video_player` 依赖的视频占位：标题/来源、封面提示、播放按钮、语义标签。
+- `lib/src/widgets/wenz_rich_text_editor.dart:6299` 视频卡片支持 `aspectRatio`、标题、副标题和说明。
+- `test/widgets/media_resolver_test.dart:64` 补充 video resolver 返回 `null`、默认渲染、resolver 异常回退、自定义 resolver 元数据测试。
+- 同一测试文件内同步修正图片/文件 fallback 的旧断言，以匹配当前业务渲染；未改图片/文件业务逻辑。
+
+**验证**
+- 已通过：`flutter test test/widgets/media_resolver_test.dart test/widgets/wenz_rich_text_editor_test.dart`
+
+**备注**
+- 工作区中 `lib/src/widgets/block_renderer_registry.dart`、`test/widgets/wenz_rich_text_editor_test.dart` 和 plan 文件状态是既有状态；本次未写入 plan 文件。

@@ -1,0 +1,12 @@
+已完成 P004，未修改 plan 文件、未勾选 checkbox。
+
+**变更**
+- `lib/src/widgets/table_floating_toolbar_overlay.dart:222` 将 toolbar overlay 改为 `OverlayPortal.overlayChildLayoutBuilder`，移除 hover 时触发 `RenderFollowerLayer` 断言的定位链路。
+- `lib/src/widgets/table_floating_toolbar_overlay.dart:384` 改用 overlay 坐标记录表格 anchor，保持滚动/选区期间定位稳定。
+- `lib/src/widgets/table_floating_toolbar_overlay.dart:470` 用 `Positioned` 直接放置 toolbar，按钮、分隔线、空白区域 hover 不再经过 `CompositedTransformFollower`。
+- `test/widgets/wenz_rich_text_editor_test.dart:3921` 新增表格工具栏 hover 回归，覆盖按钮、分隔线、空白区域，并断言选区稳定。
+
+**验证**
+- 通过：`flutter analyze lib/src/widgets/table_floating_toolbar_overlay.dart`
+- 通过：临时最小 Flutter widget 测试，复现并验证 toolbar 按钮/分隔线/空白 hover 无异常。
+- 阻塞：`flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "table floating toolbar hover keeps overlay stable"` 当前因既有编译错误无法加载：缺少 `_caretRenderOffsetForLogicalOffset`，位置在 `test/widgets/wenz_rich_text_editor_test.dart:5997`、`:5998`、`:6196`。

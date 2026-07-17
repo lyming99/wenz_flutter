@@ -1,0 +1,4233 @@
+{
+  "library": "cisco19",
+  "group": "Cisco",
+  "shapeCount": 232,
+  "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+  "sourceSizeBytes": 1844524,
+  "generatedAt": "2026-06-13T16:53:08.462267Z",
+  "shapes": [
+    {
+      "key": "cisco19.3g4gIndicator",
+      "label": "3g 4g indicator",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 108.72,
+      "defaultHeight": 107.15,
+      "tags": [
+        "cisco",
+        "3g",
+        "4g",
+        "indicator"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.3g4gIndicator",
+        "mxgraph.cisco19.3g_4g_indicator",
+        "mxgraph.cisco19.3g-4g-indicator",
+        "mxgraph.cisco19.3g 4g indicator"
+      ]
+    },
+    {
+      "key": "cisco19.6500Vss",
+      "label": "6500 vss",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 279.26,
+      "tags": [
+        "cisco",
+        "6500",
+        "vss"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.6500Vss",
+        "mxgraph.cisco19.6500_vss",
+        "mxgraph.cisco19.6500-vss",
+        "mxgraph.cisco19.6500 vss"
+      ]
+    },
+    {
+      "key": "cisco19.6500Vss2",
+      "label": "6500 vss2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 258.41,
+      "tags": [
+        "cisco",
+        "6500",
+        "vss2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.6500Vss2",
+        "mxgraph.cisco19.6500_vss2",
+        "mxgraph.cisco19.6500-vss2",
+        "mxgraph.cisco19.6500 vss2"
+      ]
+    },
+    {
+      "key": "cisco19.accessControlAndTrustsec",
+      "label": "access control and trustsec",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "access",
+        "control",
+        "and",
+        "trustsec"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.accessControlAndTrustsec",
+        "mxgraph.cisco19.access_control_and_trustsec",
+        "mxgraph.cisco19.access-control-and-trustsec",
+        "mxgraph.cisco19.access control and trustsec"
+      ]
+    },
+    {
+      "key": "cisco19.aci",
+      "label": "aci",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 718.73,
+      "defaultHeight": 707.63,
+      "tags": [
+        "cisco",
+        "aci"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.aci"
+      ]
+    },
+    {
+      "key": "cisco19.aci2",
+      "label": "aci2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 2037.36,
+      "defaultHeight": 2005.89,
+      "tags": [
+        "cisco",
+        "aci2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.aci2"
+      ]
+    },
+    {
+      "key": "cisco19.acibg",
+      "label": "aciBg",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 438.49,
+      "defaultHeight": 432.45,
+      "tags": [
+        "cisco",
+        "acibg"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.acibg",
+        "mxgraph.cisco19.aciBg"
+      ]
+    },
+    {
+      "key": "cisco19.acs",
+      "label": "acs",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "acs"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.acs"
+      ]
+    },
+    {
+      "key": "cisco19.adDecoder",
+      "label": "ad decoder",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "ad",
+        "decoder"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.adDecoder",
+        "mxgraph.cisco19.ad_decoder",
+        "mxgraph.cisco19.ad-decoder",
+        "mxgraph.cisco19.ad decoder"
+      ]
+    },
+    {
+      "key": "cisco19.adEncoder",
+      "label": "ad encoder",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "ad",
+        "encoder"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.adEncoder",
+        "mxgraph.cisco19.ad_encoder",
+        "mxgraph.cisco19.ad-encoder",
+        "mxgraph.cisco19.ad encoder"
+      ]
+    },
+    {
+      "key": "cisco19.analysisCorrelation",
+      "label": "analysis correlation",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "analysis",
+        "correlation"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.analysisCorrelation",
+        "mxgraph.cisco19.analysis_correlation",
+        "mxgraph.cisco19.analysis-correlation",
+        "mxgraph.cisco19.analysis correlation"
+      ]
+    },
+    {
+      "key": "cisco19.anomalyDetection",
+      "label": "anomaly detection",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "anomaly",
+        "detection"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.anomalyDetection",
+        "mxgraph.cisco19.anomaly_detection",
+        "mxgraph.cisco19.anomaly-detection",
+        "mxgraph.cisco19.anomaly detection"
+      ]
+    },
+    {
+      "key": "cisco19.antiMalware",
+      "label": "anti malware",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "anti",
+        "malware"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.antiMalware",
+        "mxgraph.cisco19.anti_malware",
+        "mxgraph.cisco19.anti-malware",
+        "mxgraph.cisco19.anti malware"
+      ]
+    },
+    {
+      "key": "cisco19.antiMalware2",
+      "label": "anti malware2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "anti",
+        "malware2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.antiMalware2",
+        "mxgraph.cisco19.anti_malware2",
+        "mxgraph.cisco19.anti-malware2",
+        "mxgraph.cisco19.anti malware2"
+      ]
+    },
+    {
+      "key": "cisco19.appnav",
+      "label": "appnav",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "appnav"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.appnav"
+      ]
+    },
+    {
+      "key": "cisco19.asa5500",
+      "label": "asa 5500",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "asa",
+        "5500"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.asa5500",
+        "mxgraph.cisco19.asa_5500",
+        "mxgraph.cisco19.asa-5500",
+        "mxgraph.cisco19.asa 5500"
+      ]
+    },
+    {
+      "key": "cisco19.asr1000",
+      "label": "asr 1000",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.9,
+      "defaultHeight": 165.32,
+      "tags": [
+        "cisco",
+        "asr",
+        "1000"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.asr1000",
+        "mxgraph.cisco19.asr_1000",
+        "mxgraph.cisco19.asr-1000",
+        "mxgraph.cisco19.asr 1000"
+      ]
+    },
+    {
+      "key": "cisco19.asr9000",
+      "label": "asr 9000",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 196.97,
+      "defaultHeight": 196.97,
+      "tags": [
+        "cisco",
+        "asr",
+        "9000"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.asr9000",
+        "mxgraph.cisco19.asr_9000",
+        "mxgraph.cisco19.asr-9000",
+        "mxgraph.cisco19.asr 9000"
+      ]
+    },
+    {
+      "key": "cisco19.avcApplicationVisibilityControl",
+      "label": "avc application visibility control",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "avc",
+        "application",
+        "visibility",
+        "control"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.avcApplicationVisibilityControl",
+        "mxgraph.cisco19.avc_application_visibility_control",
+        "mxgraph.cisco19.avc-application-visibility-control",
+        "mxgraph.cisco19.avc application visibility control"
+      ]
+    },
+    {
+      "key": "cisco19.avcApplicationVisibilityControl2",
+      "label": "avc application visibility control2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "avc",
+        "application",
+        "visibility",
+        "control2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.avcApplicationVisibilityControl2",
+        "mxgraph.cisco19.avc_application_visibility_control2",
+        "mxgraph.cisco19.avc-application-visibility-control2",
+        "mxgraph.cisco19.avc application visibility control2"
+      ]
+    },
+    {
+      "key": "cisco19.bg1",
+      "label": "bg1",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "bg1"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.bg1"
+      ]
+    },
+    {
+      "key": "cisco19.bg10",
+      "label": "bg10",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 385.37,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "bg10"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.bg10"
+      ]
+    },
+    {
+      "key": "cisco19.bg2",
+      "label": "bg2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 279.26,
+      "tags": [
+        "cisco",
+        "bg2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.bg2"
+      ]
+    },
+    {
+      "key": "cisco19.bg3",
+      "label": "bg3",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 362.61,
+      "tags": [
+        "cisco",
+        "bg3"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.bg3"
+      ]
+    },
+    {
+      "key": "cisco19.bg4",
+      "label": "bg4",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 1484.06,
+      "tags": [
+        "cisco",
+        "bg4"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.bg4"
+      ]
+    },
+    {
+      "key": "cisco19.bg5",
+      "label": "bg5",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 258.41,
+      "tags": [
+        "cisco",
+        "bg5"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.bg5"
+      ]
+    },
+    {
+      "key": "cisco19.bg6",
+      "label": "bg6",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "bg6"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.bg6"
+      ]
+    },
+    {
+      "key": "cisco19.bg7",
+      "label": "bg7",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.9,
+      "defaultHeight": 165.32,
+      "tags": [
+        "cisco",
+        "bg7"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.bg7"
+      ]
+    },
+    {
+      "key": "cisco19.bg8",
+      "label": "bg8",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 275.55,
+      "tags": [
+        "cisco",
+        "bg8"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.bg8"
+      ]
+    },
+    {
+      "key": "cisco19.bg9",
+      "label": "bg9",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 79.63,
+      "tags": [
+        "cisco",
+        "bg9"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.bg9"
+      ]
+    },
+    {
+      "key": "cisco19.bladeServer",
+      "label": "blade server",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "blade",
+        "server"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.bladeServer",
+        "mxgraph.cisco19.blade_server",
+        "mxgraph.cisco19.blade-server",
+        "mxgraph.cisco19.blade server"
+      ]
+    },
+    {
+      "key": "cisco19.branch",
+      "label": "branch",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 74.91,
+      "defaultHeight": 76.18,
+      "tags": [
+        "cisco",
+        "branch"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.branch"
+      ]
+    },
+    {
+      "key": "cisco19.branch2",
+      "label": "branch2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 212.35,
+      "defaultHeight": 215.95,
+      "tags": [
+        "cisco",
+        "branch2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.branch2"
+      ]
+    },
+    {
+      "key": "cisco19.camera",
+      "label": "camera",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 1284.36,
+      "defaultHeight": 718.53,
+      "tags": [
+        "cisco",
+        "camera"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.camera"
+      ]
+    },
+    {
+      "key": "cisco19.camera2",
+      "label": "camera2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 3640.71,
+      "defaultHeight": 2036.76,
+      "tags": [
+        "cisco",
+        "camera2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.camera2"
+      ]
+    },
+    {
+      "key": "cisco19.cellPhone",
+      "label": "cell phone",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 78.36,
+      "defaultHeight": 151.06,
+      "tags": [
+        "cisco",
+        "cell",
+        "phone"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.cellPhone",
+        "mxgraph.cisco19.cell_phone",
+        "mxgraph.cisco19.cell-phone",
+        "mxgraph.cisco19.cell phone"
+      ]
+    },
+    {
+      "key": "cisco19.cellPhone2",
+      "label": "cell phone2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 222.13,
+      "defaultHeight": 428.21,
+      "tags": [
+        "cisco",
+        "cell",
+        "phone2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.cellPhone2",
+        "mxgraph.cisco19.cell_phone2",
+        "mxgraph.cisco19.cell-phone2",
+        "mxgraph.cisco19.cell phone2"
+      ]
+    },
+    {
+      "key": "cisco19.cisco15800",
+      "label": "cisco 15800",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "15800"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.cisco15800",
+        "mxgraph.cisco19.cisco_15800",
+        "mxgraph.cisco19.cisco-15800",
+        "mxgraph.cisco19.cisco 15800"
+      ]
+    },
+    {
+      "key": "cisco19.ciscoDna",
+      "label": "cisco dna",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 191.72,
+      "defaultHeight": 105.75,
+      "tags": [
+        "cisco",
+        "dna"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.ciscoDna",
+        "mxgraph.cisco19.cisco_dna",
+        "mxgraph.cisco19.cisco-dna",
+        "mxgraph.cisco19.cisco dna"
+      ]
+    },
+    {
+      "key": "cisco19.ciscoDnaCenter",
+      "label": "cisco dna center",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "dna",
+        "center"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.ciscoDnaCenter",
+        "mxgraph.cisco19.cisco_dna_center",
+        "mxgraph.cisco19.cisco-dna-center",
+        "mxgraph.cisco19.cisco dna center"
+      ]
+    },
+    {
+      "key": "cisco19.ciscoMeetingplaceExpress",
+      "label": "cisco meetingplace express",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "meetingplace",
+        "express"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.ciscoMeetingplaceExpress",
+        "mxgraph.cisco19.cisco_meetingplace_express",
+        "mxgraph.cisco19.cisco-meetingplace-express",
+        "mxgraph.cisco19.cisco meetingplace express"
+      ]
+    },
+    {
+      "key": "cisco19.ciscoSecurityManager",
+      "label": "cisco security manager",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "security",
+        "manager"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.ciscoSecurityManager",
+        "mxgraph.cisco19.cisco_security_manager",
+        "mxgraph.cisco19.cisco-security-manager",
+        "mxgraph.cisco19.cisco security manager"
+      ]
+    },
+    {
+      "key": "cisco19.ciscoUnifiedContactCenterEnterpriseAndHosted",
+      "label": "cisco unified contact center enterprise and hosted",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "unified",
+        "contact",
+        "center",
+        "enterprise",
+        "and",
+        "hosted"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.ciscoUnifiedContactCenterEnterpriseAndHosted",
+        "mxgraph.cisco19.cisco_unified_contact_center_enterprise_and_hosted",
+        "mxgraph.cisco19.cisco-unified-contact-center-enterprise-and-hosted",
+        "mxgraph.cisco19.cisco unified contact center enterprise and hosted"
+      ]
+    },
+    {
+      "key": "cisco19.ciscoUnifiedPresenceService",
+      "label": "cisco unified presence service",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "unified",
+        "presence",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.ciscoUnifiedPresenceService",
+        "mxgraph.cisco19.cisco_unified_presence_service",
+        "mxgraph.cisco19.cisco-unified-presence-service",
+        "mxgraph.cisco19.cisco unified presence service"
+      ]
+    },
+    {
+      "key": "cisco19.clock",
+      "label": "clock",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 744.45,
+      "defaultHeight": 744.45,
+      "tags": [
+        "cisco",
+        "clock"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.clock"
+      ]
+    },
+    {
+      "key": "cisco19.cloud",
+      "label": "cloud",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.37,
+      "defaultHeight": 150.16,
+      "tags": [
+        "cisco",
+        "cloud"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.cloud"
+      ]
+    },
+    {
+      "key": "cisco19.cloud2",
+      "label": "cloud2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 247.38,
+      "defaultHeight": 149.16,
+      "tags": [
+        "cisco",
+        "cloud2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.cloud2"
+      ]
+    },
+    {
+      "key": "cisco19.cognitive",
+      "label": "cognitive",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "cognitive"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.cognitive"
+      ]
+    },
+    {
+      "key": "cisco19.collab1",
+      "label": "collab1",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 934.06,
+      "tags": [
+        "cisco",
+        "collab1"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.collab1"
+      ]
+    },
+    {
+      "key": "cisco19.collab2",
+      "label": "collab2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "collab2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.collab2"
+      ]
+    },
+    {
+      "key": "cisco19.collab3",
+      "label": "collab3",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "collab3"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.collab3"
+      ]
+    },
+    {
+      "key": "cisco19.collab4",
+      "label": "collab4",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "collab4"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.collab4"
+      ]
+    },
+    {
+      "key": "cisco19.communicationsManager",
+      "label": "communications manager",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "communications",
+        "manager"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.communicationsManager",
+        "mxgraph.cisco19.communications_manager",
+        "mxgraph.cisco19.communications-manager",
+        "mxgraph.cisco19.communications manager"
+      ]
+    },
+    {
+      "key": "cisco19.contactCenterExpress",
+      "label": "contact center express",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "contact",
+        "center",
+        "express"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.contactCenterExpress",
+        "mxgraph.cisco19.contact_center_express",
+        "mxgraph.cisco19.contact-center-express",
+        "mxgraph.cisco19.contact center express"
+      ]
+    },
+    {
+      "key": "cisco19.contentRecordingStreamingServer",
+      "label": "content recording streaming server",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "content",
+        "recording",
+        "streaming",
+        "server"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.contentRecordingStreamingServer",
+        "mxgraph.cisco19.content_recording_streaming_server",
+        "mxgraph.cisco19.content-recording-streaming-server",
+        "mxgraph.cisco19.content recording streaming server"
+      ]
+    },
+    {
+      "key": "cisco19.contentRouter",
+      "label": "content router",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "content",
+        "router"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.contentRouter",
+        "mxgraph.cisco19.content_router",
+        "mxgraph.cisco19.content-router",
+        "mxgraph.cisco19.content router"
+      ]
+    },
+    {
+      "key": "cisco19.csr1000v",
+      "label": "csr 1000v",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 196.97,
+      "defaultHeight": 196.97,
+      "tags": [
+        "cisco",
+        "csr",
+        "1000v"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.csr1000v",
+        "mxgraph.cisco19.csr_1000v",
+        "mxgraph.cisco19.csr-1000v",
+        "mxgraph.cisco19.csr 1000v"
+      ]
+    },
+    {
+      "key": "cisco19.databaseRelational",
+      "label": "database relational",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "database",
+        "relational"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.databaseRelational",
+        "mxgraph.cisco19.database_relational",
+        "mxgraph.cisco19.database-relational",
+        "mxgraph.cisco19.database relational"
+      ]
+    },
+    {
+      "key": "cisco19.dataCenter",
+      "label": "data center",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 167.16,
+      "defaultHeight": 115.03,
+      "tags": [
+        "cisco",
+        "data",
+        "center"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.dataCenter",
+        "mxgraph.cisco19.data_center",
+        "mxgraph.cisco19.data-center",
+        "mxgraph.cisco19.data center"
+      ]
+    },
+    {
+      "key": "cisco19.dataCenter2",
+      "label": "data center2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 473.85,
+      "defaultHeight": 326.06,
+      "tags": [
+        "cisco",
+        "data",
+        "center2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.dataCenter2",
+        "mxgraph.cisco19.data_center2",
+        "mxgraph.cisco19.data-center2",
+        "mxgraph.cisco19.data center2"
+      ]
+    },
+    {
+      "key": "cisco19.daDecoder",
+      "label": "da decoder",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "da",
+        "decoder"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.daDecoder",
+        "mxgraph.cisco19.da_decoder",
+        "mxgraph.cisco19.da-decoder",
+        "mxgraph.cisco19.da decoder"
+      ]
+    },
+    {
+      "key": "cisco19.daEncoder",
+      "label": "da encoder",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "da",
+        "encoder"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.daEncoder",
+        "mxgraph.cisco19.da_encoder",
+        "mxgraph.cisco19.da-encoder",
+        "mxgraph.cisco19.da encoder"
+      ]
+    },
+    {
+      "key": "cisco19.dnsServer",
+      "label": "dns server",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 108.15,
+      "defaultHeight": 191.84,
+      "tags": [
+        "cisco",
+        "dns",
+        "server"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.dnsServer",
+        "mxgraph.cisco19.dns_server",
+        "mxgraph.cisco19.dns-server",
+        "mxgraph.cisco19.dns server"
+      ]
+    },
+    {
+      "key": "cisco19.dnsServer2",
+      "label": "dns server2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 306.56,
+      "defaultHeight": 543.79,
+      "tags": [
+        "cisco",
+        "dns",
+        "server2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.dnsServer2",
+        "mxgraph.cisco19.dns_server2",
+        "mxgraph.cisco19.dns-server2",
+        "mxgraph.cisco19.dns server2"
+      ]
+    },
+    {
+      "key": "cisco19.dualModeAccessPoint",
+      "label": "dual mode access point",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "dual",
+        "mode",
+        "access",
+        "point"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.dualModeAccessPoint",
+        "mxgraph.cisco19.dual_mode_access_point",
+        "mxgraph.cisco19.dual-mode-access-point",
+        "mxgraph.cisco19.dual mode access point"
+      ]
+    },
+    {
+      "key": "cisco19.emailSecurity",
+      "label": "email security",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "email",
+        "security"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.emailSecurity",
+        "mxgraph.cisco19.email_security",
+        "mxgraph.cisco19.email-security",
+        "mxgraph.cisco19.email security"
+      ]
+    },
+    {
+      "key": "cisco19.fabricInterconnect",
+      "label": "fabric interconnect",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "fabric",
+        "interconnect"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.fabricInterconnect",
+        "mxgraph.cisco19.fabric_interconnect",
+        "mxgraph.cisco19.fabric-interconnect",
+        "mxgraph.cisco19.fabric interconnect"
+      ]
+    },
+    {
+      "key": "cisco19.fibreChannelDirectorMds9000",
+      "label": "fibre channel director mds 9000",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 275.55,
+      "tags": [
+        "cisco",
+        "fibre",
+        "channel",
+        "director",
+        "mds",
+        "9000"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.fibreChannelDirectorMds9000",
+        "mxgraph.cisco19.fibre_channel_director_mds_9000",
+        "mxgraph.cisco19.fibre-channel-director-mds-9000",
+        "mxgraph.cisco19.fibre channel director mds 9000"
+      ]
+    },
+    {
+      "key": "cisco19.fibreChannelFabricSwitch",
+      "label": "fibre channel fabric switch",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 275.55,
+      "tags": [
+        "cisco",
+        "fibre",
+        "channel",
+        "fabric",
+        "switch"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.fibreChannelFabricSwitch",
+        "mxgraph.cisco19.fibre_channel_fabric_switch",
+        "mxgraph.cisco19.fibre-channel-fabric-switch",
+        "mxgraph.cisco19.fibre channel fabric switch"
+      ]
+    },
+    {
+      "key": "cisco19.firewall",
+      "label": "firewall",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "firewall"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.firewall"
+      ]
+    },
+    {
+      "key": "cisco19.flowAnalytics",
+      "label": "flow analytics",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "flow",
+        "analytics"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.flowAnalytics",
+        "mxgraph.cisco19.flow_analytics",
+        "mxgraph.cisco19.flow-analytics",
+        "mxgraph.cisco19.flow analytics"
+      ]
+    },
+    {
+      "key": "cisco19.flowAnalytics2",
+      "label": "flow analytics2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "flow",
+        "analytics2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.flowAnalytics2",
+        "mxgraph.cisco19.flow_analytics2",
+        "mxgraph.cisco19.flow-analytics2",
+        "mxgraph.cisco19.flow analytics2"
+      ]
+    },
+    {
+      "key": "cisco19.flowCollector",
+      "label": "flow collector",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "flow",
+        "collector"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.flowCollector",
+        "mxgraph.cisco19.flow_collector",
+        "mxgraph.cisco19.flow-collector",
+        "mxgraph.cisco19.flow collector"
+      ]
+    },
+    {
+      "key": "cisco19.h323",
+      "label": "h323",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "h323"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.h323"
+      ]
+    },
+    {
+      "key": "cisco19.handheld",
+      "label": "handheld",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 116.6,
+      "defaultHeight": 151.05,
+      "tags": [
+        "cisco",
+        "handheld"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.handheld"
+      ]
+    },
+    {
+      "key": "cisco19.handheld2",
+      "label": "handheld2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 330.52,
+      "defaultHeight": 428.16,
+      "tags": [
+        "cisco",
+        "handheld2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.handheld2"
+      ]
+    },
+    {
+      "key": "cisco19.hdtv",
+      "label": "hdtv",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 838.26,
+      "defaultHeight": 684.68,
+      "tags": [
+        "cisco",
+        "hdtv"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.hdtv"
+      ]
+    },
+    {
+      "key": "cisco19.hdtv2",
+      "label": "hdtv2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 2376.18,
+      "defaultHeight": 1940.84,
+      "tags": [
+        "cisco",
+        "hdtv2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.hdtv2"
+      ]
+    },
+    {
+      "key": "cisco19.homeOffice",
+      "label": "home office",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 691.66,
+      "defaultHeight": 721.69,
+      "tags": [
+        "cisco",
+        "home",
+        "office"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.homeOffice",
+        "mxgraph.cisco19.home_office",
+        "mxgraph.cisco19.home-office",
+        "mxgraph.cisco19.home office"
+      ]
+    },
+    {
+      "key": "cisco19.homeOffice2",
+      "label": "home office2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 1960.61,
+      "defaultHeight": 2045.88,
+      "tags": [
+        "cisco",
+        "home",
+        "office2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.homeOffice2",
+        "mxgraph.cisco19.home_office2",
+        "mxgraph.cisco19.home-office2",
+        "mxgraph.cisco19.home office2"
+      ]
+    },
+    {
+      "key": "cisco19.hostBasedSecurity",
+      "label": "host based security",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "host",
+        "based",
+        "security"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.hostBasedSecurity",
+        "mxgraph.cisco19.host_based_security",
+        "mxgraph.cisco19.host-based-security",
+        "mxgraph.cisco19.host based security"
+      ]
+    },
+    {
+      "key": "cisco19.hypervisor",
+      "label": "hypervisor",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 258.04,
+      "tags": [
+        "cisco",
+        "hypervisor"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.hypervisor"
+      ]
+    },
+    {
+      "key": "cisco19.immersiveTelepresenceEndpoint",
+      "label": "immersive telepresence endpoint",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 385.37,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "immersive",
+        "telepresence",
+        "endpoint"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.immersiveTelepresenceEndpoint",
+        "mxgraph.cisco19.immersive_telepresence_endpoint",
+        "mxgraph.cisco19.immersive-telepresence-endpoint",
+        "mxgraph.cisco19.immersive telepresence endpoint"
+      ]
+    },
+    {
+      "key": "cisco19.ipsIds",
+      "label": "ips ids",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "ips",
+        "ids"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.ipsIds",
+        "mxgraph.cisco19.ips_ids",
+        "mxgraph.cisco19.ips-ids",
+        "mxgraph.cisco19.ips ids"
+      ]
+    },
+    {
+      "key": "cisco19.ipIpGateway",
+      "label": "ip ip gateway",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "ip",
+        "gateway"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.ipIpGateway",
+        "mxgraph.cisco19.ip_ip_gateway",
+        "mxgraph.cisco19.ip-ip-gateway",
+        "mxgraph.cisco19.ip ip gateway"
+      ]
+    },
+    {
+      "key": "cisco19.ipPhone",
+      "label": "ip phone",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 806.19,
+      "defaultHeight": 722.3,
+      "tags": [
+        "cisco",
+        "ip",
+        "phone"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.ipPhone",
+        "mxgraph.cisco19.ip_phone",
+        "mxgraph.cisco19.ip-phone",
+        "mxgraph.cisco19.ip phone"
+      ]
+    },
+    {
+      "key": "cisco19.ipPhone2",
+      "label": "ip phone2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 2285.27,
+      "defaultHeight": 2047.47,
+      "tags": [
+        "cisco",
+        "ip",
+        "phone2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.ipPhone2",
+        "mxgraph.cisco19.ip_phone2",
+        "mxgraph.cisco19.ip-phone2",
+        "mxgraph.cisco19.ip phone2"
+      ]
+    },
+    {
+      "key": "cisco19.ipTelephoneRouter",
+      "label": "ip telephone router",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 196.97,
+      "defaultHeight": 196.97,
+      "tags": [
+        "cisco",
+        "ip",
+        "telephone",
+        "router"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.ipTelephoneRouter",
+        "mxgraph.cisco19.ip_telephone_router",
+        "mxgraph.cisco19.ip-telephone-router",
+        "mxgraph.cisco19.ip telephone router"
+      ]
+    },
+    {
+      "key": "cisco19.ironport",
+      "label": "ironport",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "ironport"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.ironport"
+      ]
+    },
+    {
+      "key": "cisco19.ise",
+      "label": "ise",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "ise"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.ise"
+      ]
+    },
+    {
+      "key": "cisco19.joystickKeyboard",
+      "label": "joystick keyboard",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 378.35,
+      "defaultHeight": 190.11,
+      "tags": [
+        "cisco",
+        "joystick",
+        "keyboard"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.joystickKeyboard",
+        "mxgraph.cisco19.joystick_keyboard",
+        "mxgraph.cisco19.joystick-keyboard",
+        "mxgraph.cisco19.joystick keyboard"
+      ]
+    },
+    {
+      "key": "cisco19.joystickKeyboard2",
+      "label": "joystick keyboard2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 1072.46,
+      "defaultHeight": 538.88,
+      "tags": [
+        "cisco",
+        "joystick",
+        "keyboard2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.joystickKeyboard2",
+        "mxgraph.cisco19.joystick_keyboard2",
+        "mxgraph.cisco19.joystick-keyboard2",
+        "mxgraph.cisco19.joystick keyboard2"
+      ]
+    },
+    {
+      "key": "cisco19.key",
+      "label": "key",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 825.57,
+      "defaultHeight": 386.28,
+      "tags": [
+        "cisco",
+        "key"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.key"
+      ]
+    },
+    {
+      "key": "cisco19.key2",
+      "label": "key2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 825.57,
+      "defaultHeight": 386.28,
+      "tags": [
+        "cisco",
+        "key2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.key2"
+      ]
+    },
+    {
+      "key": "cisco19.l2Modular",
+      "label": "l2 modular",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 279.26,
+      "tags": [
+        "cisco",
+        "l2",
+        "modular"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.l2Modular",
+        "mxgraph.cisco19.l2_modular",
+        "mxgraph.cisco19.l2-modular",
+        "mxgraph.cisco19.l2 modular"
+      ]
+    },
+    {
+      "key": "cisco19.l2Modular2",
+      "label": "l2 modular2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 1484.06,
+      "tags": [
+        "cisco",
+        "l2",
+        "modular2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.l2Modular2",
+        "mxgraph.cisco19.l2_modular2",
+        "mxgraph.cisco19.l2-modular2",
+        "mxgraph.cisco19.l2 modular2"
+      ]
+    },
+    {
+      "key": "cisco19.l2Switch",
+      "label": "l2 switch",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "l2",
+        "switch"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.l2Switch",
+        "mxgraph.cisco19.l2_switch",
+        "mxgraph.cisco19.l2-switch",
+        "mxgraph.cisco19.l2 switch"
+      ]
+    },
+    {
+      "key": "cisco19.l2SwitchWithDualSupervisor",
+      "label": "l2 switch with dual supervisor",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 362.61,
+      "tags": [
+        "cisco",
+        "l2",
+        "switch",
+        "with",
+        "dual",
+        "supervisor"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.l2SwitchWithDualSupervisor",
+        "mxgraph.cisco19.l2_switch_with_dual_supervisor",
+        "mxgraph.cisco19.l2-switch-with-dual-supervisor",
+        "mxgraph.cisco19.l2 switch with dual supervisor"
+      ]
+    },
+    {
+      "key": "cisco19.l3Modular",
+      "label": "l3 modular",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 279.26,
+      "tags": [
+        "cisco",
+        "l3",
+        "modular"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.l3Modular",
+        "mxgraph.cisco19.l3_modular",
+        "mxgraph.cisco19.l3-modular",
+        "mxgraph.cisco19.l3 modular"
+      ]
+    },
+    {
+      "key": "cisco19.l3Modular2",
+      "label": "l3 modular2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 258.41,
+      "tags": [
+        "cisco",
+        "l3",
+        "modular2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.l3Modular2",
+        "mxgraph.cisco19.l3_modular2",
+        "mxgraph.cisco19.l3-modular2",
+        "mxgraph.cisco19.l3 modular2"
+      ]
+    },
+    {
+      "key": "cisco19.l3Modular3",
+      "label": "l3 modular3",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 744.45,
+      "defaultHeight": 744.45,
+      "tags": [
+        "cisco",
+        "l3",
+        "modular3"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.l3Modular3",
+        "mxgraph.cisco19.l3_modular3",
+        "mxgraph.cisco19.l3-modular3",
+        "mxgraph.cisco19.l3 modular3"
+      ]
+    },
+    {
+      "key": "cisco19.l3Switch",
+      "label": "l3 switch",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "l3",
+        "switch"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.l3Switch",
+        "mxgraph.cisco19.l3_switch",
+        "mxgraph.cisco19.l3-switch",
+        "mxgraph.cisco19.l3 switch"
+      ]
+    },
+    {
+      "key": "cisco19.l3SwitchWithDualSupervisor",
+      "label": "l3 switch with dual supervisor",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 362.61,
+      "tags": [
+        "cisco",
+        "l3",
+        "switch",
+        "with",
+        "dual",
+        "supervisor"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.l3SwitchWithDualSupervisor",
+        "mxgraph.cisco19.l3_switch_with_dual_supervisor",
+        "mxgraph.cisco19.l3-switch-with-dual-supervisor",
+        "mxgraph.cisco19.l3 switch with dual supervisor"
+      ]
+    },
+    {
+      "key": "cisco19.laptop",
+      "label": "laptop",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 220.46,
+      "defaultHeight": 150.99,
+      "tags": [
+        "cisco",
+        "laptop"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.laptop"
+      ]
+    },
+    {
+      "key": "cisco19.laptop2",
+      "label": "laptop2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 624.91,
+      "defaultHeight": 428.0,
+      "tags": [
+        "cisco",
+        "laptop2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.laptop2"
+      ]
+    },
+    {
+      "key": "cisco19.laptopVideoClient",
+      "label": "laptop video client",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 220.46,
+      "defaultHeight": 191.61,
+      "tags": [
+        "cisco",
+        "laptop",
+        "video",
+        "client"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.laptopVideoClient",
+        "mxgraph.cisco19.laptop_video_client",
+        "mxgraph.cisco19.laptop-video-client",
+        "mxgraph.cisco19.laptop video client"
+      ]
+    },
+    {
+      "key": "cisco19.laptopVideoClient2",
+      "label": "laptop video client2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 624.91,
+      "defaultHeight": 543.14,
+      "tags": [
+        "cisco",
+        "laptop",
+        "video",
+        "client2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.laptopVideoClient2",
+        "mxgraph.cisco19.laptop_video_client2",
+        "mxgraph.cisco19.laptop-video-client2",
+        "mxgraph.cisco19.laptop video client2"
+      ]
+    },
+    {
+      "key": "cisco19.layer3Nexus5kSwitch",
+      "label": "layer3 nexus 5k switch",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "layer3",
+        "nexus",
+        "5k",
+        "switch"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.layer3Nexus5kSwitch",
+        "mxgraph.cisco19.layer3_nexus_5k_switch",
+        "mxgraph.cisco19.layer3-nexus-5k-switch",
+        "mxgraph.cisco19.layer3 nexus 5k switch"
+      ]
+    },
+    {
+      "key": "cisco19.ldap",
+      "label": "ldap",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 832.17,
+      "defaultHeight": 722.85,
+      "tags": [
+        "cisco",
+        "ldap"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.ldap"
+      ]
+    },
+    {
+      "key": "cisco19.ldap2",
+      "label": "ldap2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 2358.9,
+      "defaultHeight": 2049.02,
+      "tags": [
+        "cisco",
+        "ldap2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.ldap2"
+      ]
+    },
+    {
+      "key": "cisco19.loadBalancer",
+      "label": "load balancer",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "load",
+        "balancer"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.loadBalancer",
+        "mxgraph.cisco19.load_balancer",
+        "mxgraph.cisco19.load-balancer",
+        "mxgraph.cisco19.load balancer"
+      ]
+    },
+    {
+      "key": "cisco19.lock",
+      "label": "lock",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 737.45,
+      "defaultHeight": 737.45,
+      "tags": [
+        "cisco",
+        "lock"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.lock"
+      ]
+    },
+    {
+      "key": "cisco19.lock2",
+      "label": "lock2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 2090.41,
+      "defaultHeight": 2090.41,
+      "tags": [
+        "cisco",
+        "lock2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.lock2"
+      ]
+    },
+    {
+      "key": "cisco19.mediaServer",
+      "label": "media server",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "media",
+        "server"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.mediaServer",
+        "mxgraph.cisco19.media_server",
+        "mxgraph.cisco19.media-server",
+        "mxgraph.cisco19.media server"
+      ]
+    },
+    {
+      "key": "cisco19.meetingSchedulingAndManagementServer",
+      "label": "meeting scheduling and management server",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "meeting",
+        "scheduling",
+        "and",
+        "management",
+        "server"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.meetingSchedulingAndManagementServer",
+        "mxgraph.cisco19.meeting_scheduling_and_management_server",
+        "mxgraph.cisco19.meeting-scheduling-and-management-server",
+        "mxgraph.cisco19.meeting scheduling and management server"
+      ]
+    },
+    {
+      "key": "cisco19.meshAccessPoint",
+      "label": "mesh access point",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "mesh",
+        "access",
+        "point"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.meshAccessPoint",
+        "mxgraph.cisco19.mesh_access_point",
+        "mxgraph.cisco19.mesh-access-point",
+        "mxgraph.cisco19.mesh access point"
+      ]
+    },
+    {
+      "key": "cisco19.monitor",
+      "label": "monitor",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "monitor"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.monitor"
+      ]
+    },
+    {
+      "key": "cisco19.monitoring",
+      "label": "monitoring",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "monitoring"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.monitoring"
+      ]
+    },
+    {
+      "key": "cisco19.multipointMeetingServer",
+      "label": "multipoint meeting server",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "multipoint",
+        "meeting",
+        "server"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.multipointMeetingServer",
+        "mxgraph.cisco19.multipoint_meeting_server",
+        "mxgraph.cisco19.multipoint-meeting-server",
+        "mxgraph.cisco19.multipoint meeting server"
+      ]
+    },
+    {
+      "key": "cisco19.nacAppliance",
+      "label": "nac appliance",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "nac",
+        "appliance"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.nacAppliance",
+        "mxgraph.cisco19.nac_appliance",
+        "mxgraph.cisco19.nac-appliance",
+        "mxgraph.cisco19.nac appliance"
+      ]
+    },
+    {
+      "key": "cisco19.namVirtualServiceBlade",
+      "label": "nam virtual service blade",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 1355.83,
+      "defaultHeight": 1048.29,
+      "tags": [
+        "cisco",
+        "nam",
+        "virtual",
+        "service",
+        "blade"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.namVirtualServiceBlade",
+        "mxgraph.cisco19.nam_virtual_service_blade",
+        "mxgraph.cisco19.nam-virtual-service-blade",
+        "mxgraph.cisco19.nam virtual service blade"
+      ]
+    },
+    {
+      "key": "cisco19.netflowRouter",
+      "label": "netflow router",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 196.97,
+      "defaultHeight": 196.97,
+      "tags": [
+        "cisco",
+        "netflow",
+        "router"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.netflowRouter",
+        "mxgraph.cisco19.netflow_router",
+        "mxgraph.cisco19.netflow-router",
+        "mxgraph.cisco19.netflow router"
+      ]
+    },
+    {
+      "key": "cisco19.netflowRouter2",
+      "label": "netflow router2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 3545.29,
+      "defaultHeight": 2741.12,
+      "tags": [
+        "cisco",
+        "netflow",
+        "router2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.netflowRouter2",
+        "mxgraph.cisco19.netflow_router2",
+        "mxgraph.cisco19.netflow-router2",
+        "mxgraph.cisco19.netflow router2"
+      ]
+    },
+    {
+      "key": "cisco19.netflowRouter3",
+      "label": "netflow router3",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "netflow",
+        "router3"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.netflowRouter3",
+        "mxgraph.cisco19.netflow_router3",
+        "mxgraph.cisco19.netflow-router3",
+        "mxgraph.cisco19.netflow router3"
+      ]
+    },
+    {
+      "key": "cisco19.netMgmtAppliance",
+      "label": "net mgmt appliance",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "net",
+        "mgmt",
+        "appliance"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.netMgmtAppliance",
+        "mxgraph.cisco19.net_mgmt_appliance",
+        "mxgraph.cisco19.net-mgmt-appliance",
+        "mxgraph.cisco19.net mgmt appliance"
+      ]
+    },
+    {
+      "key": "cisco19.nextGenerationIntrusionPreventionSystem",
+      "label": "next generation intrusion prevention system",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "next",
+        "generation",
+        "intrusion",
+        "prevention",
+        "system"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.nextGenerationIntrusionPreventionSystem",
+        "mxgraph.cisco19.next_generation_intrusion_prevention_system",
+        "mxgraph.cisco19.next-generation-intrusion-prevention-system",
+        "mxgraph.cisco19.next generation intrusion prevention system"
+      ]
+    },
+    {
+      "key": "cisco19.nexus1010",
+      "label": "nexus 1010",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "nexus",
+        "1010"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.nexus1010",
+        "mxgraph.cisco19.nexus_1010",
+        "mxgraph.cisco19.nexus-1010",
+        "mxgraph.cisco19.nexus 1010"
+      ]
+    },
+    {
+      "key": "cisco19.nexus1k",
+      "label": "nexus 1k",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "nexus",
+        "1k"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.nexus1k",
+        "mxgraph.cisco19.nexus_1k",
+        "mxgraph.cisco19.nexus-1k",
+        "mxgraph.cisco19.nexus 1k"
+      ]
+    },
+    {
+      "key": "cisco19.nexus1kvVsm",
+      "label": "nexus 1kv vsm",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "nexus",
+        "1kv",
+        "vsm"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.nexus1kvVsm",
+        "mxgraph.cisco19.nexus_1kv_vsm",
+        "mxgraph.cisco19.nexus-1kv-vsm",
+        "mxgraph.cisco19.nexus 1kv vsm"
+      ]
+    },
+    {
+      "key": "cisco19.nexus200010ge",
+      "label": "nexus 2000 10ge",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "nexus",
+        "2000",
+        "10ge"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.nexus200010ge",
+        "mxgraph.cisco19.nexus_2000_10ge",
+        "mxgraph.cisco19.nexus-2000-10ge",
+        "mxgraph.cisco19.nexus 2000 10ge"
+      ]
+    },
+    {
+      "key": "cisco19.nexus2k",
+      "label": "nexus 2k",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "nexus",
+        "2k"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.nexus2k",
+        "mxgraph.cisco19.nexus_2k",
+        "mxgraph.cisco19.nexus-2k",
+        "mxgraph.cisco19.nexus 2k"
+      ]
+    },
+    {
+      "key": "cisco19.nexus3k",
+      "label": "nexus 3k",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "nexus",
+        "3k"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.nexus3k",
+        "mxgraph.cisco19.nexus_3k",
+        "mxgraph.cisco19.nexus-3k",
+        "mxgraph.cisco19.nexus 3k"
+      ]
+    },
+    {
+      "key": "cisco19.nexus4k",
+      "label": "nexus 4k",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "nexus",
+        "4k"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.nexus4k",
+        "mxgraph.cisco19.nexus_4k",
+        "mxgraph.cisco19.nexus-4k",
+        "mxgraph.cisco19.nexus 4k"
+      ]
+    },
+    {
+      "key": "cisco19.nexus5k",
+      "label": "nexus 5k",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "nexus",
+        "5k"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.nexus5k",
+        "mxgraph.cisco19.nexus_5k",
+        "mxgraph.cisco19.nexus-5k",
+        "mxgraph.cisco19.nexus 5k"
+      ]
+    },
+    {
+      "key": "cisco19.nexus5kWithIntegratedVsm",
+      "label": "nexus 5k with integrated vsm",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "nexus",
+        "5k",
+        "with",
+        "integrated",
+        "vsm"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.nexus5kWithIntegratedVsm",
+        "mxgraph.cisco19.nexus_5k_with_integrated_vsm",
+        "mxgraph.cisco19.nexus-5k-with-integrated-vsm",
+        "mxgraph.cisco19.nexus 5k with integrated vsm"
+      ]
+    },
+    {
+      "key": "cisco19.nexus7k",
+      "label": "nexus 7k",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 279.26,
+      "tags": [
+        "cisco",
+        "nexus",
+        "7k"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.nexus7k",
+        "mxgraph.cisco19.nexus_7k",
+        "mxgraph.cisco19.nexus-7k",
+        "mxgraph.cisco19.nexus 7k"
+      ]
+    },
+    {
+      "key": "cisco19.nexus9300",
+      "label": "nexus 9300",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "nexus",
+        "9300"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.nexus9300",
+        "mxgraph.cisco19.nexus_9300",
+        "mxgraph.cisco19.nexus-9300",
+        "mxgraph.cisco19.nexus 9300"
+      ]
+    },
+    {
+      "key": "cisco19.nexus9500",
+      "label": "nexus 9500",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 279.26,
+      "tags": [
+        "cisco",
+        "nexus",
+        "9500"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.nexus9500",
+        "mxgraph.cisco19.nexus_9500",
+        "mxgraph.cisco19.nexus-9500",
+        "mxgraph.cisco19.nexus 9500"
+      ]
+    },
+    {
+      "key": "cisco19.operationsManager",
+      "label": "operations manager",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "operations",
+        "manager"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.operationsManager",
+        "mxgraph.cisco19.operations_manager",
+        "mxgraph.cisco19.operations-manager",
+        "mxgraph.cisco19.operations manager"
+      ]
+    },
+    {
+      "key": "cisco19.phonePolycom",
+      "label": "phone polycom",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 194.27,
+      "defaultHeight": 205.15,
+      "tags": [
+        "cisco",
+        "phone",
+        "polycom"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.phonePolycom",
+        "mxgraph.cisco19.phone_polycom",
+        "mxgraph.cisco19.phone-polycom",
+        "mxgraph.cisco19.phone polycom"
+      ]
+    },
+    {
+      "key": "cisco19.phonePolycom2",
+      "label": "phone polycom2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 550.69,
+      "defaultHeight": 581.52,
+      "tags": [
+        "cisco",
+        "phone",
+        "polycom2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.phonePolycom2",
+        "mxgraph.cisco19.phone_polycom2",
+        "mxgraph.cisco19.phone-polycom2",
+        "mxgraph.cisco19.phone polycom2"
+      ]
+    },
+    {
+      "key": "cisco19.policyConfiguration",
+      "label": "policy configuration",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "policy",
+        "configuration"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.policyConfiguration",
+        "mxgraph.cisco19.policy_configuration",
+        "mxgraph.cisco19.policy-configuration",
+        "mxgraph.cisco19.policy configuration"
+      ]
+    },
+    {
+      "key": "cisco19.pos",
+      "label": "pos",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "pos"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.pos"
+      ]
+    },
+    {
+      "key": "cisco19.pos2",
+      "label": "pos2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 703.52,
+      "defaultHeight": 543.94,
+      "tags": [
+        "cisco",
+        "pos2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.pos2"
+      ]
+    },
+    {
+      "key": "cisco19.postureAssessment",
+      "label": "posture assessment",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "posture",
+        "assessment"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.postureAssessment",
+        "mxgraph.cisco19.posture_assessment",
+        "mxgraph.cisco19.posture-assessment",
+        "mxgraph.cisco19.posture assessment"
+      ]
+    },
+    {
+      "key": "cisco19.primaryCodec",
+      "label": "primary codec",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "primary",
+        "codec"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.primaryCodec",
+        "mxgraph.cisco19.primary_codec",
+        "mxgraph.cisco19.primary-codec",
+        "mxgraph.cisco19.primary codec"
+      ]
+    },
+    {
+      "key": "cisco19.printer",
+      "label": "printer",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 640.93,
+      "defaultHeight": 561.71,
+      "tags": [
+        "cisco",
+        "printer"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.printer"
+      ]
+    },
+    {
+      "key": "cisco19.printer2",
+      "label": "printer2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 1816.8,
+      "defaultHeight": 1592.24,
+      "tags": [
+        "cisco",
+        "printer2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.printer2"
+      ]
+    },
+    {
+      "key": "cisco19.router",
+      "label": "router",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 196.97,
+      "defaultHeight": 196.97,
+      "tags": [
+        "cisco",
+        "router"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.router"
+      ]
+    },
+    {
+      "key": "cisco19.routerWithFirewall",
+      "label": "router with firewall",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 745.28,
+      "defaultHeight": 745.28,
+      "tags": [
+        "cisco",
+        "router",
+        "with",
+        "firewall"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.routerWithFirewall",
+        "mxgraph.cisco19.router_with_firewall",
+        "mxgraph.cisco19.router-with-firewall",
+        "mxgraph.cisco19.router with firewall"
+      ]
+    },
+    {
+      "key": "cisco19.routerWithFirewall2",
+      "label": "router with firewall2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "router",
+        "with",
+        "firewall2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.routerWithFirewall2",
+        "mxgraph.cisco19.router_with_firewall2",
+        "mxgraph.cisco19.router-with-firewall2",
+        "mxgraph.cisco19.router with firewall2"
+      ]
+    },
+    {
+      "key": "cisco19.routerWithVoice",
+      "label": "router with voice",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 196.97,
+      "defaultHeight": 196.97,
+      "tags": [
+        "cisco",
+        "router",
+        "with",
+        "voice"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.routerWithVoice",
+        "mxgraph.cisco19.router_with_voice",
+        "mxgraph.cisco19.router-with-voice",
+        "mxgraph.cisco19.router with voice"
+      ]
+    },
+    {
+      "key": "cisco19.rps",
+      "label": "rps",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "rps"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.rps"
+      ]
+    },
+    {
+      "key": "cisco19.secondaryCodec",
+      "label": "secondary codec",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "secondary",
+        "codec"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.secondaryCodec",
+        "mxgraph.cisco19.secondary_codec",
+        "mxgraph.cisco19.secondary-codec",
+        "mxgraph.cisco19.secondary codec"
+      ]
+    },
+    {
+      "key": "cisco19.secureCatalystSwitchColor",
+      "label": "secure catalyst switch color",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 2046.2,
+      "defaultHeight": 2055.85,
+      "tags": [
+        "cisco",
+        "secure",
+        "catalyst",
+        "switch",
+        "color"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.secureCatalystSwitchColor",
+        "mxgraph.cisco19.secure_catalyst_switch_color",
+        "mxgraph.cisco19.secure-catalyst-switch-color",
+        "mxgraph.cisco19.secure catalyst switch color"
+      ]
+    },
+    {
+      "key": "cisco19.secureCatalystSwitchColor2",
+      "label": "secure catalyst switch color2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "secure",
+        "catalyst",
+        "switch",
+        "color2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.secureCatalystSwitchColor2",
+        "mxgraph.cisco19.secure_catalyst_switch_color2",
+        "mxgraph.cisco19.secure-catalyst-switch-color2",
+        "mxgraph.cisco19.secure catalyst switch color2"
+      ]
+    },
+    {
+      "key": "cisco19.secureCatalystSwitchColor3",
+      "label": "secure catalyst switch color3",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "secure",
+        "catalyst",
+        "switch",
+        "color3"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.secureCatalystSwitchColor3",
+        "mxgraph.cisco19.secure_catalyst_switch_color3",
+        "mxgraph.cisco19.secure-catalyst-switch-color3",
+        "mxgraph.cisco19.secure catalyst switch color3"
+      ]
+    },
+    {
+      "key": "cisco19.secureCatalystSwitchSubdued",
+      "label": "secure catalyst switch subdued",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "secure",
+        "catalyst",
+        "switch",
+        "subdued"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.secureCatalystSwitchSubdued",
+        "mxgraph.cisco19.secure_catalyst_switch_subdued",
+        "mxgraph.cisco19.secure-catalyst-switch-subdued",
+        "mxgraph.cisco19.secure catalyst switch subdued"
+      ]
+    },
+    {
+      "key": "cisco19.secureCatalystSwitchSubdued2",
+      "label": "secure catalyst switch subdued2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "secure",
+        "catalyst",
+        "switch",
+        "subdued2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.secureCatalystSwitchSubdued2",
+        "mxgraph.cisco19.secure_catalyst_switch_subdued2",
+        "mxgraph.cisco19.secure-catalyst-switch-subdued2",
+        "mxgraph.cisco19.secure catalyst switch subdued2"
+      ]
+    },
+    {
+      "key": "cisco19.secureEndpoints",
+      "label": "secure endpoints",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 220.46,
+      "defaultHeight": 150.99,
+      "tags": [
+        "cisco",
+        "secure",
+        "endpoints"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.secureEndpoints",
+        "mxgraph.cisco19.secure_endpoints",
+        "mxgraph.cisco19.secure-endpoints",
+        "mxgraph.cisco19.secure endpoints"
+      ]
+    },
+    {
+      "key": "cisco19.secureEndpoints2",
+      "label": "secure endpoints2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 624.91,
+      "defaultHeight": 428.0,
+      "tags": [
+        "cisco",
+        "secure",
+        "endpoints2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.secureEndpoints2",
+        "mxgraph.cisco19.secure_endpoints2",
+        "mxgraph.cisco19.secure-endpoints2",
+        "mxgraph.cisco19.secure endpoints2"
+      ]
+    },
+    {
+      "key": "cisco19.secureEndpointPc",
+      "label": "secure endpoint pc",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 637.29,
+      "defaultHeight": 599.02,
+      "tags": [
+        "cisco",
+        "secure",
+        "endpoint",
+        "pc"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.secureEndpointPc",
+        "mxgraph.cisco19.secure_endpoint_pc",
+        "mxgraph.cisco19.secure-endpoint-pc",
+        "mxgraph.cisco19.secure endpoint pc"
+      ]
+    },
+    {
+      "key": "cisco19.secureEndpointPc2",
+      "label": "secure endpoint pc2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 1806.51,
+      "defaultHeight": 1698.0,
+      "tags": [
+        "cisco",
+        "secure",
+        "endpoint",
+        "pc2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.secureEndpointPc2",
+        "mxgraph.cisco19.secure_endpoint_pc2",
+        "mxgraph.cisco19.secure-endpoint-pc2",
+        "mxgraph.cisco19.secure endpoint pc2"
+      ]
+    },
+    {
+      "key": "cisco19.secureRouter",
+      "label": "secure router",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 196.97,
+      "defaultHeight": 196.97,
+      "tags": [
+        "cisco",
+        "secure",
+        "router"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.secureRouter",
+        "mxgraph.cisco19.secure_router",
+        "mxgraph.cisco19.secure-router",
+        "mxgraph.cisco19.secure router"
+      ]
+    },
+    {
+      "key": "cisco19.secureServer",
+      "label": "secure server",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 408.75,
+      "defaultHeight": 725.06,
+      "tags": [
+        "cisco",
+        "secure",
+        "server"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.secureServer",
+        "mxgraph.cisco19.secure_server",
+        "mxgraph.cisco19.secure-server",
+        "mxgraph.cisco19.secure server"
+      ]
+    },
+    {
+      "key": "cisco19.secureServer2",
+      "label": "secure server2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 1158.66,
+      "defaultHeight": 2055.28,
+      "tags": [
+        "cisco",
+        "secure",
+        "server2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.secureServer2",
+        "mxgraph.cisco19.secure_server2",
+        "mxgraph.cisco19.secure-server2",
+        "mxgraph.cisco19.secure server2"
+      ]
+    },
+    {
+      "key": "cisco19.secureSwitch",
+      "label": "secure switch",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "secure",
+        "switch"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.secureSwitch",
+        "mxgraph.cisco19.secure_switch",
+        "mxgraph.cisco19.secure-switch",
+        "mxgraph.cisco19.secure switch"
+      ]
+    },
+    {
+      "key": "cisco19.securityManagement",
+      "label": "security management",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "security",
+        "management"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.securityManagement",
+        "mxgraph.cisco19.security_management",
+        "mxgraph.cisco19.security-management",
+        "mxgraph.cisco19.security management"
+      ]
+    },
+    {
+      "key": "cisco19.server",
+      "label": "server",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 408.75,
+      "defaultHeight": 725.06,
+      "tags": [
+        "cisco",
+        "server"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.server"
+      ]
+    },
+    {
+      "key": "cisco19.server2",
+      "label": "server2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 1158.66,
+      "defaultHeight": 2055.28,
+      "tags": [
+        "cisco",
+        "server2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.server2"
+      ]
+    },
+    {
+      "key": "cisco19.serviceReadyEngine",
+      "label": "service ready engine",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "service",
+        "ready",
+        "engine"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.serviceReadyEngine",
+        "mxgraph.cisco19.service_ready_engine",
+        "mxgraph.cisco19.service-ready-engine",
+        "mxgraph.cisco19.service ready engine"
+      ]
+    },
+    {
+      "key": "cisco19.setTop",
+      "label": "set top",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "set",
+        "top"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.setTop",
+        "mxgraph.cisco19.set_top",
+        "mxgraph.cisco19.set-top",
+        "mxgraph.cisco19.set top"
+      ]
+    },
+    {
+      "key": "cisco19.setTop2",
+      "label": "set top2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 2658.97,
+      "defaultHeight": 2055.84,
+      "tags": [
+        "cisco",
+        "set",
+        "top2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.setTop2",
+        "mxgraph.cisco19.set_top2",
+        "mxgraph.cisco19.set-top2",
+        "mxgraph.cisco19.set top2"
+      ]
+    },
+    {
+      "key": "cisco19.shield",
+      "label": "shield",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "shield"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.shield"
+      ]
+    },
+    {
+      "key": "cisco19.sslTerminator",
+      "label": "ssl terminator",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "ssl",
+        "terminator"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.sslTerminator",
+        "mxgraph.cisco19.ssl_terminator",
+        "mxgraph.cisco19.ssl-terminator",
+        "mxgraph.cisco19.ssl terminator"
+      ]
+    },
+    {
+      "key": "cisco19.stealthwatchManagementConsoleSmc",
+      "label": "stealthwatch management console smc",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 162.73,
+      "defaultHeight": 139.89,
+      "tags": [
+        "cisco",
+        "stealthwatch",
+        "management",
+        "console",
+        "smc"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.stealthwatchManagementConsoleSmc",
+        "mxgraph.cisco19.stealthwatch_management_console_smc",
+        "mxgraph.cisco19.stealthwatch-management-console-smc",
+        "mxgraph.cisco19.stealthwatch management console smc"
+      ]
+    },
+    {
+      "key": "cisco19.stealthwatchManagementConsoleSmc2",
+      "label": "stealthwatch management console smc2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 461.28,
+      "defaultHeight": 396.58,
+      "tags": [
+        "cisco",
+        "stealthwatch",
+        "management",
+        "console",
+        "smc2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.stealthwatchManagementConsoleSmc2",
+        "mxgraph.cisco19.stealthwatch_management_console_smc2",
+        "mxgraph.cisco19.stealthwatch-management-console-smc2",
+        "mxgraph.cisco19.stealthwatch management console smc2"
+      ]
+    },
+    {
+      "key": "cisco19.storage",
+      "label": "storage",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "storage"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.storage"
+      ]
+    },
+    {
+      "key": "cisco19.surveillanceCamera",
+      "label": "surveillance camera",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 687.17,
+      "tags": [
+        "cisco",
+        "surveillance",
+        "camera"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.surveillanceCamera",
+        "mxgraph.cisco19.surveillance_camera",
+        "mxgraph.cisco19.surveillance-camera",
+        "mxgraph.cisco19.surveillance camera"
+      ]
+    },
+    {
+      "key": "cisco19.surveillanceCamera2",
+      "label": "surveillance camera2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 2658.97,
+      "defaultHeight": 1947.88,
+      "tags": [
+        "cisco",
+        "surveillance",
+        "camera2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.surveillanceCamera2",
+        "mxgraph.cisco19.surveillance_camera2",
+        "mxgraph.cisco19.surveillance-camera2",
+        "mxgraph.cisco19.surveillance camera2"
+      ]
+    },
+    {
+      "key": "cisco19.tablet",
+      "label": "tablet",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 170.22,
+      "defaultHeight": 150.66,
+      "tags": [
+        "cisco",
+        "tablet"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.tablet"
+      ]
+    },
+    {
+      "key": "cisco19.tablet2",
+      "label": "tablet2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 482.51,
+      "defaultHeight": 427.06,
+      "tags": [
+        "cisco",
+        "tablet2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.tablet2"
+      ]
+    },
+    {
+      "key": "cisco19.telepresenceEndpoint",
+      "label": "telepresence endpoint",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "telepresence",
+        "endpoint"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.telepresenceEndpoint",
+        "mxgraph.cisco19.telepresence_endpoint",
+        "mxgraph.cisco19.telepresence-endpoint",
+        "mxgraph.cisco19.telepresence endpoint"
+      ]
+    },
+    {
+      "key": "cisco19.telepresenceEndpointTwinDataDisplay",
+      "label": "telepresence endpoint twin data display",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "telepresence",
+        "endpoint",
+        "twin",
+        "data",
+        "display"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.telepresenceEndpointTwinDataDisplay",
+        "mxgraph.cisco19.telepresence_endpoint_twin_data_display",
+        "mxgraph.cisco19.telepresence-endpoint-twin-data-display",
+        "mxgraph.cisco19.telepresence endpoint twin data display"
+      ]
+    },
+    {
+      "key": "cisco19.telepresenceExchange",
+      "label": "telepresence exchange",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "telepresence",
+        "exchange"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.telepresenceExchange",
+        "mxgraph.cisco19.telepresence_exchange",
+        "mxgraph.cisco19.telepresence-exchange",
+        "mxgraph.cisco19.telepresence exchange"
+      ]
+    },
+    {
+      "key": "cisco19.threatIntelligence",
+      "label": "threat intelligence",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "threat",
+        "intelligence"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.threatIntelligence",
+        "mxgraph.cisco19.threat_intelligence",
+        "mxgraph.cisco19.threat-intelligence",
+        "mxgraph.cisco19.threat intelligence"
+      ]
+    },
+    {
+      "key": "cisco19.transcoder",
+      "label": "transcoder",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "transcoder"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.transcoder"
+      ]
+    },
+    {
+      "key": "cisco19.ucs5108BladeChassis",
+      "label": "ucs 5108 blade chassis",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "ucs",
+        "5108",
+        "blade",
+        "chassis"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.ucs5108BladeChassis",
+        "mxgraph.cisco19.ucs_5108_blade_chassis",
+        "mxgraph.cisco19.ucs-5108-blade-chassis",
+        "mxgraph.cisco19.ucs 5108 blade chassis"
+      ]
+    },
+    {
+      "key": "cisco19.ucsCSeriesServer",
+      "label": "ucs c series server",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 79.63,
+      "tags": [
+        "cisco",
+        "ucs",
+        "c",
+        "series",
+        "server"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.ucsCSeriesServer",
+        "mxgraph.cisco19.ucs_c_series_server",
+        "mxgraph.cisco19.ucs-c-series-server",
+        "mxgraph.cisco19.ucs c series server"
+      ]
+    },
+    {
+      "key": "cisco19.ucsExpress",
+      "label": "ucs express",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 744.45,
+      "defaultHeight": 744.45,
+      "tags": [
+        "cisco",
+        "ucs",
+        "express"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.ucsExpress",
+        "mxgraph.cisco19.ucs_express",
+        "mxgraph.cisco19.ucs-express",
+        "mxgraph.cisco19.ucs express"
+      ]
+    },
+    {
+      "key": "cisco19.unity",
+      "label": "unity",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "unity"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.unity"
+      ]
+    },
+    {
+      "key": "cisco19.upcUnifiedPersonalCommunicator",
+      "label": "upc unified personal communicator",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 220.46,
+      "defaultHeight": 191.61,
+      "tags": [
+        "cisco",
+        "upc",
+        "unified",
+        "personal",
+        "communicator"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.upcUnifiedPersonalCommunicator",
+        "mxgraph.cisco19.upc_unified_personal_communicator",
+        "mxgraph.cisco19.upc-unified-personal-communicator",
+        "mxgraph.cisco19.upc unified personal communicator"
+      ]
+    },
+    {
+      "key": "cisco19.upcUnifiedPersonalCommunicator2",
+      "label": "upc unified personal communicator2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 624.91,
+      "defaultHeight": 543.14,
+      "tags": [
+        "cisco",
+        "upc",
+        "unified",
+        "personal",
+        "communicator2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.upcUnifiedPersonalCommunicator2",
+        "mxgraph.cisco19.upc_unified_personal_communicator2",
+        "mxgraph.cisco19.upc-unified-personal-communicator2",
+        "mxgraph.cisco19.upc unified personal communicator2"
+      ]
+    },
+    {
+      "key": "cisco19.ups",
+      "label": "ups",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "ups"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.ups"
+      ]
+    },
+    {
+      "key": "cisco19.user",
+      "label": "user",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 681.53,
+      "defaultHeight": 712.49,
+      "tags": [
+        "cisco",
+        "user"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.user"
+      ]
+    },
+    {
+      "key": "cisco19.user2",
+      "label": "user2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 1931.91,
+      "defaultHeight": 2019.65,
+      "tags": [
+        "cisco",
+        "user2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.user2"
+      ]
+    },
+    {
+      "key": "cisco19.vbond",
+      "label": "vbond",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 196.97,
+      "defaultHeight": 196.97,
+      "tags": [
+        "cisco",
+        "vbond"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.vbond"
+      ]
+    },
+    {
+      "key": "cisco19.videoAnalytics",
+      "label": "video analytics",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "video",
+        "analytics"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.videoAnalytics",
+        "mxgraph.cisco19.video_analytics",
+        "mxgraph.cisco19.video-analytics",
+        "mxgraph.cisco19.video analytics"
+      ]
+    },
+    {
+      "key": "cisco19.videoCallServer",
+      "label": "video call server",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "video",
+        "call",
+        "server"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.videoCallServer",
+        "mxgraph.cisco19.video_call_server",
+        "mxgraph.cisco19.video-call-server",
+        "mxgraph.cisco19.video call server"
+      ]
+    },
+    {
+      "key": "cisco19.videoGateway",
+      "label": "video gateway",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "video",
+        "gateway"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.videoGateway",
+        "mxgraph.cisco19.video_gateway",
+        "mxgraph.cisco19.video-gateway",
+        "mxgraph.cisco19.video gateway"
+      ]
+    },
+    {
+      "key": "cisco19.virtualDesktopService",
+      "label": "virtual desktop service",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "virtual",
+        "desktop",
+        "service"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.virtualDesktopService",
+        "mxgraph.cisco19.virtual_desktop_service",
+        "mxgraph.cisco19.virtual-desktop-service",
+        "mxgraph.cisco19.virtual desktop service"
+      ]
+    },
+    {
+      "key": "cisco19.virtualMatrixSwitch",
+      "label": "virtual matrix switch",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "virtual",
+        "matrix",
+        "switch"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.virtualMatrixSwitch",
+        "mxgraph.cisco19.virtual_matrix_switch",
+        "mxgraph.cisco19.virtual-matrix-switch",
+        "mxgraph.cisco19.virtual matrix switch"
+      ]
+    },
+    {
+      "key": "cisco19.virtualPrivateNetwork",
+      "label": "virtual private network",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "virtual",
+        "private",
+        "network"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.virtualPrivateNetwork",
+        "mxgraph.cisco19.virtual_private_network",
+        "mxgraph.cisco19.virtual-private-network",
+        "mxgraph.cisco19.virtual private network"
+      ]
+    },
+    {
+      "key": "cisco19.virtualPrivateNetwork2",
+      "label": "virtual private network2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "virtual",
+        "private",
+        "network2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.virtualPrivateNetwork2",
+        "mxgraph.cisco19.virtual_private_network2",
+        "mxgraph.cisco19.virtual-private-network2",
+        "mxgraph.cisco19.virtual private network2"
+      ]
+    },
+    {
+      "key": "cisco19.virtualPrivateNetworkConnector",
+      "label": "virtual private network connector",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "virtual",
+        "private",
+        "network",
+        "connector"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.virtualPrivateNetworkConnector",
+        "mxgraph.cisco19.virtual_private_network_connector",
+        "mxgraph.cisco19.virtual-private-network-connector",
+        "mxgraph.cisco19.virtual private network connector"
+      ]
+    },
+    {
+      "key": "cisco19.vmanage",
+      "label": "vmanage",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 196.97,
+      "defaultHeight": 196.97,
+      "tags": [
+        "cisco",
+        "vmanage"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.vmanage"
+      ]
+    },
+    {
+      "key": "cisco19.vpnConcentrator",
+      "label": "vpn concentrator",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "vpn",
+        "concentrator"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.vpnConcentrator",
+        "mxgraph.cisco19.vpn_concentrator",
+        "mxgraph.cisco19.vpn-concentrator",
+        "mxgraph.cisco19.vpn concentrator"
+      ]
+    },
+    {
+      "key": "cisco19.vsmart",
+      "label": "vsmart",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 196.97,
+      "defaultHeight": 196.97,
+      "tags": [
+        "cisco",
+        "vsmart"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.vsmart"
+      ]
+    },
+    {
+      "key": "cisco19.vts",
+      "label": "vts",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 716.26,
+      "defaultHeight": 716.27,
+      "tags": [
+        "cisco",
+        "vts"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.vts"
+      ]
+    },
+    {
+      "key": "cisco19.vts2",
+      "label": "vts2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 716.26,
+      "defaultHeight": 716.27,
+      "tags": [
+        "cisco",
+        "vts2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.vts2"
+      ]
+    },
+    {
+      "key": "cisco19.webex",
+      "label": "webex",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 191.44,
+      "defaultHeight": 191.44,
+      "tags": [
+        "cisco",
+        "webex"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.webex"
+      ]
+    },
+    {
+      "key": "cisco19.webApplicationFirewall",
+      "label": "web application firewall",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "web",
+        "application",
+        "firewall"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.webApplicationFirewall",
+        "mxgraph.cisco19.web_application_firewall",
+        "mxgraph.cisco19.web-application-firewall",
+        "mxgraph.cisco19.web application firewall"
+      ]
+    },
+    {
+      "key": "cisco19.webReputationFiltering",
+      "label": "web reputation filtering",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "web",
+        "reputation",
+        "filtering"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.webReputationFiltering",
+        "mxgraph.cisco19.web_reputation_filtering",
+        "mxgraph.cisco19.web-reputation-filtering",
+        "mxgraph.cisco19.web reputation filtering"
+      ]
+    },
+    {
+      "key": "cisco19.webReputationFiltering2",
+      "label": "web reputation filtering 2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "web",
+        "reputation",
+        "filtering",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.webReputationFiltering2",
+        "mxgraph.cisco19.web_reputation_filtering_2",
+        "mxgraph.cisco19.web-reputation-filtering-2",
+        "mxgraph.cisco19.web reputation filtering 2"
+      ]
+    },
+    {
+      "key": "cisco19.webSecurity",
+      "label": "web security",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "web",
+        "security"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.webSecurity",
+        "mxgraph.cisco19.web_security",
+        "mxgraph.cisco19.web-security",
+        "mxgraph.cisco19.web security"
+      ]
+    },
+    {
+      "key": "cisco19.webSecurityServices",
+      "label": "web security services",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "web",
+        "security",
+        "services"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.webSecurityServices",
+        "mxgraph.cisco19.web_security_services",
+        "mxgraph.cisco19.web-security-services",
+        "mxgraph.cisco19.web security services"
+      ]
+    },
+    {
+      "key": "cisco19.webSecurityServices2",
+      "label": "web security services2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "web",
+        "security",
+        "services2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.webSecurityServices2",
+        "mxgraph.cisco19.web_security_services2",
+        "mxgraph.cisco19.web-security-services2",
+        "mxgraph.cisco19.web security services2"
+      ]
+    },
+    {
+      "key": "cisco19.wifiIndicator",
+      "label": "wifi indicator",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 408.86,
+      "defaultHeight": 465.11,
+      "tags": [
+        "cisco",
+        "wifi",
+        "indicator"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.wifiIndicator",
+        "mxgraph.cisco19.wifi_indicator",
+        "mxgraph.cisco19.wifi-indicator",
+        "mxgraph.cisco19.wifi indicator"
+      ]
+    },
+    {
+      "key": "cisco19.wirelessAccessPoint",
+      "label": "wireless access point",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 739.57,
+      "defaultHeight": 721.24,
+      "tags": [
+        "cisco",
+        "wireless",
+        "access",
+        "point"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.wirelessAccessPoint",
+        "mxgraph.cisco19.wireless_access_point",
+        "mxgraph.cisco19.wireless-access-point",
+        "mxgraph.cisco19.wireless access point"
+      ]
+    },
+    {
+      "key": "cisco19.wirelessAccessPoint2",
+      "label": "wireless access point2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 2096.42,
+      "defaultHeight": 2044.45,
+      "tags": [
+        "cisco",
+        "wireless",
+        "access",
+        "point2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.wirelessAccessPoint2",
+        "mxgraph.cisco19.wireless_access_point2",
+        "mxgraph.cisco19.wireless-access-point2",
+        "mxgraph.cisco19.wireless access point2"
+      ]
+    },
+    {
+      "key": "cisco19.wirelessBridge",
+      "label": "wireless bridge",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 938.03,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "wireless",
+        "bridge"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.wirelessBridge",
+        "mxgraph.cisco19.wireless_bridge",
+        "mxgraph.cisco19.wireless-bridge",
+        "mxgraph.cisco19.wireless bridge"
+      ]
+    },
+    {
+      "key": "cisco19.wirelessBridge2",
+      "label": "wireless bridge2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 2658.97,
+      "defaultHeight": 2055.84,
+      "tags": [
+        "cisco",
+        "wireless",
+        "bridge2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.wirelessBridge2",
+        "mxgraph.cisco19.wireless_bridge2",
+        "mxgraph.cisco19.wireless-bridge2",
+        "mxgraph.cisco19.wireless bridge2"
+      ]
+    },
+    {
+      "key": "cisco19.wirelessConnector",
+      "label": "wireless connector",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 200.99,
+      "defaultHeight": 24.99,
+      "tags": [
+        "cisco",
+        "wireless",
+        "connector"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.wirelessConnector",
+        "mxgraph.cisco19.wireless_connector",
+        "mxgraph.cisco19.wireless-connector",
+        "mxgraph.cisco19.wireless connector"
+      ]
+    },
+    {
+      "key": "cisco19.wirelessIntrusionPrevention",
+      "label": "wireless intrusion prevention",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "wireless",
+        "intrusion",
+        "prevention"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.wirelessIntrusionPrevention",
+        "mxgraph.cisco19.wireless_intrusion_prevention",
+        "mxgraph.cisco19.wireless-intrusion-prevention",
+        "mxgraph.cisco19.wireless intrusion prevention"
+      ]
+    },
+    {
+      "key": "cisco19.wirelessLanController",
+      "label": "wireless lan controller",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 248.19,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "wireless",
+        "lan",
+        "controller"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.wirelessLanController",
+        "mxgraph.cisco19.wireless_lan_controller",
+        "mxgraph.cisco19.wireless-lan-controller",
+        "mxgraph.cisco19.wireless lan controller"
+      ]
+    },
+    {
+      "key": "cisco19.wirelessLocationAppliance",
+      "label": "wireless location appliance",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 725.26,
+      "tags": [
+        "cisco",
+        "wireless",
+        "location",
+        "appliance"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.wirelessLocationAppliance",
+        "mxgraph.cisco19.wireless_location_appliance",
+        "mxgraph.cisco19.wireless-location-appliance",
+        "mxgraph.cisco19.wireless location appliance"
+      ]
+    },
+    {
+      "key": "cisco19.wirelessRouter",
+      "label": "wireless router",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 744.45,
+      "defaultHeight": 889.9,
+      "tags": [
+        "cisco",
+        "wireless",
+        "router"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.wirelessRouter",
+        "mxgraph.cisco19.wireless_router",
+        "mxgraph.cisco19.wireless-router",
+        "mxgraph.cisco19.wireless router"
+      ]
+    },
+    {
+      "key": "cisco19.workgroupSwitch",
+      "label": "workgroup switch",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 190.99,
+      "defaultHeight": 191.89,
+      "tags": [
+        "cisco",
+        "workgroup",
+        "switch"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.workgroupSwitch",
+        "mxgraph.cisco19.workgroup_switch",
+        "mxgraph.cisco19.workgroup-switch",
+        "mxgraph.cisco19.workgroup switch"
+      ]
+    },
+    {
+      "key": "cisco19.workstation",
+      "label": "workstation",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 162.73,
+      "defaultHeight": 139.89,
+      "tags": [
+        "cisco",
+        "workstation"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.workstation"
+      ]
+    },
+    {
+      "key": "cisco19.workstation2",
+      "label": "workstation2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 461.27,
+      "defaultHeight": 396.58,
+      "tags": [
+        "cisco",
+        "workstation2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.workstation2"
+      ]
+    },
+    {
+      "key": "cisco19.x509Certificate",
+      "label": "x509 certificate",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 721.85,
+      "defaultHeight": 652.91,
+      "tags": [
+        "cisco",
+        "x509",
+        "certificate"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.x509Certificate",
+        "mxgraph.cisco19.x509_certificate",
+        "mxgraph.cisco19.x509-certificate",
+        "mxgraph.cisco19.x509 certificate"
+      ]
+    },
+    {
+      "key": "cisco19.x509Certificate2",
+      "label": "x509 certificate2",
+      "group": "Cisco",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\cisco19.xml",
+      "defaultWidth": 2046.2,
+      "defaultHeight": 1850.77,
+      "tags": [
+        "cisco",
+        "x509",
+        "certificate2"
+      ],
+      "aliases": [
+        "mxgraph.cisco19.x509Certificate2",
+        "mxgraph.cisco19.x509_certificate2",
+        "mxgraph.cisco19.x509-certificate2",
+        "mxgraph.cisco19.x509 certificate2"
+      ]
+    }
+  ]
+}

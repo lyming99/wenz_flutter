@@ -1,0 +1,2502 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f00e4-25ba-7a73-bc87-b3fa31b95e95
+--------
+user
+plan 已完成，但宿主项目验收失败。请只修复验证错误。
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_7_20260625-202854.md
+不要修改 plan 文件、checkbox 或进度区。
+失败命令：flutter analyze
+失败输出摘要：
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+Analyzing wenz_richtext...                                      
+
+warning - A value for optional parameter 'inset' isn't ever given - lib\src\widgets\wenz_rich_text_editor.dart:5646:10 - unused_element_parameter
+warning - A value for optional parameter 'placeAbove' isn't ever given - lib\src\widgets\wenz_rich_text_editor.dart:5647:10 - unused_element_parameter
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:57:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:59:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:61:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:63:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:65:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:67:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:69:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:73:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:77:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:81:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:85:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:87:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:89:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:91:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:93:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:95:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:97:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:99:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:101:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:103:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:105:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\input\shortcut_manager_test.dart:107:7 - prefer_const_constructors
+
+24 issues found. (ran in 8.4s)
+
+**Planning Code Inspection**
+
+I need to respond to the task using Chinese, focusing only on fixing validation errors. The plan states I should read the repo without modifying anything. I must run commands without needing web access. It seems like I should inspect the files and check AGENTS.md, especially since the developer mentioned root AGENTS are included. I should use the commentary shell and consider using tools like PowerShell or codegraph for code exploration. I'll start with codegraph_explore for deeper inquiries.
+**Updating the Plan**
+
+I think I should use the update_plan first and then maybe proceed with codegraph. It's crucial that I ensure no agents are spawned during this process. So, I'll start by updating the plan. Then, depending on what I find, I'll decide how to move forward with codegraph. It feels good to have a clear direction, but I want to make sure I'm following the right steps without making mistakes!
+codex
+我会只定位 `flutter analyze` 报出的点，避免触碰 plan 文件和无关代码。
+  → 确认仓库规则与报错位置
+  • 最小修复 analyzer 警告
+  • 运行 flutter analyze 验证
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+codex
+先确认本仓库约束，然后直接看 analyzer 指向的行。
+exec
+powershell.exe -Command 'Get-ChildItem -Force -Filter AGENTS.md -Recurse | ForEach-Object { $_.FullName }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 193ms:
+**Inspecting code file**
+
+I need to inspect the file around specific lines and test things out. I'm considering using Get-Content for that or maybe rg with context. I noticed I shouldn’t reread the codegraph file since it didn't show the wenz_rich_text_editor, so I'll need to read it again. I plan to use PowerShell to print lines 5620–5665 and test 45–110. It's a bit of a process, but I think I'll get there!
+codex
+没有发现额外 `AGENTS.md` 规则。现在查看两个报错文件的最小上下文。
+exec
+powershell.exe -Command '$p='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content $p; for($i=5628;$i -le 5665;$i++){ if($i -le $lines.Length){ '"'{0,5}: {1}' -f "'$i,$lines[$i-1] } }; '"''; "'$t='"'test/input/shortcut_manager_test.dart'; "'$lines=Get-Content $t; for($i=45;$i -le 112;$i++){ if($i -le $lines.Length){ '"'{0,5}: {1}' -f "'$i,$lines[$i-1] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 227ms:
+ 5628:   }
+ 5629: }
+ 5630: 
+ 5631: double _measureInlineSpanWidth(InlineSpan span, TextDirection textDirection) {
+ 5632:   final painter = TextPainter(
+ 5633:     text: span,
+ 5634:     textDirection: textDirection,
+ 5635:   )..layout(maxWidth: double.infinity);
+ 5636:   final width = painter.width;
+ 5637:   painter.dispose();
+ 5638:   return width.isFinite ? width : 0;
+ 5639: }
+ 5640: 
+ 5641: class _BlockFloatingToolbarSurface extends StatelessWidget {
+ 5642:   const _BlockFloatingToolbarSurface({
+ 5643:     required this.child,
+ 5644:     this.toolbar,
+ 5645:     this.inset = _kBlockFloatingToolbarInset,
+ 5646:     this.placeAbove = false,
+ 5647:     this.estimatedToolbarHeight = _kObjectFloatingToolbarEstimatedHeight,
+ 5648:   });
+ 5649: 
+ 5650:   final Widget child;
+ 5651:   final Widget? toolbar;
+ 5652:   final double inset;
+ 5653:   final bool placeAbove;
+ 5654:   final double estimatedToolbarHeight;
+ 5655: 
+ 5656:   @override
+ 5657:   Widget build(BuildContext context) {
+ 5658:     final toolbar = this.toolbar;
+ 5659:     if (toolbar == null) {
+ 5660:       return child;
+ 5661:     }
+ 5662:     return Stack(
+ 5663:       clipBehavior: Clip.none,
+ 5664:       children: <Widget>[
+ 5665:         child,
+
+   45:     expect(result.intent, EditorShortcutIntent.selectAll);
+   46:   });
+   47: 
+   48:   test('passes through unknown primary shortcuts', () {
+   49:     final result = resolve(_down(LogicalKeyboardKey.keyS), primary: true);
+   50: 
+   51:     expect(result.disposition, EditorShortcutDisposition.passThrough);
+   52:     expect(result.intent, isNull);
+   53:   });
+   54: 
+   55:   test('keeps default shortcut baseline without configuration', () {
+   56:     final expectations = <_ShortcutExpectation>[
+   57:       _ShortcutExpectation.primary(
+   58:           LogicalKeyboardKey.keyA, EditorShortcutIntent.selectAll),
+   59:       _ShortcutExpectation.primary(
+   60:           LogicalKeyboardKey.keyC, EditorShortcutIntent.copy),
+   61:       _ShortcutExpectation.primary(
+   62:           LogicalKeyboardKey.keyX, EditorShortcutIntent.cut),
+   63:       _ShortcutExpectation.primary(
+   64:           LogicalKeyboardKey.keyV, EditorShortcutIntent.paste),
+   65:       _ShortcutExpectation.primary(
+   66:           LogicalKeyboardKey.keyZ, EditorShortcutIntent.undo),
+   67:       _ShortcutExpectation.primary(
+   68:           LogicalKeyboardKey.keyY, EditorShortcutIntent.redo),
+   69:       _ShortcutExpectation.primary(
+   70:         LogicalKeyboardKey.arrowLeft,
+   71:         EditorShortcutIntent.moveCaretByWordBackward,
+   72:       ),
+   73:       _ShortcutExpectation.primary(
+   74:         LogicalKeyboardKey.arrowRight,
+   75:         EditorShortcutIntent.moveCaretByWordForward,
+   76:       ),
+   77:       _ShortcutExpectation.primary(
+   78:         LogicalKeyboardKey.home,
+   79:         EditorShortcutIntent.moveCaretToDocumentStart,
+   80:       ),
+   81:       _ShortcutExpectation.primary(
+   82:         LogicalKeyboardKey.end,
+   83:         EditorShortcutIntent.moveCaretToDocumentEnd,
+   84:       ),
+   85:       _ShortcutExpectation.plain(
+   86:           LogicalKeyboardKey.arrowLeft, EditorShortcutIntent.moveCaretBackward),
+   87:       _ShortcutExpectation.plain(
+   88:           LogicalKeyboardKey.arrowRight, EditorShortcutIntent.moveCaretForward),
+   89:       _ShortcutExpectation.plain(
+   90:           LogicalKeyboardKey.arrowUp, EditorShortcutIntent.moveCaretUp),
+   91:       _ShortcutExpectation.plain(
+   92:           LogicalKeyboardKey.arrowDown, EditorShortcutIntent.moveCaretDown),
+   93:       _ShortcutExpectation.plain(
+   94:           LogicalKeyboardKey.home, EditorShortcutIntent.moveCaretToBlockStart),
+   95:       _ShortcutExpectation.plain(
+   96:           LogicalKeyboardKey.end, EditorShortcutIntent.moveCaretToBlockEnd),
+   97:       _ShortcutExpectation.plain(
+   98:           LogicalKeyboardKey.pageUp, EditorShortcutIntent.pageUp),
+   99:       _ShortcutExpectation.plain(
+  100:           LogicalKeyboardKey.pageDown, EditorShortcutIntent.pageDown),
+  101:       _ShortcutExpectation.plain(
+  102:           LogicalKeyboardKey.backspace, EditorShortcutIntent.deleteBackward),
+  103:       _ShortcutExpectation.plain(
+  104:           LogicalKeyboardKey.delete, EditorShortcutIntent.deleteForward),
+  105:       _ShortcutExpectation.plain(
+  106:           LogicalKeyboardKey.enter, EditorShortcutIntent.enter),
+  107:       _ShortcutExpectation.plain(
+  108:           LogicalKeyboardKey.keyA, EditorShortcutIntent.insertCharacter,
+  109:           character: 'a'),
+  110:     ];
+  111: 
+  112:     for (final expectation in expectations) {
+
+**Investigating optional parameters**
+
+I’m trying to figure out why there’s a discrepancy in line numbering, where the summary says 5646 inset and 5647 placeAbove, but it seems to relate to the actual lines 5645 and 5646. There’s also an unused_element_parameter warning for optional parameters that weren’t given, likely due to private class constructor parameters not being specified. I need to decide whether to remove those parameters or ignore the warnings, aiming for only validation errors. I should inspect class usage further to gather more insights.
+codex
+`inset/placeAbove` 是私有 widget 的未传入参数；我会确认调用点再做收敛。
+exec
+powershell.exe -Command 'rg -n "_BlockFloatingToolbarSurface|inset:|placeAbove:" lib/src/widgets/wenz_rich_text_editor.dart' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 166ms:
+5566:          child: _BlockFloatingToolbarSurface(
+5642:class _BlockFloatingToolbarSurface extends StatelessWidget {
+5643:  const _BlockFloatingToolbarSurface({
+8503:          child: _BlockFloatingToolbarSurface(
+8643:            child: _BlockFloatingToolbarSurface(
+9146:        child: _BlockFloatingToolbarSurface(
+9494:      child: _BlockFloatingToolbarSurface(
+
+**Evaluating call site areas**
+
+I’m thinking about inspecting call site areas. It seems like it could be helpful to pass in just the toolbar child. This way, it'll be more focused on the specific component I want to analyze. I’m curious if that will improve efficiency or make it easier to manage. I’ll need to double-check that passing the toolbar child leads to the desired outcomes. Let's explore this further to see if it makes sense!
+codex
+调用点确实没有自定义这两个参数；下一步做最小代码改动。
+exec
+powershell.exe -Command '$p='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content $p; foreach($start in 5558,8496,8636,9138,9486){ for($i=$start;$i -le $start+16;$i++){ if($i -le $lines.Length){ '"'{0,5}: {1}' -f "'$i,$lines[$i-1] } }; '"'' }" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 227ms:
+ 5558:           borderRadius: BorderRadius.circular(12),
+ 5559:         ),
+ 5560:         child: Padding(
+ 5561:           padding: const EdgeInsets.symmetric(
+ 5562:             horizontal: _kCodeBlockPaddingHorizontal,
+ 5563:             vertical: _kCodeBlockPaddingVertical,
+ 5564:           ),
+ 5565:           child: _BlockFloatingToolbarSurface(
+ 5566:             estimatedToolbarHeight: _kCodeFloatingToolbarEstimatedHeight,
+ 5567:             toolbar: selected
+ 5568:                 ? _CodeBlockToolbar(
+ 5569:                     language: block.language,
+ 5570:                     onLanguageChanged: onLanguageChanged,
+ 5571:                     onCopyPressed: onCodeCopied == null
+ 5572:                         ? null
+ 5573:                         : () {
+ 5574:                             unawaited(onCodeCopied!(block.code));
+
+ 8496:           padding: EdgeInsets.symmetric(
+ 8497:             horizontal: selected ? 8 : 0,
+ 8498:             vertical: selected ? 8 : 0,
+ 8499:           ),
+ 8500:           child: _BlockFloatingToolbarSurface(
+ 8501:             toolbar: selected
+ 8502:                 ? _FloatingObjectBlockToolbar(
+ 8503:                     blockIndex: blockIndex,
+ 8504:                     blockCount: blockCount,
+ 8505:                     canEdit: canEdit,
+ 8506:                     imageActions: false,
+ 8507:                     fileActions: false,
+ 8508:                     onAction: onAction,
+ 8509:                   )
+ 8510:                 : null,
+ 8511:             child: SizedBox(
+ 8512:               height: _kDividerDotSize,
+
+ 8636:             borderRadius: BorderRadius.circular(_kMediaCornerRadius),
+ 8637:           ),
+ 8638:           child: Padding(
+ 8639:             padding: const EdgeInsets.all(16),
+ 8640:             child: _BlockFloatingToolbarSurface(
+ 8641:               toolbar: selected
+ 8642:                   ? _FloatingObjectBlockToolbar(
+ 8643:                       blockIndex: blockIndex,
+ 8644:                       blockCount: blockCount,
+ 8645:                       canEdit: canEdit,
+ 8646:                       imageActions: false,
+ 8647:                       fileActions: false,
+ 8648:                       onAction: onAction,
+ 8649:                     )
+ 8650:                   : null,
+ 8651:               child: Row(
+ 8652:                 crossAxisAlignment: CrossAxisAlignment.start,
+
+ 9138:           color: theme.colorScheme.surface,
+ 9139:           border: Border.all(color: borderColor),
+ 9140:           borderRadius: BorderRadius.circular(8),
+ 9141:           boxShadow: _hovered || _focused ? _kSurfaceBoxShadow : null,
+ 9142:         ),
+ 9143:         child: _BlockFloatingToolbarSurface(
+ 9144:           toolbar: _FileBlockActionMenu(
+ 9145:             blockIndex: widget.blockIndex,
+ 9146:             blockCount: widget.blockCount,
+ 9147:             canEdit: widget.canEdit,
+ 9148:             onAction: widget.onAction,
+ 9149:           ),
+ 9150:           child: Padding(
+ 9151:             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+ 9152:             child: Row(
+ 9153:               crossAxisAlignment: CrossAxisAlignment.center,
+ 9154:               children: <Widget>[
+
+ 9486: 
+ 9487:   @override
+ 9488:   Widget build(BuildContext context) {
+ 9489:     return Align(
+ 9490:       alignment: AlignmentDirectional.centerStart,
+ 9491:       child: _BlockFloatingToolbarSurface(
+ 9492:         toolbar: selected
+ 9493:             ? _FloatingObjectBlockToolbar(
+ 9494:                 blockIndex: blockIndex,
+ 9495:                 blockCount: blockCount,
+ 9496:                 canEdit: canEdit,
+ 9497:                 imageActions: imageActions,
+ 9498:                 fileActions: false,
+ 9499:                 mediaActions: true,
+ 9500:                 onAction: onAction,
+ 9501:                 onPreview: onPreview,
+ 9502:               )
+
+
+codex
+准备移除未配置的私有参数，并把测试构造改为 `const`。
+exec
+powershell.exe -Command '$p='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content $p; for($i=5640;$i -le 5695;$i++){ if($i -le $lines.Length){ '"'{0,5}: {1}' -f "'$i,$lines[$i-1] } }; '"''; "'$t='"'test/input/shortcut_manager_test.dart'; "'$lines=Get-Content $t; for($i=1;$i -le 130;$i++){ if($i -le $lines.Length){ '"'{0,5}: {1}' -f "'$i,$lines[$i-1] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 231ms:
+ 5640: 
+ 5641: class _BlockFloatingToolbarSurface extends StatelessWidget {
+ 5642:   const _BlockFloatingToolbarSurface({
+ 5643:     required this.child,
+ 5644:     this.toolbar,
+ 5645:     this.inset = _kBlockFloatingToolbarInset,
+ 5646:     this.placeAbove = false,
+ 5647:     this.estimatedToolbarHeight = _kObjectFloatingToolbarEstimatedHeight,
+ 5648:   });
+ 5649: 
+ 5650:   final Widget child;
+ 5651:   final Widget? toolbar;
+ 5652:   final double inset;
+ 5653:   final bool placeAbove;
+ 5654:   final double estimatedToolbarHeight;
+ 5655: 
+ 5656:   @override
+ 5657:   Widget build(BuildContext context) {
+ 5658:     final toolbar = this.toolbar;
+ 5659:     if (toolbar == null) {
+ 5660:       return child;
+ 5661:     }
+ 5662:     return Stack(
+ 5663:       clipBehavior: Clip.none,
+ 5664:       children: <Widget>[
+ 5665:         child,
+ 5666:         PositionedDirectional(
+ 5667:           top: placeAbove
+ 5668:               ? -(estimatedToolbarHeight + _kBlockFloatingToolbarGap)
+ 5669:               : inset,
+ 5670:           end: inset,
+ 5671:           child: toolbar,
+ 5672:         ),
+ 5673:       ],
+ 5674:     );
+ 5675:   }
+ 5676: }
+ 5677: 
+ 5678: class _CodeBlockToolbar extends StatelessWidget {
+ 5679:   const _CodeBlockToolbar({
+ 5680:     required this.language,
+ 5681:     this.onLanguageChanged,
+ 5682:     this.onCopyPressed,
+ 5683:   });
+ 5684: 
+ 5685:   final String language;
+ 5686:   final ValueChanged<String>? onLanguageChanged;
+ 5687:   final VoidCallback? onCopyPressed;
+ 5688: 
+ 5689:   @override
+ 5690:   Widget build(BuildContext context) {
+ 5691:     final theme = Theme.of(context);
+ 5692:     const tagColor = Color(_kCodeLanguageTagColor);
+ 5693:     final labelStyle = theme.textTheme.labelSmall?.copyWith(
+ 5694:           color: tagColor,
+ 5695:           fontWeight: FontWeight.w600,
+
+    1: import 'package:flutter/services.dart';
+    2: import 'package:flutter_test/flutter_test.dart';
+    3: import 'package:wenz_richtext/wenz_richtext.dart';
+    4: 
+    5: void main() {
+    6:   const manager = EditorShortcutManager();
+    7: 
+    8:   EditorShortcutResolution resolve(
+    9:     KeyEvent event, {
+   10:     bool shift = false,
+   11:     bool primary = false,
+   12:     bool readOnly = false,
+   13:     bool imeEnabled = false,
+   14:     bool inputClientAttached = false,
+   15:     bool findEnabled = false,
+   16:     bool replaceEnabled = false,
+   17:   }) {
+   18:     return manager.resolve(
+   19:       event,
+   20:       shiftPressed: shift,
+   21:       primaryPressed: primary,
+   22:       readOnly: readOnly,
+   23:       imeEnabled: imeEnabled,
+   24:       inputClientAttached: inputClientAttached,
+   25:       findEnabled: findEnabled,
+   26:       replaceEnabled: replaceEnabled,
+   27:     );
+   28:   }
+   29: 
+   30:   test('ignores key-up events', () {
+   31:     final result = resolve(_up(LogicalKeyboardKey.keyA));
+   32: 
+   33:     expect(result.disposition, EditorShortcutDisposition.ignored);
+   34:     expect(result.intent, isNull);
+   35:   });
+   36: 
+   37:   test('allows select-all in read-only mode', () {
+   38:     final result = resolve(
+   39:       _down(LogicalKeyboardKey.keyA),
+   40:       primary: true,
+   41:       readOnly: true,
+   42:     );
+   43: 
+   44:     expect(result.disposition, EditorShortcutDisposition.handled);
+   45:     expect(result.intent, EditorShortcutIntent.selectAll);
+   46:   });
+   47: 
+   48:   test('passes through unknown primary shortcuts', () {
+   49:     final result = resolve(_down(LogicalKeyboardKey.keyS), primary: true);
+   50: 
+   51:     expect(result.disposition, EditorShortcutDisposition.passThrough);
+   52:     expect(result.intent, isNull);
+   53:   });
+   54: 
+   55:   test('keeps default shortcut baseline without configuration', () {
+   56:     final expectations = <_ShortcutExpectation>[
+   57:       _ShortcutExpectation.primary(
+   58:           LogicalKeyboardKey.keyA, EditorShortcutIntent.selectAll),
+   59:       _ShortcutExpectation.primary(
+   60:           LogicalKeyboardKey.keyC, EditorShortcutIntent.copy),
+   61:       _ShortcutExpectation.primary(
+   62:           LogicalKeyboardKey.keyX, EditorShortcutIntent.cut),
+   63:       _ShortcutExpectation.primary(
+   64:           LogicalKeyboardKey.keyV, EditorShortcutIntent.paste),
+   65:       _ShortcutExpectation.primary(
+   66:           LogicalKeyboardKey.keyZ, EditorShortcutIntent.undo),
+   67:       _ShortcutExpectation.primary(
+   68:           LogicalKeyboardKey.keyY, EditorShortcutIntent.redo),
+   69:       _ShortcutExpectation.primary(
+   70:         LogicalKeyboardKey.arrowLeft,
+   71:         EditorShortcutIntent.moveCaretByWordBackward,
+   72:       ),
+   73:       _ShortcutExpectation.primary(
+   74:         LogicalKeyboardKey.arrowRight,
+   75:         EditorShortcutIntent.moveCaretByWordForward,
+   76:       ),
+   77:       _ShortcutExpectation.primary(
+   78:         LogicalKeyboardKey.home,
+   79:         EditorShortcutIntent.moveCaretToDocumentStart,
+   80:       ),
+   81:       _ShortcutExpectation.primary(
+   82:         LogicalKeyboardKey.end,
+   83:         EditorShortcutIntent.moveCaretToDocumentEnd,
+   84:       ),
+   85:       _ShortcutExpectation.plain(
+   86:           LogicalKeyboardKey.arrowLeft, EditorShortcutIntent.moveCaretBackward),
+   87:       _ShortcutExpectation.plain(
+   88:           LogicalKeyboardKey.arrowRight, EditorShortcutIntent.moveCaretForward),
+   89:       _ShortcutExpectation.plain(
+   90:           LogicalKeyboardKey.arrowUp, EditorShortcutIntent.moveCaretUp),
+   91:       _ShortcutExpectation.plain(
+   92:           LogicalKeyboardKey.arrowDown, EditorShortcutIntent.moveCaretDown),
+   93:       _ShortcutExpectation.plain(
+   94:           LogicalKeyboardKey.home, EditorShortcutIntent.moveCaretToBlockStart),
+   95:       _ShortcutExpectation.plain(
+   96:           LogicalKeyboardKey.end, EditorShortcutIntent.moveCaretToBlockEnd),
+   97:       _ShortcutExpectation.plain(
+   98:           LogicalKeyboardKey.pageUp, EditorShortcutIntent.pageUp),
+   99:       _ShortcutExpectation.plain(
+  100:           LogicalKeyboardKey.pageDown, EditorShortcutIntent.pageDown),
+  101:       _ShortcutExpectation.plain(
+  102:           LogicalKeyboardKey.backspace, EditorShortcutIntent.deleteBackward),
+  103:       _ShortcutExpectation.plain(
+  104:           LogicalKeyboardKey.delete, EditorShortcutIntent.deleteForward),
+  105:       _ShortcutExpectation.plain(
+  106:           LogicalKeyboardKey.enter, EditorShortcutIntent.enter),
+  107:       _ShortcutExpectation.plain(
+  108:           LogicalKeyboardKey.keyA, EditorShortcutIntent.insertCharacter,
+  109:           character: 'a'),
+  110:     ];
+  111: 
+  112:     for (final expectation in expectations) {
+  113:       final result = resolve(
+  114:         _down(expectation.key, character: expectation.character),
+  115:         primary: expectation.primary,
+  116:       );
+  117:       expect(result.disposition, EditorShortcutDisposition.handled);
+  118:       expect(result.intent, expectation.intent);
+  119:       if (expectation.character != null) {
+  120:         expect(result.character, expectation.character);
+  121:       }
+  122:     }
+  123:   });
+  124: 
+  125:   test('blocks undo and paste in read-only mode', () {
+  126:     final undo = resolve(
+  127:       _down(LogicalKeyboardKey.keyZ),
+  128:       primary: true,
+  129:       readOnly: true,
+  130:     );
+
+**Inspecting class constructor**
+
+I need to take a closer look at the `_ShortcutExpectation` class's constructor. It's important to understand how it's set up and what expectations it sets. I wonder if there might be any nuances in its behavior or any edge cases I should be aware of. I think I’ll methodically check its parameters and default values to ensure everything is functioning as intended. Let's dive into the code and see what insights I can gather.
+codex
+测试里的对象看起来可常量化；我再确认构造器声明。
+exec
+powershell.exe -Command "rg -n \"class _ShortcutExpectation|_ShortcutExpectation\\.\" test/input/shortcut_manager_test.dart" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 173ms:
+57:      _ShortcutExpectation.primary(
+59:      _ShortcutExpectation.primary(
+61:      _ShortcutExpectation.primary(
+63:      _ShortcutExpectation.primary(
+65:      _ShortcutExpectation.primary(
+67:      _ShortcutExpectation.primary(
+69:      _ShortcutExpectation.primary(
+73:      _ShortcutExpectation.primary(
+77:      _ShortcutExpectation.primary(
+81:      _ShortcutExpectation.primary(
+85:      _ShortcutExpectation.plain(
+87:      _ShortcutExpectation.plain(
+89:      _ShortcutExpectation.plain(
+91:      _ShortcutExpectation.plain(
+93:      _ShortcutExpectation.plain(
+95:      _ShortcutExpectation.plain(
+97:      _ShortcutExpectation.plain(
+99:      _ShortcutExpectation.plain(
+101:      _ShortcutExpectation.plain(
+103:      _ShortcutExpectation.plain(
+105:      _ShortcutExpectation.plain(
+107:      _ShortcutExpectation.plain(
+231:class _ShortcutExpectation {
+232:  const _ShortcutExpectation.plain(
+238:  const _ShortcutExpectation.primary(
+
+codex
+已确认构造器是 `const`，现在应用最小补丁。
+exec
+powershell.exe -Command '$lines=Get-Content '"'test/input/shortcut_manager_test.dart'; for("'$i=224;$i -le 252;$i++){ if($i -le $lines.Length){ '"'{0,5}: {1}' -f "'$i,$lines[$i-1] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 182ms:
+  224:     final control = resolve(
+  225:       _down(LogicalKeyboardKey.keyA, character: '\u0001'),
+  226:     );
+  227:     expect(control.disposition, EditorShortcutDisposition.ignored);
+  228:   });
+  229: }
+  230: 
+  231: class _ShortcutExpectation {
+  232:   const _ShortcutExpectation.plain(
+  233:     this.key,
+  234:     this.intent, {
+  235:     this.character,
+  236:   }) : primary = false;
+  237: 
+  238:   const _ShortcutExpectation.primary(
+  239:     this.key,
+  240:     this.intent,
+  241:   )   : primary = true,
+  242:         character = null;
+  243: 
+  244:   final LogicalKeyboardKey key;
+  245:   final EditorShortcutIntent intent;
+  246:   final bool primary;
+  247:   final String? character;
+  248: }
+  249: 
+  250: KeyDownEvent _down(LogicalKeyboardKey key, {String? character}) {
+  251:   return KeyDownEvent(
+  252:     physicalKey: PhysicalKeyboardKey.keyA,
+
+codex
+开始修改：去掉未传参入口，并常量化测试列表项。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_richtext\lib\src\widgets\wenz_rich_text_editor.dart
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 571788ca1398911b18b76612e529db6284cd52a0..1b41fe823f2fc2ba5f8a0c3b8d1ba468a05c4201
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -5643,15 +5643,11 @@
+   const _BlockFloatingToolbarSurface({
+     required this.child,
+     this.toolbar,
+-    this.inset = _kBlockFloatingToolbarInset,
+-    this.placeAbove = false,
+     this.estimatedToolbarHeight = _kObjectFloatingToolbarEstimatedHeight,
+   });
+ 
+   final Widget child;
+   final Widget? toolbar;
+-  final double inset;
+-  final bool placeAbove;
+   final double estimatedToolbarHeight;
+ 
+   @override
+@@ -5665,10 +5661,8 @@
+       children: <Widget>[
+         child,
+         PositionedDirectional(
+-          top: placeAbove
+-              ? -(estimatedToolbarHeight + _kBlockFloatingToolbarGap)
+-              : inset,
+-          end: inset,
++          top: _kBlockFloatingToolbarInset,
++          end: _kBlockFloatingToolbarInset,
+           child: toolbar,
+         ),
+       ],
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 571788ca1398911b18b76612e529db6284cd52a0..1b41fe823f2fc2ba5f8a0c3b8d1ba468a05c4201
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -5643,15 +5643,11 @@
+   const _BlockFloatingToolbarSurface({
+     required this.child,
+     this.toolbar,
+-    this.inset = _kBlockFloatingToolbarInset,
+-    this.placeAbove = false,
+     this.estimatedToolbarHeight = _kObjectFloatingToolbarEstimatedHeight,
+   });
+ 
+   final Widget child;
+   final Widget? toolbar;
+-  final double inset;
+-  final bool placeAbove;
+   final double estimatedToolbarHeight;
+ 
+   @override
+@@ -5665,10 +5661,8 @@
+       children: <Widget>[
+         child,
+         PositionedDirectional(
+-          top: placeAbove
+-              ? -(estimatedToolbarHeight + _kBlockFloatingToolbarGap)
+-              : inset,
+-          end: inset,
++          top: _kBlockFloatingToolbarInset,
++          end: _kBlockFloatingToolbarInset,
+           child: toolbar,
+         ),
+       ],
+
+**Considering constant expectations**
+
+I'm thinking about whether changing `final expectations = const <_ShortcutExpectation>[` will lead the analyzer to automatically consider constructors as const. In Dart, since elements in a const list are in a const context, we shouldn't need per-constructor consts, which could help fix everything. I just need to make sure that the `_ShortcutExpectation` class and its values are const too. It seems that the static constants in `LogicalKeyboardKey` are likely const instances, along with the `EditorShortcutIntent` enum. I'll patch it accordingly.
+codex
+工具提示不影响补丁已成功；继续补测试里的 const context。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_richtext\test\input\shortcut_manager_test.dart
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 571788ca1398911b18b76612e529db6284cd52a0..1b41fe823f2fc2ba5f8a0c3b8d1ba468a05c4201
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -5643,15 +5643,11 @@
+   const _BlockFloatingToolbarSurface({
+     required this.child,
+     this.toolbar,
+-    this.inset = _kBlockFloatingToolbarInset,
+-    this.placeAbove = false,
+     this.estimatedToolbarHeight = _kObjectFloatingToolbarEstimatedHeight,
+   });
+ 
+   final Widget child;
+   final Widget? toolbar;
+-  final double inset;
+-  final bool placeAbove;
+   final double estimatedToolbarHeight;
+ 
+   @override
+@@ -5665,10 +5661,8 @@
+       children: <Widget>[
+         child,
+         PositionedDirectional(
+-          top: placeAbove
+-              ? -(estimatedToolbarHeight + _kBlockFloatingToolbarGap)
+-              : inset,
+-          end: inset,
++          top: _kBlockFloatingToolbarInset,
++          end: _kBlockFloatingToolbarInset,
+           child: toolbar,
+         ),
+       ],
+diff --git a/wenz_richtext/test/input/shortcut_manager_test.dart b/wenz_richtext/test/input/shortcut_manager_test.dart
+index 7d8d25b7fd1a58d013b4ebf386715465d96c6383..cbb2d5d13645fceff6a2a36f5397828f5abf0f8d
+--- a/wenz_richtext/test/input/shortcut_manager_test.dart
++++ b/wenz_richtext/test/input/shortcut_manager_test.dart
+@@ -53,7 +53,7 @@
+   });
+ 
+   test('keeps default shortcut baseline without configuration', () {
+-    final expectations = <_ShortcutExpectation>[
++    final expectations = const <_ShortcutExpectation>[
+       _ShortcutExpectation.primary(
+           LogicalKeyboardKey.keyA, EditorShortcutIntent.selectAll),
+       _ShortcutExpectation.primary(
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 571788ca1398911b18b76612e529db6284cd52a0..1b41fe823f2fc2ba5f8a0c3b8d1ba468a05c4201
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -5643,15 +5643,11 @@
+   const _BlockFloatingToolbarSurface({
+     required this.child,
+     this.toolbar,
+-    this.inset = _kBlockFloatingToolbarInset,
+-    this.placeAbove = false,
+     this.estimatedToolbarHeight = _kObjectFloatingToolbarEstimatedHeight,
+   });
+ 
+   final Widget child;
+   final Widget? toolbar;
+-  final double inset;
+-  final bool placeAbove;
+   final double estimatedToolbarHeight;
+ 
+   @override
+@@ -5665,10 +5661,8 @@
+       children: <Widget>[
+         child,
+         PositionedDirectional(
+-          top: placeAbove
+-              ? -(estimatedToolbarHeight + _kBlockFloatingToolbarGap)
+-              : inset,
+-          end: inset,
++          top: _kBlockFloatingToolbarInset,
++          end: _kBlockFloatingToolbarInset,
+           child: toolbar,
+         ),
+       ],
+diff --git a/wenz_richtext/test/input/shortcut_manager_test.dart b/wenz_richtext/test/input/shortcut_manager_test.dart
+index 7d8d25b7fd1a58d013b4ebf386715465d96c6383..cbb2d5d13645fceff6a2a36f5397828f5abf0f8d
+--- a/wenz_richtext/test/input/shortcut_manager_test.dart
++++ b/wenz_richtext/test/input/shortcut_manager_test.dart
+@@ -53,7 +53,7 @@
+   });
+ 
+   test('keeps default shortcut baseline without configuration', () {
+-    final expectations = <_ShortcutExpectation>[
++    final expectations = const <_ShortcutExpectation>[
+       _ShortcutExpectation.primary(
+           LogicalKeyboardKey.keyA, EditorShortcutIntent.selectAll),
+       _ShortcutExpectation.primary(
+
+codex
+代码已按报错点收敛，接下来运行 `flutter analyze` 验证。
+  ✓ 确认仓库规则与报错位置
+  ✓ 最小修复 analyzer 警告
+  → 运行 flutter analyze 验证
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 571788ca1398911b18b76612e529db6284cd52a0..1b41fe823f2fc2ba5f8a0c3b8d1ba468a05c4201
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -5643,15 +5643,11 @@
+   const _BlockFloatingToolbarSurface({
+     required this.child,
+     this.toolbar,
+-    this.inset = _kBlockFloatingToolbarInset,
+-    this.placeAbove = false,
+     this.estimatedToolbarHeight = _kObjectFloatingToolbarEstimatedHeight,
+   });
+ 
+   final Widget child;
+   final Widget? toolbar;
+-  final double inset;
+-  final bool placeAbove;
+   final double estimatedToolbarHeight;
+ 
+   @override
+@@ -5665,10 +5661,8 @@
+       children: <Widget>[
+         child,
+         PositionedDirectional(
+-          top: placeAbove
+-              ? -(estimatedToolbarHeight + _kBlockFloatingToolbarGap)
+-              : inset,
+-          end: inset,
++          top: _kBlockFloatingToolbarInset,
++          end: _kBlockFloatingToolbarInset,
+           child: toolbar,
+         ),
+       ],
+diff --git a/wenz_richtext/test/input/shortcut_manager_test.dart b/wenz_richtext/test/input/shortcut_manager_test.dart
+index 7d8d25b7fd1a58d013b4ebf386715465d96c6383..cbb2d5d13645fceff6a2a36f5397828f5abf0f8d
+--- a/wenz_richtext/test/input/shortcut_manager_test.dart
++++ b/wenz_richtext/test/input/shortcut_manager_test.dart
+@@ -53,7 +53,7 @@
+   });
+ 
+   test('keeps default shortcut baseline without configuration', () {
+-    final expectations = <_ShortcutExpectation>[
++    final expectations = const <_ShortcutExpectation>[
+       _ShortcutExpectation.primary(
+           LogicalKeyboardKey.keyA, EditorShortcutIntent.selectAll),
+       _ShortcutExpectation.primary(
+
+exec
+powershell.exe -Command 'flutter analyze' in D:\project\GitHub\wenz_flutter\wenz_richtext
+2026-06-25T22:28:29.147964Z ERROR codex_core::tools::router: error={"output":"Analyzing wenz_richtext...                                      \n\nwarning - The declaration '_kBlockFloatingToolbarGap' isn't referenced - lib\\src\\widgets\\wenz_rich_text_editor.dart:112:14 - unused_element\n   info - Use 'const' for final variables initialized to a constant value - test\\input\\shortcut_manager_test.dart:56:5 - prefer_const_declarations\n\nFlutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!\n2 issues found. (ran in 2.0s)\n","metadata":{"exit_code":1,"duration_seconds":3.9}}
+ exited 1 in 3875ms:
+Analyzing wenz_richtext...                                      
+
+warning - The declaration '_kBlockFloatingToolbarGap' isn't referenced - lib\src\widgets\wenz_rich_text_editor.dart:112:14 - unused_element
+   info - Use 'const' for final variables initialized to a constant value - test\input\shortcut_manager_test.dart:56:5 - prefer_const_declarations
+
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+2 issues found. (ran in 2.0s)
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 571788ca1398911b18b76612e529db6284cd52a0..1b41fe823f2fc2ba5f8a0c3b8d1ba468a05c4201
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -5643,15 +5643,11 @@
+   const _BlockFloatingToolbarSurface({
+     required this.child,
+     this.toolbar,
+-    this.inset = _kBlockFloatingToolbarInset,
+-    this.placeAbove = false,
+     this.estimatedToolbarHeight = _kObjectFloatingToolbarEstimatedHeight,
+   });
+ 
+   final Widget child;
+   final Widget? toolbar;
+-  final double inset;
+-  final bool placeAbove;
+   final double estimatedToolbarHeight;
+ 
+   @override
+@@ -5665,10 +5661,8 @@
+       children: <Widget>[
+         child,
+         PositionedDirectional(
+-          top: placeAbove
+-              ? -(estimatedToolbarHeight + _kBlockFloatingToolbarGap)
+-              : inset,
+-          end: inset,
++          top: _kBlockFloatingToolbarInset,
++          end: _kBlockFloatingToolbarInset,
+           child: toolbar,
+         ),
+       ],
+diff --git a/wenz_richtext/test/input/shortcut_manager_test.dart b/wenz_richtext/test/input/shortcut_manager_test.dart
+index 7d8d25b7fd1a58d013b4ebf386715465d96c6383..cbb2d5d13645fceff6a2a36f5397828f5abf0f8d
+--- a/wenz_richtext/test/input/shortcut_manager_test.dart
++++ b/wenz_richtext/test/input/shortcut_manager_test.dart
+@@ -53,7 +53,7 @@
+   });
+ 
+   test('keeps default shortcut baseline without configuration', () {
+-    final expectations = <_ShortcutExpectation>[
++    final expectations = const <_ShortcutExpectation>[
+       _ShortcutExpectation.primary(
+           LogicalKeyboardKey.keyA, EditorShortcutIntent.selectAll),
+       _ShortcutExpectation.primary(
+
+codex
+`analyze` 只剩两个派生问题：未用常量和 const 声明风格。马上收掉。
+exec
+powershell.exe -Command '$p='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content $p; for($i=104;$i -le 116;$i++){ '"'{0,5}: {1}' -f "'$i,$lines[$i-1] }; '"''; "'$t='"'test/input/shortcut_manager_test.dart'; "'$lines=Get-Content $t; for($i=54;$i -le 60;$i++){ '"'{0,5}: {1}' -f "'$i,$lines[$i-1] }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 239ms:
+  104: const double _kCodeBlockPaddingVertical = 18.0;
+  105: const double _kCodeBlockPaddingHorizontal = 20.0;
+  106: const int _kCodeBlockBackgroundColor = 0xFF1E1E2E;
+  107: const int _kCodeBlockTextColor = 0xFFE6E6F0;
+  108: const int _kCodeLineNumberColor = 0x8AE6E6F0;
+  109: const double _kCodeLineNumberGap = 12.0;
+  110: const int _kCodeLanguageTagColor = 0xB38A8AFF;
+  111: const double _kBlockFloatingToolbarInset = 6.0;
+  112: const double _kBlockFloatingToolbarGap = 6.0;
+  113: const double _kCodeFloatingToolbarEstimatedHeight = 28.0;
+  114: const double _kObjectFloatingToolbarEstimatedHeight = 36.0;
+  115: const int _kCodeKeywordColor = 0xFFC792EA;
+  116: const int _kCodeStringColor = 0xFFC3E88D;
+
+   54: 
+   55:   test('keeps default shortcut baseline without configuration', () {
+   56:     final expectations = const <_ShortcutExpectation>[
+   57:       _ShortcutExpectation.primary(
+   58:           LogicalKeyboardKey.keyA, EditorShortcutIntent.selectAll),
+   59:       _ShortcutExpectation.primary(
+   60:           LogicalKeyboardKey.keyC, EditorShortcutIntent.copy),
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 571788ca1398911b18b76612e529db6284cd52a0..1b41fe823f2fc2ba5f8a0c3b8d1ba468a05c4201
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -5643,15 +5643,11 @@
+   const _BlockFloatingToolbarSurface({
+     required this.child,
+     this.toolbar,
+-    this.inset = _kBlockFloatingToolbarInset,
+-    this.placeAbove = false,
+     this.estimatedToolbarHeight = _kObjectFloatingToolbarEstimatedHeight,
+   });
+ 
+   final Widget child;
+   final Widget? toolbar;
+-  final double inset;
+-  final bool placeAbove;
+   final double estimatedToolbarHeight;
+ 
+   @override
+@@ -5665,10 +5661,8 @@
+       children: <Widget>[
+         child,
+         PositionedDirectional(
+-          top: placeAbove
+-              ? -(estimatedToolbarHeight + _kBlockFloatingToolbarGap)
+-              : inset,
+-          end: inset,
++          top: _kBlockFloatingToolbarInset,
++          end: _kBlockFloatingToolbarInset,
+           child: toolbar,
+         ),
+       ],
+diff --git a/wenz_richtext/test/input/shortcut_manager_test.dart b/wenz_richtext/test/input/shortcut_manager_test.dart
+index 7d8d25b7fd1a58d013b4ebf386715465d96c6383..cbb2d5d13645fceff6a2a36f5397828f5abf0f8d
+--- a/wenz_richtext/test/input/shortcut_manager_test.dart
++++ b/wenz_richtext/test/input/shortcut_manager_test.dart
+@@ -53,7 +53,7 @@
+   });
+ 
+   test('keeps default shortcut baseline without configuration', () {
+-    final expectations = <_ShortcutExpectation>[
++    final expectations = const <_ShortcutExpectation>[
+       _ShortcutExpectation.primary(
+           LogicalKeyboardKey.keyA, EditorShortcutIntent.selectAll),
+       _ShortcutExpectation.primary(
+
+codex
+应用第二轮最小补丁，然后复跑分析。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_richtext\lib\src\widgets\wenz_rich_text_editor.dart
+D:\project\GitHub\wenz_flutter\wenz_richtext\test\input\shortcut_manager_test.dart
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 571788ca1398911b18b76612e529db6284cd52a0..d6a59061c3dc41784ebf5f6902da93145a3e2a20
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -109,7 +109,6 @@
+ const double _kCodeLineNumberGap = 12.0;
+ const int _kCodeLanguageTagColor = 0xB38A8AFF;
+ const double _kBlockFloatingToolbarInset = 6.0;
+-const double _kBlockFloatingToolbarGap = 6.0;
+ const double _kCodeFloatingToolbarEstimatedHeight = 28.0;
+ const double _kObjectFloatingToolbarEstimatedHeight = 36.0;
+ const int _kCodeKeywordColor = 0xFFC792EA;
+@@ -5643,15 +5642,11 @@
+   const _BlockFloatingToolbarSurface({
+     required this.child,
+     this.toolbar,
+-    this.inset = _kBlockFloatingToolbarInset,
+-    this.placeAbove = false,
+     this.estimatedToolbarHeight = _kObjectFloatingToolbarEstimatedHeight,
+   });
+ 
+   final Widget child;
+   final Widget? toolbar;
+-  final double inset;
+-  final bool placeAbove;
+   final double estimatedToolbarHeight;
+ 
+   @override
+@@ -5665,10 +5660,8 @@
+       children: <Widget>[
+         child,
+         PositionedDirectional(
+-          top: placeAbove
+-              ? -(estimatedToolbarHeight + _kBlockFloatingToolbarGap)
+-              : inset,
+-          end: inset,
++          top: _kBlockFloatingToolbarInset,
++          end: _kBlockFloatingToolbarInset,
+           child: toolbar,
+         ),
+       ],
+diff --git a/wenz_richtext/test/input/shortcut_manager_test.dart b/wenz_richtext/test/input/shortcut_manager_test.dart
+index 7d8d25b7fd1a58d013b4ebf386715465d96c6383..71c006a3ac6d50d265e6e4d42f878986995e1188
+--- a/wenz_richtext/test/input/shortcut_manager_test.dart
++++ b/wenz_richtext/test/input/shortcut_manager_test.dart
+@@ -53,7 +53,7 @@
+   });
+ 
+   test('keeps default shortcut baseline without configuration', () {
+-    final expectations = <_ShortcutExpectation>[
++    const expectations = <_ShortcutExpectation>[
+       _ShortcutExpectation.primary(
+           LogicalKeyboardKey.keyA, EditorShortcutIntent.selectAll),
+       _ShortcutExpectation.primary(
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 571788ca1398911b18b76612e529db6284cd52a0..d6a59061c3dc41784ebf5f6902da93145a3e2a20
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -109,7 +109,6 @@
+ const double _kCodeLineNumberGap = 12.0;
+ const int _kCodeLanguageTagColor = 0xB38A8AFF;
+ const double _kBlockFloatingToolbarInset = 6.0;
+-const double _kBlockFloatingToolbarGap = 6.0;
+ const double _kCodeFloatingToolbarEstimatedHeight = 28.0;
+ const double _kObjectFloatingToolbarEstimatedHeight = 36.0;
+ const int _kCodeKeywordColor = 0xFFC792EA;
+@@ -5643,15 +5642,11 @@
+   const _BlockFloatingToolbarSurface({
+     required this.child,
+     this.toolbar,
+-    this.inset = _kBlockFloatingToolbarInset,
+-    this.placeAbove = false,
+     this.estimatedToolbarHeight = _kObjectFloatingToolbarEstimatedHeight,
+   });
+ 
+   final Widget child;
+   final Widget? toolbar;
+-  final double inset;
+-  final bool placeAbove;
+   final double estimatedToolbarHeight;
+ 
+   @override
+@@ -5665,10 +5660,8 @@
+       children: <Widget>[
+         child,
+         PositionedDirectional(
+-          top: placeAbove
+-              ? -(estimatedToolbarHeight + _kBlockFloatingToolbarGap)
+-              : inset,
+-          end: inset,
++          top: _kBlockFloatingToolbarInset,
++          end: _kBlockFloatingToolbarInset,
+           child: toolbar,
+         ),
+       ],
+diff --git a/wenz_richtext/test/input/shortcut_manager_test.dart b/wenz_richtext/test/input/shortcut_manager_test.dart
+index 7d8d25b7fd1a58d013b4ebf386715465d96c6383..71c006a3ac6d50d265e6e4d42f878986995e1188
+--- a/wenz_richtext/test/input/shortcut_manager_test.dart
++++ b/wenz_richtext/test/input/shortcut_manager_test.dart
+@@ -53,7 +53,7 @@
+   });
+ 
+   test('keeps default shortcut baseline without configuration', () {
+-    final expectations = <_ShortcutExpectation>[
++    const expectations = <_ShortcutExpectation>[
+       _ShortcutExpectation.primary(
+           LogicalKeyboardKey.keyA, EditorShortcutIntent.selectAll),
+       _ShortcutExpectation.primary(
+
+codex
+派生 analyzer 问题已修，重新跑 `flutter analyze` 确认清零。
+exec
+powershell.exe -Command 'flutter analyze' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 3716ms:
+Analyzing wenz_richtext...                                      
+No issues found! (ran in 2.0s)
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 571788ca1398911b18b76612e529db6284cd52a0..d6a59061c3dc41784ebf5f6902da93145a3e2a20
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -109,7 +109,6 @@
+ const double _kCodeLineNumberGap = 12.0;
+ const int _kCodeLanguageTagColor = 0xB38A8AFF;
+ const double _kBlockFloatingToolbarInset = 6.0;
+-const double _kBlockFloatingToolbarGap = 6.0;
+ const double _kCodeFloatingToolbarEstimatedHeight = 28.0;
+ const double _kObjectFloatingToolbarEstimatedHeight = 36.0;
+ const int _kCodeKeywordColor = 0xFFC792EA;
+@@ -5643,15 +5642,11 @@
+   const _BlockFloatingToolbarSurface({
+     required this.child,
+     this.toolbar,
+-    this.inset = _kBlockFloatingToolbarInset,
+-    this.placeAbove = false,
+     this.estimatedToolbarHeight = _kObjectFloatingToolbarEstimatedHeight,
+   });
+ 
+   final Widget child;
+   final Widget? toolbar;
+-  final double inset;
+-  final bool placeAbove;
+   final double estimatedToolbarHeight;
+ 
+   @override
+@@ -5665,10 +5660,8 @@
+       children: <Widget>[
+         child,
+         PositionedDirectional(
+-          top: placeAbove
+-              ? -(estimatedToolbarHeight + _kBlockFloatingToolbarGap)
+-              : inset,
+-          end: inset,
++          top: _kBlockFloatingToolbarInset,
++          end: _kBlockFloatingToolbarInset,
+           child: toolbar,
+         ),
+       ],
+diff --git a/wenz_richtext/test/input/shortcut_manager_test.dart b/wenz_richtext/test/input/shortcut_manager_test.dart
+index 7d8d25b7fd1a58d013b4ebf386715465d96c6383..71c006a3ac6d50d265e6e4d42f878986995e1188
+--- a/wenz_richtext/test/input/shortcut_manager_test.dart
++++ b/wenz_richtext/test/input/shortcut_manager_test.dart
+@@ -53,7 +53,7 @@
+   });
+ 
+   test('keeps default shortcut baseline without configuration', () {
+-    final expectations = <_ShortcutExpectation>[
++    const expectations = <_ShortcutExpectation>[
+       _ShortcutExpectation.primary(
+           LogicalKeyboardKey.keyA, EditorShortcutIntent.selectAll),
+       _ShortcutExpectation.primary(
+
+codex
+验证通过了。我再检查变更范围，确保没有碰 plan 文件。
+  ✓ 确认仓库规则与报错位置
+  ✓ 最小修复 analyzer 警告
+  ✓ 运行 flutter analyze 验证
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 571788ca1398911b18b76612e529db6284cd52a0..d6a59061c3dc41784ebf5f6902da93145a3e2a20
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -109,7 +109,6 @@
+ const double _kCodeLineNumberGap = 12.0;
+ const int _kCodeLanguageTagColor = 0xB38A8AFF;
+ const double _kBlockFloatingToolbarInset = 6.0;
+-const double _kBlockFloatingToolbarGap = 6.0;
+ const double _kCodeFloatingToolbarEstimatedHeight = 28.0;
+ const double _kObjectFloatingToolbarEstimatedHeight = 36.0;
+ const int _kCodeKeywordColor = 0xFFC792EA;
+@@ -5643,15 +5642,11 @@
+   const _BlockFloatingToolbarSurface({
+     required this.child,
+     this.toolbar,
+-    this.inset = _kBlockFloatingToolbarInset,
+-    this.placeAbove = false,
+     this.estimatedToolbarHeight = _kObjectFloatingToolbarEstimatedHeight,
+   });
+ 
+   final Widget child;
+   final Widget? toolbar;
+-  final double inset;
+-  final bool placeAbove;
+   final double estimatedToolbarHeight;
+ 
+   @override
+@@ -5665,10 +5660,8 @@
+       children: <Widget>[
+         child,
+         PositionedDirectional(
+-          top: placeAbove
+-              ? -(estimatedToolbarHeight + _kBlockFloatingToolbarGap)
+-              : inset,
+-          end: inset,
++          top: _kBlockFloatingToolbarInset,
++          end: _kBlockFloatingToolbarInset,
+           child: toolbar,
+         ),
+       ],
+diff --git a/wenz_richtext/test/input/shortcut_manager_test.dart b/wenz_richtext/test/input/shortcut_manager_test.dart
+index 7d8d25b7fd1a58d013b4ebf386715465d96c6383..71c006a3ac6d50d265e6e4d42f878986995e1188
+--- a/wenz_richtext/test/input/shortcut_manager_test.dart
++++ b/wenz_richtext/test/input/shortcut_manager_test.dart
+@@ -53,7 +53,7 @@
+   });
+ 
+   test('keeps default shortcut baseline without configuration', () {
+-    final expectations = <_ShortcutExpectation>[
++    const expectations = <_ShortcutExpectation>[
+       _ShortcutExpectation.primary(
+           LogicalKeyboardKey.keyA, EditorShortcutIntent.selectAll),
+       _ShortcutExpectation.primary(
+
+exec
+powershell.exe -Command "git diff -- lib/src/widgets/wenz_rich_text_editor.dart test/input/shortcut_manager_test.dart; ''; git status --short" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 242ms:
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 7421f46..d6a5906 100644
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -70,7 +70,7 @@ const double _kBlockReorderIndicatorHeight = 3.0;
+ const double _kTableResizeHandleWidth = 12.0;
+ const double _kMinTableColumnWidth = 48.0;
+ const double _kMaxTableColumnWidth = 640.0;
+-const double _kTableToolbarMinWidth = 420.0;
++const double _kTableToolbarMinWidth = 150.0;
+ const double _kTableFloatingToolbarGap = 4.0;
+ const double _kTableFloatingToolbarEstimatedHeight = 56.0;
+ const int _kTableToolbarBackgroundColor = 0xFFFFF3CD;
+@@ -82,7 +82,6 @@ const EdgeInsets _kTableCellPadding = EdgeInsets.symmetric(
+ );
+ const Color _kTableBorderColor = Color(0xFFECE9F5);
+ const Color _kTableEvenRowBackgroundColor = Color(0xFFFAFAFF);
+-const double _kImageFloatingToolbarGap = 6.0;
+ 
+ /// Minimum block height multiplier applied to the block's font size, ensuring
+ /// a tap target even for empty paragraphs. A single constant so the text,
+@@ -106,7 +105,12 @@ const double _kCodeBlockPaddingVertical = 18.0;
+ const double _kCodeBlockPaddingHorizontal = 20.0;
+ const int _kCodeBlockBackgroundColor = 0xFF1E1E2E;
+ const int _kCodeBlockTextColor = 0xFFE6E6F0;
++const int _kCodeLineNumberColor = 0x8AE6E6F0;
++const double _kCodeLineNumberGap = 12.0;
+ const int _kCodeLanguageTagColor = 0xB38A8AFF;
++const double _kBlockFloatingToolbarInset = 6.0;
++const double _kCodeFloatingToolbarEstimatedHeight = 28.0;
++const double _kObjectFloatingToolbarEstimatedHeight = 36.0;
+ const int _kCodeKeywordColor = 0xFFC792EA;
+ const int _kCodeStringColor = 0xFFC3E88D;
+ const int _kCodeTypeColor = 0xFF82AAFF;
+@@ -311,6 +315,41 @@ final class WenzRichTextDesignBaseline {
+   };
+ }
+ 
++/// Display-only policy for code-block line numbers.
++///
++/// Line numbers are derived from [CodeBlockNode.code] at render time. They do
++/// not add fields to [CodeBlockNode], codecs, clipboard payloads, undo/redo
++/// commands, or text-offset mapping.
++final class WenzCodeBlockLineNumbers {
++  const WenzCodeBlockLineNumbers._();
++
++  static const int firstNumber = 1;
++  static const bool displayOnly = true;
++  static const bool storedInDocumentModel = false;
++  static const bool storedInCodecs = false;
++  static const bool copiedWithCode = false;
++  static const bool recordedInUndoRedoCommands = false;
++  static const bool participatesInTextOffsetMapping = false;
++  static const bool gutterScrollsHorizontallyWithCode = false;
++  static const TextAlign gutterTextAlign = TextAlign.right;
++  static const String fontFamily = 'JetBrains Mono';
++  static const double fontSize = _kCodeBlockFontSize;
++  static const double lineHeight = _kCodeBlockLineHeight;
++  static const int color = _kCodeLineNumberColor;
++  static const double gapToCode = _kCodeLineNumberGap;
++
++  static int lineCount(String code) => code.split('\n').length;
++
++  static List<String> labelsForCode(String code) {
++    return List<String>.generate(
++      lineCount(code),
++      (index) => '${firstNumber + index}',
++    );
++  }
++
++  static int maxLabelDigits(String code) => lineCount(code).toString().length;
++}
++
+ /// Exposes the editor's [SharedTextLayoutCache] down the subtree so each
+ /// [_TextSelectionSurface] can fetch (and reuse) its [TextLayoutService] across
+ /// remount, without threading the cache through every renderer widget.
+@@ -425,6 +464,10 @@ class WenzRichTextEditor extends StatefulWidget {
+   final WenzRichTextController controller;
+   final EdgeInsetsGeometry padding;
+   final double blockSpacing;
++
++  /// Baseline text style for editable content. [TextStyle.color] is the
++  /// editor's default font color; runs without [TextAttributes.color] inherit
++  /// it unless a link style supplies the foreground color.
+   final TextStyle? textStyle;
+   final ScrollPhysics? physics;
+   final FocusNode? focusNode;
+@@ -521,6 +564,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
+   /// The focus node currently registered with the controller, tracked so we can
+   /// detect swaps and clear it cleanly on dispose.
+   FocusNode? _controllerAttachedFocusNode;
++  bool _hadEditorFocus = false;
+ 
+   /// Remembered horizontal column for repeated Up/Down moves, so the caret
+   /// keeps its column across multiple line jumps. Cleared on Left/Right/Home/
+@@ -623,6 +667,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
+     widget.controller.addListener(_handleControllerChanged);
+     widget.findController?.addListener(_handleFindControllerChanged);
+     widget.slashMenuController?.attachEditor(widget.controller);
++    if (widget.readOnly) {
++      widget.slashMenuController?.close();
++    }
+     widget.slashMenuController?.addListener(_handleSlashMenuChanged);
+     widget.outlineController?.addListener(_handleOutlineControllerChanged);
+     _syncFindControllerOutline();
+@@ -661,10 +708,16 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
+     if (oldWidget.slashMenuController != widget.slashMenuController) {
+       oldWidget.slashMenuController?.removeListener(_handleSlashMenuChanged);
+       widget.slashMenuController?.attachEditor(widget.controller);
++      if (widget.readOnly) {
++        widget.slashMenuController?.close();
++      }
+       widget.slashMenuController?.addListener(_handleSlashMenuChanged);
+     } else if (oldWidget.controller != widget.controller) {
+       widget.slashMenuController?.attachEditor(widget.controller);
+     }
++    if (!oldWidget.readOnly && widget.readOnly) {
++      widget.slashMenuController?.close();
++    }
+     if (oldWidget.outlineController != widget.outlineController) {
+       oldWidget.outlineController?.removeListener(
+         _handleOutlineControllerChanged,
+@@ -741,6 +794,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
+ 
+   void _handleControllerChanged() {
+     if (mounted) {
++      if (widget.readOnly) {
++        widget.slashMenuController?.close();
++      }
+       _syncTableToolbarOverlayWithSelection();
+       if (_revealCurrentSelectionIfHidden()) {
+         _lastScrollCheckedCaret = null;
+@@ -870,6 +926,11 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
+     } else {
+       _inputClient.detach();
+     }
++    if (focusNode.hasFocus) {
++      _hadEditorFocus = true;
++    } else if (_hadEditorFocus) {
++      widget.slashMenuController?.close();
++    }
+     setState(() {});
+   }
+ 
+@@ -1109,7 +1170,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
+             onTapBeyondContent: _handleTapBeyondContent,
+             child: editor,
+           ),
+-          if (widget.slashMenuController?.isOpen == true)
++          if (!widget.readOnly && widget.slashMenuController?.isOpen == true)
+             Positioned(
+               left: _slashMenuOffset().dx,
+               top: _slashMenuOffset().dy,
+@@ -1127,31 +1188,37 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
+     FocusNode focusNode,
+     Widget child,
+   ) {
+-    return _SharedLayoutCacheScope(
+-      cache: _layoutCache,
+-      child: Focus(
+-        focusNode: focusNode,
+-        autofocus: widget.autofocus,
+-        onKeyEvent: _handleKeyEvent,
+-        child: Semantics(
+-          container: true,
+-          explicitChildNodes: true,
+-          enabled: true,
+-          textField: true,
+-          readOnly: widget.readOnly,
+-          focusable: true,
+-          focused: focusNode.hasFocus,
+-          multiline: true,
+-          label: widget.accessibility.effectiveLabel(readOnly: widget.readOnly),
+-          hint: widget.accessibility.effectiveHint(readOnly: widget.readOnly),
+-          onTap: () => focusNode.requestFocus(),
+-          onFocus: () => focusNode.requestFocus(),
+-          child: _withHighContrastFocusHighlight(
+-            context,
+-            focusNode,
+-            TableFloatingToolbarOverlayHost(
+-              controller: _tableToolbarOverlayController,
+-              child: child,
++    return TapRegion(
++      groupId: this,
++      enabled: widget.slashMenuController?.isOpen == true,
++      onTapOutside: (_) => widget.slashMenuController?.close(),
++      child: _SharedLayoutCacheScope(
++        cache: _layoutCache,
++        child: Focus(
++          focusNode: focusNode,
++          autofocus: widget.autofocus,
++          onKeyEvent: _handleKeyEvent,
++          child: Semantics(
++            container: true,
++            explicitChildNodes: true,
++            enabled: true,
++            textField: true,
++            readOnly: widget.readOnly,
++            focusable: true,
++            focused: focusNode.hasFocus,
++            multiline: true,
++            label:
++                widget.accessibility.effectiveLabel(readOnly: widget.readOnly),
++            hint: widget.accessibility.effectiveHint(readOnly: widget.readOnly),
++            onTap: () => focusNode.requestFocus(),
++            onFocus: () => focusNode.requestFocus(),
++            child: _withHighContrastFocusHighlight(
++              context,
++              focusNode,
++              TableFloatingToolbarOverlayHost(
++                controller: _tableToolbarOverlayController,
++                child: child,
++              ),
+             ),
+           ),
+         ),
+@@ -2074,7 +2141,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
+ 
+   bool _handleSlashMenuKeyEvent(KeyEvent event) {
+     final slashMenu = widget.slashMenuController;
+-    if (slashMenu == null || !slashMenu.isOpen) {
++    if (widget.readOnly || slashMenu == null || !slashMenu.isOpen) {
+       return false;
+     }
+     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+@@ -5466,13 +5533,13 @@ class _CodeBlockRenderer extends StatelessWidget {
+       PositionPath.blockCode(block.id),
+     );
+     final path = PositionPath.blockCode(block.id);
+-    final selected = _selectionRangeForPath(
+-          selection,
+-          blockIndex,
+-          path,
+-          block.code.length,
+-        ) !=
+-        null;
++    final selected = _selectionTouchesPath(
++      selection,
++      blockIndex,
++      block.id,
++      path,
++      block.code.length,
++    );
+     final codeSpan = _codeSpan(
+       block.code,
+       block.language,
+@@ -5495,66 +5562,64 @@ class _CodeBlockRenderer extends StatelessWidget {
+             horizontal: _kCodeBlockPaddingHorizontal,
+             vertical: _kCodeBlockPaddingVertical,
+           ),
+-          child: Column(
+-            mainAxisSize: MainAxisSize.min,
+-            crossAxisAlignment: CrossAxisAlignment.stretch,
+-            children: <Widget>[
+-              _CodeBlockToolbar(
+-                language: block.language,
+-                onLanguageChanged: onLanguageChanged,
+-                onCopyPressed: onCodeCopied == null
+-                    ? null
+-                    : () {
+-                        unawaited(onCodeCopied!(block.code));
+-                      },
+-              ),
+-              const SizedBox(height: 10),
+-              LayoutBuilder(
+-                builder: (context, constraints) {
+-                  final textDirection = Directionality.of(context);
+-                  final availableWidth = constraints.maxWidth.isFinite
+-                      ? constraints.maxWidth
+-                      : MediaQuery.sizeOf(context).width;
+-                  final contentWidth = math.max(
+-                    availableWidth,
+-                    _measureInlineSpanWidth(codeSpan, textDirection) + 1,
+-                  );
+-                  return SingleChildScrollView(
+-                    key: ValueKey<String>(
+-                      'wenz-richtext-code-scroll-${block.id}',
+-                    ),
+-                    scrollDirection: Axis.horizontal,
+-                    child: SizedBox(
+-                      width: contentWidth,
+-                      child: _TextSelectionSurface(
+-                        blockId: block.id,
+-                        blockIndex: blockIndex,
+-                        path: path,
+-                        textLength: block.code.length,
+-                        textSpan: codeSpan,
+-                        offsetMapper: _InlineOffsetMapper.identity(
+-                          block.code.length,
+-                        ),
+-                        textAlign: TextAlign.start,
+-                        minHeight: (codeStyle.fontSize ?? _kCodeBlockFontSize) *
+-                            _kBlockMinHeightFactor,
+-                        selection: selection,
+-                        showCaret: showCaret,
+-                        registry: registry,
+-                        showDebugOverlay: showDebugOverlay,
+-                        findRanges: _findRangesForPath(
+-                          findMatches,
+-                          currentFindMatch,
+-                          blockIndex,
+-                          path,
+-                          block.code.length,
+-                        ),
++          child: _BlockFloatingToolbarSurface(
++            estimatedToolbarHeight: _kCodeFloatingToolbarEstimatedHeight,
++            toolbar: selected
++                ? _CodeBlockToolbar(
++                    language: block.language,
++                    onLanguageChanged: onLanguageChanged,
++                    onCopyPressed: onCodeCopied == null
++                        ? null
++                        : () {
++                            unawaited(onCodeCopied!(block.code));
++                          },
++                  )
++                : null,
++            child: LayoutBuilder(
++              builder: (context, constraints) {
++                final textDirection = Directionality.of(context);
++                final availableWidth = constraints.maxWidth.isFinite
++                    ? constraints.maxWidth
++                    : MediaQuery.sizeOf(context).width;
++                final contentWidth = math.max(
++                  availableWidth,
++                  _measureInlineSpanWidth(codeSpan, textDirection) + 1,
++                );
++                return SingleChildScrollView(
++                  key: ValueKey<String>(
++                    'wenz-richtext-code-scroll-${block.id}',
++                  ),
++                  scrollDirection: Axis.horizontal,
++                  child: SizedBox(
++                    width: contentWidth,
++                    child: _TextSelectionSurface(
++                      blockId: block.id,
++                      blockIndex: blockIndex,
++                      path: path,
++                      textLength: block.code.length,
++                      textSpan: codeSpan,
++                      offsetMapper: _InlineOffsetMapper.identity(
++                        block.code.length,
++                      ),
++                      textAlign: TextAlign.start,
++                      minHeight: (codeStyle.fontSize ?? _kCodeBlockFontSize) *
++                          _kBlockMinHeightFactor,
++                      selection: selection,
++                      showCaret: showCaret,
++                      registry: registry,
++                      showDebugOverlay: showDebugOverlay,
++                      findRanges: _findRangesForPath(
++                        findMatches,
++                        currentFindMatch,
++                        blockIndex,
++                        path,
++                        block.code.length,
+                       ),
+                     ),
+-                  );
+-                },
+-              ),
+-            ],
++                  ),
++                );
++              },
++            ),
+           ),
+         ),
+       ),
+@@ -5573,6 +5638,37 @@ double _measureInlineSpanWidth(InlineSpan span, TextDirection textDirection) {
+   return width.isFinite ? width : 0;
+ }
+ 
++class _BlockFloatingToolbarSurface extends StatelessWidget {
++  const _BlockFloatingToolbarSurface({
++    required this.child,
++    this.toolbar,
++    this.estimatedToolbarHeight = _kObjectFloatingToolbarEstimatedHeight,
++  });
++
++  final Widget child;
++  final Widget? toolbar;
++  final double estimatedToolbarHeight;
++
++  @override
++  Widget build(BuildContext context) {
++    final toolbar = this.toolbar;
++    if (toolbar == null) {
++      return child;
++    }
++    return Stack(
++      clipBehavior: Clip.none,
++      children: <Widget>[
++        child,
++        PositionedDirectional(
++          top: _kBlockFloatingToolbarInset,
++          end: _kBlockFloatingToolbarInset,
++          child: toolbar,
++        ),
++      ],
++    );
++  }
++}
++
+ class _CodeBlockToolbar extends StatelessWidget {
+   const _CodeBlockToolbar({
+     required this.language,
+@@ -5601,49 +5697,53 @@ class _CodeBlockToolbar extends StatelessWidget {
+     final languages = _codeLanguageOptions(language);
+     final value = languages.contains(language) ? language : '';
+ 
+-    return SizedBox(
+-      height: 28,
+-      child: Row(
+-        children: <Widget>[
+-          const Icon(Icons.code, size: 16, color: tagColor),
+-          const SizedBox(width: 6),
+-          DropdownButtonHideUnderline(
+-            child: DropdownButton<String>(
+-              value: value,
+-              isDense: true,
+-              borderRadius: BorderRadius.circular(8),
+-              dropdownColor: const Color(0xFF2A2A3E),
+-              style: labelStyle,
++    return Material(
++      color: Colors.transparent,
++      child: SizedBox(
++        height: 28,
++        child: Row(
++          mainAxisSize: MainAxisSize.min,
++          children: <Widget>[
++            const Icon(Icons.code, size: 16, color: tagColor),
++            const SizedBox(width: 6),
++            DropdownButtonHideUnderline(
++              child: DropdownButton<String>(
++                value: value,
++                isDense: true,
++                borderRadius: BorderRadius.circular(8),
++                dropdownColor: const Color(0xFF2A2A3E),
++                style: labelStyle,
++                iconSize: 18,
++                iconEnabledColor: tagColor,
++                iconDisabledColor: tagColor.withAlpha(96),
++                onChanged: onLanguageChanged == null
++                    ? null
++                    : (value) {
++                        if (value != null) {
++                          onLanguageChanged!(value);
++                        }
++                      },
++                items: <DropdownMenuItem<String>>[
++                  for (final option in languages)
++                    DropdownMenuItem<String>(
++                      value: option,
++                      child: Text(_codeLanguageLabel(option)),
++                    ),
++                ],
++              ),
++            ),
++            const SizedBox(width: 6),
++            IconButton(
++              tooltip: '复制代码',
++              visualDensity: VisualDensity.compact,
+               iconSize: 18,
+-              iconEnabledColor: tagColor,
+-              iconDisabledColor: tagColor.withAlpha(96),
+-              onChanged: onLanguageChanged == null
+-                  ? null
+-                  : (value) {
+-                      if (value != null) {
+-                        onLanguageChanged!(value);
+-                      }
+-                    },
+-              items: <DropdownMenuItem<String>>[
+-                for (final option in languages)
+-                  DropdownMenuItem<String>(
+-                    value: option,
+-                    child: Text(_codeLanguageLabel(option)),
+-                  ),
+-              ],
++              color: tagColor,
++              disabledColor: tagColor.withAlpha(96),
++              onPressed: onCopyPressed,
++              icon: const Icon(Icons.copy),
+             ),
+-          ),
+-          const Spacer(),
+-          IconButton(
+-            tooltip: '复制代码',
+-            visualDensity: VisualDensity.compact,
+-            iconSize: 18,
+-            color: tagColor,
+-            disabledColor: tagColor.withAlpha(96),
+-            onPressed: onCopyPressed,
+-            icon: const Icon(Icons.copy),
+-          ),
+-        ],
++          ],
++        ),
+       ),
+     );
+   }
+@@ -6957,6 +7057,16 @@ class _BlockObjectSelectionSurfaceState
+   }
+ }
+ 
++/// Text-bearing surface that paints text/selection/caret and registers geometry
++/// for document-level selection hit testing.
++///
++/// Empty text content is still a text target for paragraphs, list/todo items,
++/// quote/heading text, and table-cell text. When the visible editable line area
++/// is hit, the selection should collapse to this surface's block/path at offset
++/// 0; object-only blocks keep their separate block-object selection semantics.
++/// Interactive chrome such as list markers, todo checkboxes, heading collapse
++/// buttons, block handles, menus, and scrollbar gutters must stay outside this
++/// text hit target or be registered as selection exclusions.
+ class _TextSelectionSurface extends StatefulWidget {
+   const _TextSelectionSurface({
+     required this.blockId,
+@@ -8383,61 +8493,53 @@ class _DividerBlockContent extends StatelessWidget {
+             horizontal: selected ? 8 : 0,
+             vertical: selected ? 8 : 0,
+           ),
+-          child: Column(
+-            mainAxisSize: MainAxisSize.min,
+-            crossAxisAlignment: CrossAxisAlignment.stretch,
+-            children: <Widget>[
+-              if (selected) ...<Widget>[
+-                Align(
+-                  alignment: AlignmentDirectional.centerStart,
+-                  child: _ObjectBlockToolbar(
++          child: _BlockFloatingToolbarSurface(
++            toolbar: selected
++                ? _FloatingObjectBlockToolbar(
+                     blockIndex: blockIndex,
+                     blockCount: blockCount,
+                     canEdit: canEdit,
+                     imageActions: false,
+                     fileActions: false,
+                     onAction: onAction,
+-                  ),
+-                ),
+-                const SizedBox(height: 8),
+-              ],
+-              SizedBox(
+-                height: _kDividerDotSize,
+-                child: Stack(
+-                  alignment: Alignment.center,
+-                  children: <Widget>[
+-                    PositionedDirectional(
+-                      start: 0,
+-                      end: 0,
+-                      top: (_kDividerDotSize - 1) / 2,
+-                      child: SizedBox(
+-                        height: 1,
+-                        child: DecoratedBox(
+-                          key: ValueKey<String>(
+-                            'wenz-richtext-divider-line-$blockId',
+-                          ),
+-                          decoration: const BoxDecoration(
+-                            color: Color(_kDividerLineColor),
+-                          ),
+-                        ),
+-                      ),
+-                    ),
+-                    SizedBox.square(
+-                      dimension: _kDividerDotSize,
++                  )
++                : null,
++            child: SizedBox(
++              height: _kDividerDotSize,
++              child: Stack(
++                alignment: Alignment.center,
++                children: <Widget>[
++                  PositionedDirectional(
++                    start: 0,
++                    end: 0,
++                    top: (_kDividerDotSize - 1) / 2,
++                    child: SizedBox(
++                      height: 1,
+                       child: DecoratedBox(
+                         key: ValueKey<String>(
+-                          'wenz-richtext-divider-dot-$blockId',
++                          'wenz-richtext-divider-line-$blockId',
+                         ),
+-                        decoration: BoxDecoration(
+-                          color: theme.colorScheme.primary,
+-                          shape: BoxShape.circle,
++                        decoration: const BoxDecoration(
++                          color: Color(_kDividerLineColor),
+                         ),
+                       ),
+                     ),
+-                  ],
+-                ),
++                  ),
++                  SizedBox.square(
++                    dimension: _kDividerDotSize,
++                    child: DecoratedBox(
++                      key: ValueKey<String>(
++                        'wenz-richtext-divider-dot-$blockId',
++                      ),
++                      decoration: BoxDecoration(
++                        color: theme.colorScheme.primary,
++                        shape: BoxShape.circle,
++                      ),
++                    ),
++                  ),
++                ],
+               ),
+-            ],
++            ),
+           ),
+         ),
+       ),
+@@ -8531,33 +8633,25 @@ class _EmbedBlockCard extends StatelessWidget {
+           ),
+           child: Padding(
+             padding: const EdgeInsets.all(16),
+-            child: Column(
+-              mainAxisSize: MainAxisSize.min,
+-              crossAxisAlignment: CrossAxisAlignment.stretch,
+-              children: <Widget>[
+-                if (selected) ...<Widget>[
+-                  Align(
+-                    alignment: AlignmentDirectional.centerStart,
+-                    child: _ObjectBlockToolbar(
++            child: _BlockFloatingToolbarSurface(
++              toolbar: selected
++                  ? _FloatingObjectBlockToolbar(
+                       blockIndex: blockIndex,
+                       blockCount: blockCount,
+                       canEdit: canEdit,
+                       imageActions: false,
+                       fileActions: false,
+                       onAction: onAction,
+-                    ),
+-                  ),
+-                  const SizedBox(height: 8),
++                    )
++                  : null,
++              child: Row(
++                crossAxisAlignment: CrossAxisAlignment.start,
++                children: <Widget>[
++                  _EmbedTypeChip(label: label),
++                  const SizedBox(width: 12),
++                  Expanded(child: child),
+                 ],
+-                Row(
+-                  crossAxisAlignment: CrossAxisAlignment.start,
+-                  children: <Widget>[
+-                    _EmbedTypeChip(label: label),
+-                    const SizedBox(width: 12),
+-                    Expanded(child: child),
+-                  ],
+-                ),
+-              ],
++              ),
+             ),
+           ),
+         ),
+@@ -9042,83 +9136,85 @@ class _FileBlockContentState extends State<_FileBlockContent> {
+           borderRadius: BorderRadius.circular(8),
+           boxShadow: _hovered || _focused ? _kSurfaceBoxShadow : null,
+         ),
+-        child: Padding(
+-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+-          child: Row(
+-            crossAxisAlignment: CrossAxisAlignment.center,
+-            children: <Widget>[
+-              _FileTypeBadge(
+-                label: _fileTypeLabel(block),
+-                failed: failed,
+-              ),
+-              const SizedBox(width: _kFileCardGap),
+-              Expanded(
+-                child: Column(
+-                  crossAxisAlignment: CrossAxisAlignment.start,
+-                  mainAxisSize: MainAxisSize.min,
+-                  children: <Widget>[
+-                    Text(
+-                      block.displayName.isEmpty
+-                          ? 'Untitled file'
+-                          : block.displayName,
+-                      maxLines: 1,
+-                      overflow: TextOverflow.ellipsis,
+-                      style: theme.textTheme.labelLarge?.copyWith(
+-                        fontWeight: FontWeight.w700,
+-                        color: theme.colorScheme.onSurface,
+-                      ),
+-                    ),
+-                    if (subtitle.isNotEmpty) ...<Widget>[
+-                      const SizedBox(height: 4),
++        child: _BlockFloatingToolbarSurface(
++          toolbar: _FileBlockActionMenu(
++            blockIndex: widget.blockIndex,
++            blockCount: widget.blockCount,
++            canEdit: widget.canEdit,
++            onAction: widget.onAction,
++          ),
++          child: Padding(
++            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
++            child: Row(
++              crossAxisAlignment: CrossAxisAlignment.center,
++              children: <Widget>[
++                _FileTypeBadge(
++                  label: _fileTypeLabel(block),
++                  failed: failed,
++                ),
++                const SizedBox(width: _kFileCardGap),
++                Expanded(
++                  child: Column(
++                    crossAxisAlignment: CrossAxisAlignment.start,
++                    mainAxisSize: MainAxisSize.min,
++                    children: <Widget>[
+                       Text(
+-                        subtitle,
+-                        key: ValueKey<String>(
+-                            'wenz-richtext-file-meta-${block.id}'),
++                        block.displayName.isEmpty
++                            ? 'Untitled file'
++                            : block.displayName,
+                         maxLines: 1,
+                         overflow: TextOverflow.ellipsis,
+-                        style: theme.textTheme.labelSmall?.copyWith(
+-                          color: theme.colorScheme.onSurfaceVariant,
++                        style: theme.textTheme.labelLarge?.copyWith(
++                          fontWeight: FontWeight.w700,
++                          color: theme.colorScheme.onSurface,
+                         ),
+                       ),
+-                    ],
+-                    if (statusText.isNotEmpty) ...<Widget>[
+-                      const SizedBox(height: 4),
+-                      Text(
+-                        statusText,
+-                        key: ValueKey<String>(
+-                            'wenz-richtext-file-status-${block.id}'),
+-                        maxLines: 1,
+-                        overflow: TextOverflow.ellipsis,
+-                        style: theme.textTheme.labelSmall?.copyWith(
+-                          color: failed
+-                              ? theme.colorScheme.error
+-                              : theme.colorScheme.onSurfaceVariant,
++                      if (subtitle.isNotEmpty) ...<Widget>[
++                        const SizedBox(height: 4),
++                        Text(
++                          subtitle,
++                          key: ValueKey<String>(
++                              'wenz-richtext-file-meta-${block.id}'),
++                          maxLines: 1,
++                          overflow: TextOverflow.ellipsis,
++                          style: theme.textTheme.labelSmall?.copyWith(
++                            color: theme.colorScheme.onSurfaceVariant,
++                          ),
+                         ),
+-                      ),
++                      ],
++                      if (statusText.isNotEmpty) ...<Widget>[
++                        const SizedBox(height: 4),
++                        Text(
++                          statusText,
++                          key: ValueKey<String>(
++                              'wenz-richtext-file-status-${block.id}'),
++                          maxLines: 1,
++                          overflow: TextOverflow.ellipsis,
++                          style: theme.textTheme.labelSmall?.copyWith(
++                            color: failed
++                                ? theme.colorScheme.error
++                                : theme.colorScheme.onSurfaceVariant,
++                          ),
++                        ),
++                      ],
+                     ],
+-                  ],
+-                ),
+-              ),
+-              if (sizeLabel.isNotEmpty) ...<Widget>[
+-                const SizedBox(width: 12),
+-                Text(
+-                  sizeLabel,
+-                  key: ValueKey<String>('wenz-richtext-file-size-${block.id}'),
+-                  maxLines: 1,
+-                  style: theme.textTheme.labelSmall?.copyWith(
+-                    color: foregroundColor,
+-                    fontWeight: FontWeight.w600,
+                   ),
+                 ),
++                if (sizeLabel.isNotEmpty) ...<Widget>[
++                  const SizedBox(width: 12),
++                  Text(
++                    sizeLabel,
++                    key:
++                        ValueKey<String>('wenz-richtext-file-size-${block.id}'),
++                    maxLines: 1,
++                    style: theme.textTheme.labelSmall?.copyWith(
++                      color: foregroundColor,
++                      fontWeight: FontWeight.w600,
++                    ),
++                  ),
++                ],
+               ],
+-              const SizedBox(width: 6),
+-              _FileBlockActionMenu(
+-                blockIndex: widget.blockIndex,
+-                blockCount: widget.blockCount,
+-                canEdit: widget.canEdit,
+-                onAction: widget.onAction,
+-              ),
+-            ],
++            ),
+           ),
+         ),
+       ),
+@@ -9386,28 +9482,22 @@ class _MediaBlockChrome extends StatelessWidget {
+ 
+   @override
+   Widget build(BuildContext context) {
+-    final children = <Widget>[
+-      if (selected) ...<Widget>[
+-        _FloatingObjectBlockToolbar(
+-          blockIndex: blockIndex,
+-          blockCount: blockCount,
+-          canEdit: canEdit,
+-          imageActions: imageActions,
+-          fileActions: false,
+-          mediaActions: true,
+-          onAction: onAction,
+-          onPreview: onPreview,
+-        ),
+-        const SizedBox(height: _kImageFloatingToolbarGap),
+-      ],
+-      child,
+-    ];
+     return Align(
+       alignment: AlignmentDirectional.centerStart,
+-      child: Column(
+-        mainAxisSize: MainAxisSize.min,
+-        crossAxisAlignment: CrossAxisAlignment.start,
+-        children: children,
++      child: _BlockFloatingToolbarSurface(
++        toolbar: selected
++            ? _FloatingObjectBlockToolbar(
++                blockIndex: blockIndex,
++                blockCount: blockCount,
++                canEdit: canEdit,
++                imageActions: imageActions,
++                fileActions: false,
++                mediaActions: true,
++                onAction: onAction,
++                onPreview: onPreview,
++              )
++            : null,
++        child: child,
+       ),
+     );
+   }
+@@ -10443,6 +10533,10 @@ TextStyle _textStyleForAttributes(
+   TextStyle baseStyle,
+   TextAttributes attrs,
+ ) {
++  // Foreground precedence is inline color > link color > base/default color.
++  // Remark and revision styling decorate the text without replacing inline
++  // color. Background precedence is inline background > revision background >
++  // base background.
+   final scheme = Theme.of(context).colorScheme;
+   final hasRemark = attrs.remark == true || attrs.commentIds.isNotEmpty;
+   final hasRevision = attrs.revisionIds.isNotEmpty;
+diff --git a/wenz_richtext/test/input/shortcut_manager_test.dart b/wenz_richtext/test/input/shortcut_manager_test.dart
+index 6f3ff31..71c006a 100644
+--- a/wenz_richtext/test/input/shortcut_manager_test.dart
++++ b/wenz_richtext/test/input/shortcut_manager_test.dart
+@@ -52,6 +52,76 @@ void main() {
+     expect(result.intent, isNull);
+   });
+ 
++  test('keeps default shortcut baseline without configuration', () {
++    const expectations = <_ShortcutExpectation>[
++      _ShortcutExpectation.primary(
++          LogicalKeyboardKey.keyA, EditorShortcutIntent.selectAll),
++      _ShortcutExpectation.primary(
++          LogicalKeyboardKey.keyC, EditorShortcutIntent.copy),
++      _ShortcutExpectation.primary(
++          LogicalKeyboardKey.keyX, EditorShortcutIntent.cut),
++      _ShortcutExpectation.primary(
++          LogicalKeyboardKey.keyV, EditorShortcutIntent.paste),
++      _ShortcutExpectation.primary(
++          LogicalKeyboardKey.keyZ, EditorShortcutIntent.undo),
++      _ShortcutExpectation.primary(
++          LogicalKeyboardKey.keyY, EditorShortcutIntent.redo),
++      _ShortcutExpectation.primary(
++        LogicalKeyboardKey.arrowLeft,
++        EditorShortcutIntent.moveCaretByWordBackward,
++      ),
++      _ShortcutExpectation.primary(
++        LogicalKeyboardKey.arrowRight,
++        EditorShortcutIntent.moveCaretByWordForward,
++      ),
++      _ShortcutExpectation.primary(
++        LogicalKeyboardKey.home,
++        EditorShortcutIntent.moveCaretToDocumentStart,
++      ),
++      _ShortcutExpectation.primary(
++        LogicalKeyboardKey.end,
++        EditorShortcutIntent.moveCaretToDocumentEnd,
++      ),
++      _ShortcutExpectation.plain(
++          LogicalKeyboardKey.arrowLeft, EditorShortcutIntent.moveCaretBackward),
++      _ShortcutExpectation.plain(
++          LogicalKeyboardKey.arrowRight, EditorShortcutIntent.moveCaretForward),
++      _ShortcutExpectation.plain(
++          LogicalKeyboardKey.arrowUp, EditorShortcutIntent.moveCaretUp),
++      _ShortcutExpectation.plain(
++          LogicalKeyboardKey.arrowDown, EditorShortcutIntent.moveCaretDown),
++      _ShortcutExpectation.plain(
++          LogicalKeyboardKey.home, EditorShortcutIntent.moveCaretToBlockStart),
++      _ShortcutExpectation.plain(
++          LogicalKeyboardKey.end, EditorShortcutIntent.moveCaretToBlockEnd),
++      _ShortcutExpectation.plain(
++          LogicalKeyboardKey.pageUp, EditorShortcutIntent.pageUp),
++      _ShortcutExpectation.plain(
++          LogicalKeyboardKey.pageDown, EditorShortcutIntent.pageDown),
++      _ShortcutExpectation.plain(
++          LogicalKeyboardKey.backspace, EditorShortcutIntent.deleteBackward),
++      _ShortcutExpectation.plain(
++          LogicalKeyboardKey.delete, EditorShortcutIntent.deleteForward),
++      _ShortcutExpectation.plain(
++          LogicalKeyboardKey.enter, EditorShortcutIntent.enter),
++      _ShortcutExpectation.plain(
++          LogicalKeyboardKey.keyA, EditorShortcutIntent.insertCharacter,
++          character: 'a'),
++    ];
++
++    for (final expectation in expectations) {
++      final result = resolve(
++        _down(expectation.key, character: expectation.character),
++        primary: expectation.primary,
++      );
++      expect(result.disposition, EditorShortcutDisposition.handled);
++      expect(result.intent, expectation.intent);
++      if (expectation.character != null) {
++        expect(result.character, expectation.character);
++      }
++    }
++  });
++
+   test('blocks undo and paste in read-only mode', () {
+     final undo = resolve(
+       _down(LogicalKeyboardKey.keyZ),
+@@ -158,6 +228,25 @@ void main() {
+   });
+ }
+ 
++class _ShortcutExpectation {
++  const _ShortcutExpectation.plain(
++    this.key,
++    this.intent, {
++    this.character,
++  }) : primary = false;
++
++  const _ShortcutExpectation.primary(
++    this.key,
++    this.intent,
++  )   : primary = true,
++        character = null;
++
++  final LogicalKeyboardKey key;
++  final EditorShortcutIntent intent;
++  final bool primary;
++  final String? character;
++}
++
+ KeyDownEvent _down(LogicalKeyboardKey key, {String? character}) {
+   return KeyDownEvent(
+     physicalKey: PhysicalKeyboardKey.keyA,
+
+ M docs/api_reference.md
+ M docs/input_system.md
+ M docs/plan/plan_feedback_7_20260625-202854.md
+ M docs/progress/logs/20260626-025328_gen-feedback-8.log
+ M docs/rendering.md
+ M docs/selection_engine.md
+ M lib/src/controller/slash_menu_controller.dart
+ M lib/src/controller/wenz_rich_text_controller.dart
+ M lib/src/core/commands/text_commands.dart
+ M lib/src/core/model/attributes.dart
+ M lib/src/core/model/block_node.dart
+ M lib/src/core/schema/document_schema.dart
+ M lib/src/input/shortcut_manager.dart
+ M lib/src/widgets/block_geometry_registry.dart
+ M lib/src/widgets/selection_gesture_overlay.dart
+ M lib/src/widgets/table_floating_toolbar_overlay.dart
+ M lib/src/widgets/wenz_rich_text_editor.dart
+ M test/controller/slash_menu_controller_test.dart
+ M test/core/style_commands_test.dart
+ M test/core/text_commands_test.dart
+ M test/input/shortcut_manager_test.dart
+ M test/widgets/slash_menu_overlay_test.dart
+ M test/widgets/wenz_rich_text_editor_test.dart
+?? .dart_appdata/
+?? docs/plan/plan_feedback_8_20260626-025328.md
+?? docs/plan/plan_requirement_14_20260626-034143.md
+?? docs/plan/plan_requirement_15_20260626-041316.md
+?? docs/plan/plan_requirement_16_20260626-042807.md
+?? docs/plan/plan_requirement_17_20260626-044909.md
+?? docs/plan/plan_requirement_18_20260626-050406.md
+?? docs/plan/plan_requirement_19_20260626-051837.md
+?? docs/plan/plan_requirement_20_20260626-053824.md
+?? docs/plan/plan_requirement_22_20260626-055230.md
+?? docs/progress/logs/20260626-025328_gen-feedback-8.last.txt
+?? docs/progress/logs/20260626-025638_execute-P001.log
+?? docs/progress/logs/20260626-034143_gen-requirement-14.last.txt
+?? docs/progress/logs/20260626-034143_gen-requirement-14.log
+?? docs/progress/logs/20260626-034448_execute-P001.last.txt
+?? docs/progress/logs/20260626-034448_execute-P001.log
+?? docs/progress/logs/20260626-041316_gen-requirement-15.last.txt
+?? docs/progress/logs/20260626-041316_gen-requirement-15.log
+?? docs/progress/logs/20260626-041640_execute-P001.last.txt
+?? docs/progress/logs/20260626-041640_execute-P001.log
+?? docs/progress/logs/20260626-042807_gen-requirement-16.last.txt
+?? docs/progress/logs/20260626-042807_gen-requirement-16.log
+?? docs/progress/logs/20260626-043330_execute-P001.last.txt
+?? docs/progress/logs/20260626-043330_execute-P001.log
+?? docs/progress/logs/20260626-044909_gen-requirement-17.last.txt
+?? docs/progress/logs/20260626-044909_gen-requirement-17.log
+?? docs/progress/logs/20260626-045359_execute-P001.last.txt
+?? docs/progress/logs/20260626-045359_execute-P001.log
+?? docs/progress/logs/20260626-050406_gen-requirement-18.last.txt
+?? docs/progress/logs/20260626-050406_gen-requirement-18.log
+?? docs/progress/logs/20260626-051126_execute-P001.last.txt
+?? docs/progress/logs/20260626-051126_execute-P001.log
+?? docs/progress/logs/20260626-051837_gen-requirement-19.last.txt
+?? docs/progress/logs/20260626-051837_gen-requirement-19.log
+?? docs/progress/logs/20260626-052252_execute-P001.last.txt
+?? docs/progress/logs/20260626-052252_execute-P001.log
+?? docs/progress/logs/20260626-053824_gen-requirement-20.last.txt
+?? docs/progress/logs/20260626-053824_gen-requirement-20.log
+?? docs/progress/logs/20260626-054424_execute-P001.last.txt
+?? docs/progress/logs/20260626-054424_execute-P001.log
+?? docs/progress/logs/20260626-055230_gen-requirement-22.last.txt
+?? docs/progress/logs/20260626-055230_gen-requirement-22.log
+?? docs/progress/logs/20260626-055935_execute-P001.last.txt
+?? docs/progress/logs/20260626-055935_execute-P001.log
+?? docs/progress/logs/20260626-060802_execute-P011.last.txt
+?? docs/progress/logs/20260626-060802_execute-P011.log
+?? docs/progress/logs/20260626-062609_validate-18.log
+?? docs/progress/logs/20260626-062619_repair-18-1.log
+?? nul
+warning: in the working copy of 'wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'wenz_richtext/test/input/shortcut_manager_test.dart', LF will be replaced by CRLF the next time Git touches it
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 571788ca1398911b18b76612e529db6284cd52a0..d6a59061c3dc41784ebf5f6902da93145a3e2a20
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -109,7 +109,6 @@
+ const double _kCodeLineNumberGap = 12.0;
+ const int _kCodeLanguageTagColor = 0xB38A8AFF;
+ const double _kBlockFloatingToolbarInset = 6.0;
+-const double _kBlockFloatingToolbarGap = 6.0;
+ const double _kCodeFloatingToolbarEstimatedHeight = 28.0;
+ const double _kObjectFloatingToolbarEstimatedHeight = 36.0;
+ const int _kCodeKeywordColor = 0xFFC792EA;
+@@ -5643,15 +5642,11 @@
+   const _BlockFloatingToolbarSurface({
+     required this.child,
+     this.toolbar,
+-    this.inset = _kBlockFloatingToolbarInset,
+-    this.placeAbove = false,
+     this.estimatedToolbarHeight = _kObjectFloatingToolbarEstimatedHeight,
+   });
+ 
+   final Widget child;
+   final Widget? toolbar;
+-  final double inset;
+-  final bool placeAbove;
+   final double estimatedToolbarHeight;
+ 
+   @override
+@@ -5665,10 +5660,8 @@
+       children: <Widget>[
+         child,
+         PositionedDirectional(
+-          top: placeAbove
+-              ? -(estimatedToolbarHeight + _kBlockFloatingToolbarGap)
+-              : inset,
+-          end: inset,
++          top: _kBlockFloatingToolbarInset,
++          end: _kBlockFloatingToolbarInset,
+           child: toolbar,
+         ),
+       ],
+diff --git a/wenz_richtext/test/input/shortcut_manager_test.dart b/wenz_richtext/test/input/shortcut_manager_test.dart
+index 7d8d25b7fd1a58d013b4ebf386715465d96c6383..71c006a3ac6d50d265e6e4d42f878986995e1188
+--- a/wenz_richtext/test/input/shortcut_manager_test.dart
++++ b/wenz_richtext/test/input/shortcut_manager_test.dart
+@@ -53,7 +53,7 @@
+   });
+ 
+   test('keeps default shortcut baseline without configuration', () {
+-    final expectations = <_ShortcutExpectation>[
++    const expectations = <_ShortcutExpectation>[
+       _ShortcutExpectation.primary(
+           LogicalKeyboardKey.keyA, EditorShortcutIntent.selectAll),
+       _ShortcutExpectation.primary(
+
+**Finding line references**
+
+I need to locate lines concerning _kBlockFloatingToolbarInset, _BlockFloatingToolbarSurface, and the constant expectations. I'll look into running line commands to achieve this. Since the final output needs to include these line references, I’m thinking that using a shell approach could be effective. I don’t want to include any unnecessary preamble, just get straight to what’s needed. Let’s see if this works out!
+codex
+最后取一下关键行号，方便汇报修改位置。
+exec
+powershell.exe -Command '$p='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content $p; foreach($i in 110,5641,5642,5643,5644,5645,5646,5647,5648,5650,5664,5665,5666,5667,5668){ if($i -le $lines.Length){ '"'{0}: {1}' -f "'$i,$lines[$i-1] } }; '"''; "'$t='"'test/input/shortcut_manager_test.dart'; "'$lines=Get-Content $t; foreach($i in 55,56,57){ if($i -le $lines.Length){ '"'{0}: {1}' -f "'$i,$lines[$i-1] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 219ms:
+110: const int _kCodeLanguageTagColor = 0xB38A8AFF;
+5641:   const _BlockFloatingToolbarSurface({
+5642:     required this.child,
+5643:     this.toolbar,
+5644:     this.estimatedToolbarHeight = _kObjectFloatingToolbarEstimatedHeight,
+5645:   });
+5646: 
+5647:   final Widget child;
+5648:   final Widget? toolbar;
+5650: 
+5664:           child: toolbar,
+5665:         ),
+5666:       ],
+5667:     );
+5668:   }
+
+55:   test('keeps default shortcut baseline without configuration', () {
+56:     const expectations = <_ShortcutExpectation>[
+57:       _ShortcutExpectation.primary(
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 571788ca1398911b18b76612e529db6284cd52a0..d6a59061c3dc41784ebf5f6902da93145a3e2a20
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -109,7 +109,6 @@
+ const double _kCodeLineNumberGap = 12.0;
+ const int _kCodeLanguageTagColor = 0xB38A8AFF;
+ const double _kBlockFloatingToolbarInset = 6.0;
+-const double _kBlockFloatingToolbarGap = 6.0;
+ const double _kCodeFloatingToolbarEstimatedHeight = 28.0;
+ const double _kObjectFloatingToolbarEstimatedHeight = 36.0;
+ const int _kCodeKeywordColor = 0xFFC792EA;
+@@ -5643,15 +5642,11 @@
+   const _BlockFloatingToolbarSurface({
+     required this.child,
+     this.toolbar,
+-    this.inset = _kBlockFloatingToolbarInset,
+-    this.placeAbove = false,
+     this.estimatedToolbarHeight = _kObjectFloatingToolbarEstimatedHeight,
+   });
+ 
+   final Widget child;
+   final Widget? toolbar;
+-  final double inset;
+-  final bool placeAbove;
+   final double estimatedToolbarHeight;
+ 
+   @override
+@@ -5665,10 +5660,8 @@
+       children: <Widget>[
+         child,
+         PositionedDirectional(
+-          top: placeAbove
+-              ? -(estimatedToolbarHeight + _kBlockFloatingToolbarGap)
+-              : inset,
+-          end: inset,
++          top: _kBlockFloatingToolbarInset,
++          end: _kBlockFloatingToolbarInset,
+           child: toolbar,
+         ),
+       ],
+diff --git a/wenz_richtext/test/input/shortcut_manager_test.dart b/wenz_richtext/test/input/shortcut_manager_test.dart
+index 7d8d25b7fd1a58d013b4ebf386715465d96c6383..71c006a3ac6d50d265e6e4d42f878986995e1188
+--- a/wenz_richtext/test/input/shortcut_manager_test.dart
++++ b/wenz_richtext/test/input/shortcut_manager_test.dart
+@@ -53,7 +53,7 @@
+   });
+ 
+   test('keeps default shortcut baseline without configuration', () {
+-    final expectations = <_ShortcutExpectation>[
++    const expectations = <_ShortcutExpectation>[
+       _ShortcutExpectation.primary(
+           LogicalKeyboardKey.keyA, EditorShortcutIntent.selectAll),
+       _ShortcutExpectation.primary(
+
+**Clarifying output lines**
+
+I'm trying to understand the output that omitted line 111. It seems like it only listed line 110 because I specified that one. However, I still need to include line 111, which is _kBlockFloatingToolbarInset, after removing the gap. I should ensure to include the relevant top and end lines around 5655 for clarity. This will help me ensure I'm capturing everything necessary in my output!
+codex
+再补一处定位，确认 toolbar inset 使用处的行号。
+exec
+powershell.exe -Command '$p='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content $p; for($i=108;$i -le 114;$i++){ '"'{0}: {1}' -f "'$i,$lines[$i-1] }; '"''; for("'$i=5656;$i -le 5665;$i++){ '"'{0}: {1}' -f "'$i,$lines[$i-1] }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 219ms:
+108: const int _kCodeLineNumberColor = 0x8AE6E6F0;
+109: const double _kCodeLineNumberGap = 12.0;
+110: const int _kCodeLanguageTagColor = 0xB38A8AFF;
+111: const double _kBlockFloatingToolbarInset = 6.0;
+112: const double _kCodeFloatingToolbarEstimatedHeight = 28.0;
+113: const double _kObjectFloatingToolbarEstimatedHeight = 36.0;
+114: const int _kCodeKeywordColor = 0xFFC792EA;
+
+5656:     }
+5657:     return Stack(
+5658:       clipBehavior: Clip.none,
+5659:       children: <Widget>[
+5660:         child,
+5661:         PositionedDirectional(
+5662:           top: _kBlockFloatingToolbarInset,
+5663:           end: _kBlockFloatingToolbarInset,
+5664:           child: toolbar,
+5665:         ),
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 571788ca1398911b18b76612e529db6284cd52a0..d6a59061c3dc41784ebf5f6902da93145a3e2a20
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -109,7 +109,6 @@
+ const double _kCodeLineNumberGap = 12.0;
+ const int _kCodeLanguageTagColor = 0xB38A8AFF;
+ const double _kBlockFloatingToolbarInset = 6.0;
+-const double _kBlockFloatingToolbarGap = 6.0;
+ const double _kCodeFloatingToolbarEstimatedHeight = 28.0;
+ const double _kObjectFloatingToolbarEstimatedHeight = 36.0;
+ const int _kCodeKeywordColor = 0xFFC792EA;
+@@ -5643,15 +5642,11 @@
+   const _BlockFloatingToolbarSurface({
+     required this.child,
+     this.toolbar,
+-    this.inset = _kBlockFloatingToolbarInset,
+-    this.placeAbove = false,
+     this.estimatedToolbarHeight = _kObjectFloatingToolbarEstimatedHeight,
+   });
+ 
+   final Widget child;
+   final Widget? toolbar;
+-  final double inset;
+-  final bool placeAbove;
+   final double estimatedToolbarHeight;
+ 
+   @override
+@@ -5665,10 +5660,8 @@
+       children: <Widget>[
+         child,
+         PositionedDirectional(
+-          top: placeAbove
+-              ? -(estimatedToolbarHeight + _kBlockFloatingToolbarGap)
+-              : inset,
+-          end: inset,
++          top: _kBlockFloatingToolbarInset,
++          end: _kBlockFloatingToolbarInset,
+           child: toolbar,
+         ),
+       ],
+diff --git a/wenz_richtext/test/input/shortcut_manager_test.dart b/wenz_richtext/test/input/shortcut_manager_test.dart
+index 7d8d25b7fd1a58d013b4ebf386715465d96c6383..71c006a3ac6d50d265e6e4d42f878986995e1188
+--- a/wenz_richtext/test/input/shortcut_manager_test.dart
++++ b/wenz_richtext/test/input/shortcut_manager_test.dart
+@@ -53,7 +53,7 @@
+   });
+ 
+   test('keeps default shortcut baseline without configuration', () {
+-    final expectations = <_ShortcutExpectation>[
++    const expectations = <_ShortcutExpectation>[
+       _ShortcutExpectation.primary(
+           LogicalKeyboardKey.keyA, EditorShortcutIntent.selectAll),
+       _ShortcutExpectation.primary(
+
+codex
+已只修复 `flutter analyze` 验证错误，未修改 plan 文件。
+
+- `lib/src/widgets/wenz_rich_text_editor.dart:5641` 移除未传入的私有可选参数 `inset/placeAbove`。
+- `lib/src/widgets/wenz_rich_text_editor.dart:5661` 直接使用 `_kBlockFloatingToolbarInset` 定位 toolbar，并清理派生未用常量。
+- `test/input/shortcut_manager_test.dart:56` 将快捷键期望列表改为 `const` 声明。
+- 验证通过：`flutter analyze` → `No issues found!`
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 571788ca1398911b18b76612e529db6284cd52a0..d6a59061c3dc41784ebf5f6902da93145a3e2a20
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -109,7 +109,6 @@
+ const double _kCodeLineNumberGap = 12.0;
+ const int _kCodeLanguageTagColor = 0xB38A8AFF;
+ const double _kBlockFloatingToolbarInset = 6.0;
+-const double _kBlockFloatingToolbarGap = 6.0;
+ const double _kCodeFloatingToolbarEstimatedHeight = 28.0;
+ const double _kObjectFloatingToolbarEstimatedHeight = 36.0;
+ const int _kCodeKeywordColor = 0xFFC792EA;
+@@ -5643,15 +5642,11 @@
+   const _BlockFloatingToolbarSurface({
+     required this.child,
+     this.toolbar,
+-    this.inset = _kBlockFloatingToolbarInset,
+-    this.placeAbove = false,
+     this.estimatedToolbarHeight = _kObjectFloatingToolbarEstimatedHeight,
+   });
+ 
+   final Widget child;
+   final Widget? toolbar;
+-  final double inset;
+-  final bool placeAbove;
+   final double estimatedToolbarHeight;
+ 
+   @override
+@@ -5665,10 +5660,8 @@
+       children: <Widget>[
+         child,
+         PositionedDirectional(
+-          top: placeAbove
+-              ? -(estimatedToolbarHeight + _kBlockFloatingToolbarGap)
+-              : inset,
+-          end: inset,
++          top: _kBlockFloatingToolbarInset,
++          end: _kBlockFloatingToolbarInset,
+           child: toolbar,
+         ),
+       ],
+diff --git a/wenz_richtext/test/input/shortcut_manager_test.dart b/wenz_richtext/test/input/shortcut_manager_test.dart
+index 7d8d25b7fd1a58d013b4ebf386715465d96c6383..71c006a3ac6d50d265e6e4d42f878986995e1188
+--- a/wenz_richtext/test/input/shortcut_manager_test.dart
++++ b/wenz_richtext/test/input/shortcut_manager_test.dart
+@@ -53,7 +53,7 @@
+   });
+ 
+   test('keeps default shortcut baseline without configuration', () {
+-    final expectations = <_ShortcutExpectation>[
++    const expectations = <_ShortcutExpectation>[
+       _ShortcutExpectation.primary(
+           LogicalKeyboardKey.keyA, EditorShortcutIntent.selectAll),
+       _ShortcutExpectation.primary(
+
+tokens used
+39,725
+已只修复 `flutter analyze` 验证错误，未修改 plan 文件。
+
+- `lib/src/widgets/wenz_rich_text_editor.dart:5641` 移除未传入的私有可选参数 `inset/placeAbove`。
+- `lib/src/widgets/wenz_rich_text_editor.dart:5661` 直接使用 `_kBlockFloatingToolbarInset` 定位 toolbar，并清理派生未用常量。
+- `test/input/shortcut_manager_test.dart:56` 将快捷键期望列表改为 `const` 声明。
+- 验证通过：`flutter analyze` → `No issues found!`

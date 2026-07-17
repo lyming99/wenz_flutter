@@ -1,0 +1,636 @@
+OpenAI Codex v0.142.5
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_draw
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f47b0-986c-78f0-b7e0-c10a355e56e1
+--------
+user
+你是开发执行者，在无人值守模式下工作：禁止反问用户、禁止请求确认或补充信息、禁止输出“请告诉我…/是否需要…”之类等待回复的话；遇到不确定一律自行从代码推断，按最合理的工程方案直接推进，不要停下来等待输入。
+请只执行指定任务 P001，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_draw\docs\plan\plan_feedback_51_20260710-002141.md
+指定任务：- [ ] P001: 为思维导图插入入口配置独立图标 <!-- scope: lib/src/ui/toolbar/toolbar.dart -->
+任务 scope：lib/src/ui/toolbar/toolbar.dart
+
+完成后必须：
+- 这是无人值守执行：不要提问、不要请求确认、不要等待用户输入，所有不确定项自行基于代码推断并直接落地修改
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 当前阶段只做开发修改，不运行测试、回归、验收、构建、lint/analyze、coverage、e2e 或 benchmark 命令；AutoPlan 会在所有任务完成后统一执行最终验收命令
+- 即使任务验收要点提到测试，也只补充或调整必要代码/测试文件，不在当前任务内启动测试进程；除非当前任务或 plan 总体说明明确写着“本任务必须执行某命令”
+- 若识别到 Flutter/Dart 项目，可遵循其代码组织、格式和测试文件约定，但当前任务内不要运行 flutter test、dart test、flutter analyze 或 dart analyze
+- 如果工具链命令因 PathAccessException、Permission denied、拒绝访问或超时失败，停止重试并说明环境阻塞，把验证留给最终验收阶段
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+codex
+我会先只读取 plan 上下文和 `toolbar.dart`，确认现有插入入口的配置方式，然后在限定 scope 内改动。不会运行测试、构建或修改 plan 文件。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\docs\\plan\\plan_feedback_51_20260710-002141.md' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\ui\\toolbar\\toolbar.dart' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 249ms:
+# 区分思维导图与曲线插入图标
+
+## 需求概要
+
+绘图白板当前曲线工具在工具栏中使用 Icons.timeline，思维导图从特殊组件插入菜单触发。需要为思维导图插入入口提供独立且可识别的图标，确保它不再与曲线插入图标混淆，同时保持原有插入回调和其他组件菜单行为不变。
+
+## 任务拆解
+
+- [ ] P001: 为思维导图插入入口配置独立图标 <!-- scope: lib/src/ui/toolbar/toolbar.dart -->
+  - 验收要点：曲线工具按钮继续使用当前曲线图标和选中态逻辑，activeTool 为 CurveTool.idValue 时仍能正确高亮。
+  - 验收要点：特殊组件插入菜单中的思维导图项显示独立图标，图标不得使用 Icons.timeline，也不得与曲线工具视觉表现一致。
+  - 验收要点：点击思维导图菜单项仍只触发 onAddMindmap，不影响便签和计数器菜单项的回调分发。
+- [ ] P002: 统一特殊组件插入菜单的图标行布局 <!-- scope: lib/src/ui/toolbar/toolbar.dart -->
+  - 验收要点：便签、计数器、思维导图菜单项在同一菜单中保持一致的图标加文字排列，文本仍完整显示。
+  - 验收要点：菜单项的点击区域、弹出位置和关闭行为与现有 showAnchoredMenu 流程一致。
+  - 验收要点：新增图标布局不引入额外业务依赖，也不改变 Toolbar 对外构造参数。
+- [ ] P003: 补充工具栏插入图标的回归覆盖 <!-- scope: test/toolbar_test.dart -->
+  - 验收要点：覆盖打开特殊组件菜单后可找到思维导图菜单项及其图标的场景。
+  - 验收要点：覆盖思维导图图标与曲线工具图标不同的场景，防止后续再次复用 Icons.timeline。
+  - 验收要点：覆盖选择思维导图菜单项后 onAddMindmap 被调用，且曲线工具按钮行为不受影响。
+- [ ] P004: 完整验收 <!-- scope: validation -->
+  - 验收要点：最终验收命令为 flutter test
+  - 验收要点：Flutter 全量测试通过，包含新增或更新的工具栏插入菜单覆盖。
+  - 验收要点：绘图白板工具栏中的曲线按钮仍显示曲线图标，插入菜单中的思维导图项显示不同的思维导图图标。
+  - 验收要点：从特殊组件菜单插入思维导图、便签和计数器的回调行为保持正确，现有画布工具选择逻辑不回退。
+
+## 总体验收标准
+
+- 最终验收命令：flutter test
+- 验收范围：lib/src/ui/toolbar/toolbar.dart、test/toolbar_test.dart、validation
+- 通过标准：所有总体验收标准均满足。
+- Flutter 全量测试通过，包含新增或更新的工具栏插入菜单覆盖。
+- 绘图白板工具栏中的曲线按钮仍显示曲线图标，插入菜单中的思维导图项显示不同的思维导图图标。
+- 从特殊组件菜单插入思维导图、便签和计数器的回调行为保持正确，现有画布工具选择逻辑不回退。
+
+## 进度区
+
+| 任务 | 状态 | 备注 |
+| --- | --- | --- |
+| P001 | 未开始 | 为思维导图插入入口配置独立图标 |
+| P002 | 未开始 | 统一特殊组件插入菜单的图标行布局 |
+| P003 | 未开始 | 补充工具栏插入图标的回归覆盖 |
+| P004 | 未开始 | 完整验收 |
+
+ succeeded in 291ms:
+import 'dart:convert';
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+
+import '../theme/ui_colors.dart';
+import '../editor/editor_actions.dart';
+import '../editor/editor_config.dart';
+import '../widgets/spectrum_icon.dart';
+import 'line_tool_icon.dart';
+import 'tool_button.dart';
+import 'toolbar_divider.dart';
+
+class Toolbar extends StatelessWidget {
+  const Toolbar({
+    required this.canvasController,
+    required this.viewController,
+    required this.onAddStickyNote,
+    required this.onAddCounter,
+    required this.onAddMindmap,
+    required this.onInsertImage,
+    this.documentStore,
+    this.onExportPng,
+    this.metadata,
+    this.actions = const [],
+  });
+
+  final CanvasController canvasController;
+  final InfiniteCanvasController viewController;
+  final VoidCallback onAddStickyNote;
+  final VoidCallback onAddCounter;
+  final VoidCallback onAddMindmap;
+  final VoidCallback onInsertImage;
+
+  /// Optional persistence backend. When provided, 保存/加载 menu items route
+  /// through it; otherwise they fall back to in-memory snapshots.
+  final DocumentStore? documentStore;
+
+  /// Optional PNG export override. When null the bundled [PngExporter] is used.
+  final Future<void> Function(BuildContext, CanvasController, InfiniteCanvasController)?
+      onExportPng;
+
+  /// Optional metadata embedded into saved documents.
+  final DocumentMetadata? metadata;
+
+  /// Host-contributed actions rendered in the toolbar's trailing cluster.
+  final List<EditorToolbarAction> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([canvasController, viewController]),
+      builder: (context, _) {
+        final activeTool = canvasController.currentTool?.id;
+
+        return Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: const BoxDecoration(
+            color: UiColors.panel,
+            border: Border(bottom: BorderSide(color: UiColors.line)),
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: math.max(MediaQuery.sizeOf(context).width - 24, 760),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ToolButton(
+                    label: '菜单',
+                    icon: Icons.menu,
+                    selected: false,
+                    onPressed: () => showFileMenu(context),
+                  ),
+                  const ToolbarDivider(),
+                  ToolButton(
+                    label: '选择',
+                    icon: Icons.near_me_outlined,
+                    selected: activeTool == SelectTool.idValue,
+                    onPressed: () =>
+                        canvasController.setTool(SelectTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '拖拽',
+                    icon: Icons.open_with,
+                    selected: activeTool == PanTool.idValue,
+                    onPressed: () => canvasController.setTool(PanTool.idValue),
+                  ),
+                  const ToolbarDivider(),
+                  ToolButton(
+                    label: '画笔',
+                    icon: Icons.edit_outlined,
+                    selected: activeTool == PenTool.idValue,
+                    onPressed: () => canvasController.setTool(PenTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '荧光笔',
+                    icon: Icons.border_color_outlined,
+                    selected: activeTool == HighlighterTool.idValue,
+                    onPressed: () =>
+                        canvasController.setTool(HighlighterTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '直线',
+                    iconWidget: const LineToolIcon(polyline: false),
+                    selected: activeTool == LineTool.idValue,
+                    onPressed: () => canvasController.setTool(LineTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '折线',
+                    iconWidget: const LineToolIcon(polyline: true),
+                    selected: activeTool == PolylineTool.idValue,
+                    onPressed: () =>
+                        canvasController.setTool(PolylineTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '曲线',
+                    icon: Icons.timeline,
+                    selected: activeTool == CurveTool.idValue,
+                    onPressed: () =>
+                        canvasController.setTool(CurveTool.idValue),
+                  ),
+                  const ToolbarDivider(),
+                  ToolButton(
+                    label: '图形',
+                    icon: Icons.category_outlined,
+                    selected:
+                        activeTool == RectTool.idValue ||
+                        activeTool == EllipseTool.idValue ||
+                        (activeTool?.startsWith(ShapeTool.idPrefix) ?? false),
+                    onPressed: () => canvasController.setTool(RectTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '文字',
+                    icon: Icons.text_fields,
+                    selected: activeTool == TextTool.idValue,
+                    onPressed: () => canvasController.setTool(TextTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '橡皮擦',
+                    icon: Icons.cleaning_services_outlined,
+                    selected: activeTool == EraserTool.idValue,
+                    onPressed: () =>
+                        canvasController.setTool(EraserTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '颜色选择器',
+                    selected: false,
+                    iconWidget: const SpectrumIcon(size: 18),
+                    onPressed: () => showColorMenu(context, canvasController),
+                  ),
+                  const ToolbarDivider(),
+                  ToolButton(
+                    label: '撤销',
+                    icon: Icons.undo,
+                    selected: false,
+                    enabled: canvasController.canUndo,
+                    onPressed: canvasController.undo,
+                  ),
+                  ToolButton(
+                    label: '重做',
+                    icon: Icons.redo,
+                    selected: false,
+                    enabled: canvasController.canRedo,
+                    onPressed: canvasController.redo,
+                  ),
+                  const ToolbarDivider(),
+                  ToolButton(
+                    label: '特殊组件创建',
+                    icon: Icons.add,
+                    selected: false,
+                    onPressed: () => showComponentMenu(context),
+                  ),
+                  ToolButton(
+                    label: '图层',
+                    icon: Icons.layers_outlined,
+                    selected: false,
+                    onPressed: () => canvasController.addLayer(),
+                  ),
+                  if (actions.isNotEmpty) const ToolbarDivider(),
+                  for (final action in actions)
+                    ToolButton(
+                      label: action.label,
+                      icon: action.icon,
+                      selected: false,
+                      onPressed: () =>
+                          action.onPressed(canvasController, viewController),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void showFileMenu(BuildContext context) {
+    final store = documentStore;
+    showAnchoredMenu<String>(
+      context: context,
+      items: [
+        const PopupMenuItem(value: 'insert-image', child: Text('Insert image')),
+        const PopupMenuDivider(),
+        const PopupMenuItem(value: 'import-json', child: Text('导入 JSON')),
+        const PopupMenuItem(value: 'import-drawio', child: Text('导入 draw.io')),
+        const PopupMenuDivider(),
+        const PopupMenuItem(value: 'export-json', child: Text('导出 JSON')),
+        const PopupMenuItem(value: 'export-svg', child: Text('导出 SVG')),
+        const PopupMenuItem(value: 'export-png', child: Text('导出 PNG')),
+        const PopupMenuDivider(),
+        if (store != null)
+          const PopupMenuItem(value: 'save', child: Text('保存')),
+        if (store != null)
+          const PopupMenuItem(value: 'load', child: Text('加载')),
+      ],
+    ).then((value) {
+      if (value == null) return;
+      switch (value) {
+        case 'insert-image':
+          onInsertImage();
+        case 'import-json':
+          showImportDialog(context, canvasController, importDrawio: false);
+        case 'import-drawio':
+          showImportDialog(context, canvasController, importDrawio: true);
+        case 'export-json':
+          showExportDialog(
+            context,
+            'JSON',
+            prettyJson(
+              CanvasSerializer.toJsonWithView(
+                viewController,
+                viewport: viewController.currentViewport,
+                metadata: metadata,
+              ),
+            ),
+          );
+        case 'export-svg':
+          showExportDialog(
+            context,
+            'SVG',
+            SvgExporter.exportElements(elements: canvasController.elements),
+          );
+        case 'export-png':
+          _exportPng(context);
+        case 'save':
+          if (store != null) _saveToStore(context, store);
+        case 'load':
+          if (store != null) _loadFromStore(context, store);
+      }
+    });
+  }
+
+  Future<void> _saveToStore(BuildContext context, DocumentStore store) async {
+    try {
+      final json = CanvasSerializer.toJsonWithView(
+        viewController,
+        viewport: viewController.currentViewport,
+        metadata: metadata,
+      );
+      await store.save(json);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('已保存')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('保存失败：$error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadFromStore(BuildContext context, DocumentStore store) async {
+    try {
+      final json = await store.load();
+      if (json == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('没有可加载的文档')),
+          );
+        }
+        return;
+      }
+      CanvasSerializer.loadDocument(viewController, json);
+      // The viewport cannot be applied until the canvas has a size; defer one
+      // frame so the freshly-loaded elements are laid out first.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final document = CanvasSerializer.fromJson(json);
+        viewController.applyViewport(document.viewport);
+      });
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('已加载')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载失败：$error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportPng(BuildContext context) async {
+    if (onExportPng != null) {
+      await onExportPng!(context, canvasController, viewController);
+      return;
+    }
+    try {
+      final bytes = await PngExporter.exportElements(
+        elements: canvasController.elements,
+      );
+      if (context.mounted) {
+        showExportDialog(
+          context,
+          'PNG (base64)',
+          prettyJson({'png': base64Encode(bytes)}),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('导出 PNG 失败：$error')),
+        );
+      }
+    }
+  }
+
+  void showComponentMenu(BuildContext context) {
+    showAnchoredMenu<String>(
+      context: context,
+      items: const [
+        PopupMenuItem(value: 'note', child: Text('便签')),
+        PopupMenuItem(value: 'counter', child: Text('计数器')),
+        PopupMenuItem(value: 'mindmap', child: Text('思维导图')),
+      ],
+    ).then((value) {
+      if (value == 'counter') {
+        onAddCounter();
+      } else if (value == 'note') {
+        onAddStickyNote();
+      } else if (value == 'mindmap') {
+        onAddMindmap();
+      }
+    });
+  }
+}
+
+codex
+上下文确认了：曲线工具当前使用 `Icons.timeline` 且选中态依赖 `CurveTool.idValue`，特殊组件菜单目前三项都是纯文本。P001 只需要给“思维导图”菜单项换成独立图标入口，不能把便签/计数器的统一布局一起做掉。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg \"showAnchoredMenu|PopupMenuItem\\(|account_tree|思维导图|Icons\\.timeline\" -n lib test" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 201ms:
+lib\src\mindmap\mindmap_node_widget.dart:134:        const PopupMenuItem(value: 'addChild', child: Text('添加子节点')),
+lib\src\mindmap\mindmap_node_widget.dart:136:          const PopupMenuItem(value: 'delete', child: Text('删除节点')),
+lib\src\mindmap\mindmap_node_widget.dart:138:        const PopupMenuItem(value: 'color', child: Text('修改颜色')),
+lib\src\mindmap\mindmap_node_builder.dart:266:        const PopupMenuItem(value: 'addChild', child: Text('添加子节点')),
+lib\src\mindmap\mindmap_node_builder.dart:268:          const PopupMenuItem(value: 'addSibling', child: Text('添加同级节点')),
+lib\src\mindmap\mindmap_node_builder.dart:270:          const PopupMenuItem(value: 'delete', child: Text('删除节点')),
+lib\src\mindmap\mindmap_node_builder.dart:272:        PopupMenuItem(
+lib\src\mindmap\mindmap_node_builder.dart:277:          PopupMenuItem(
+lib\src\mindmap\mindmap_node_builder.dart:281:        PopupMenuItem(
+lib\src\mindmap\mindmap_node_builder.dart:286:          const PopupMenuItem(value: 'openLink', child: Text('打开链接')),
+lib\src\mindmap\mindmap_node_builder.dart:288:          const PopupMenuItem(value: 'removeLink', child: Text('清除链接')),
+lib\src\mindmap\mindmap_node_builder.dart:290:        const PopupMenuItem(value: 'style', child: Text('设置样式')),
+lib\src\mindmap\mindmap_node_builder.dart:292:          const PopupMenuItem(value: 'theme', child: Text('切换主题')),
+lib\src\tools\polyline_tool.dart:19:       _icon = icon ?? Icons.account_tree_outlined;
+lib\src\tools\curve_tool.dart:33:  IconData get icon => Icons.timeline;
+lib\src\tools\polyline_arrow_tool.dart:10:          icon: Icons.account_tree,
+lib\src\ui\editor\editor_actions.dart:93:Future<T?> showAnchoredMenu<T>({
+lib\src\ui\panels\right_inspector_panel.dart:79:                    title: '思维导图',
+lib\src\ui\toolbar\toolbar.dart:120:                    icon: Icons.timeline,
+lib\src\ui\toolbar\toolbar.dart:202:    showAnchoredMenu<String>(
+lib\src\ui\toolbar\toolbar.dart:205:        const PopupMenuItem(value: 'insert-image', child: Text('Insert image')),
+lib\src\ui\toolbar\toolbar.dart:207:        const PopupMenuItem(value: 'import-json', child: Text('导入 JSON')),
+lib\src\ui\toolbar\toolbar.dart:208:        const PopupMenuItem(value: 'import-drawio', child: Text('导入 draw.io')),
+lib\src\ui\toolbar\toolbar.dart:210:        const PopupMenuItem(value: 'export-json', child: Text('导出 JSON')),
+lib\src\ui\toolbar\toolbar.dart:211:        const PopupMenuItem(value: 'export-svg', child: Text('导出 SVG')),
+lib\src\ui\toolbar\toolbar.dart:212:        const PopupMenuItem(value: 'export-png', child: Text('导出 PNG')),
+lib\src\ui\toolbar\toolbar.dart:215:          const PopupMenuItem(value: 'save', child: Text('保存')),
+lib\src\ui\toolbar\toolbar.dart:217:          const PopupMenuItem(value: 'load', child: Text('加载')),
+lib\src\ui\toolbar\toolbar.dart:336:    showAnchoredMenu<String>(
+lib\src\ui\toolbar\toolbar.dart:339:        PopupMenuItem(value: 'note', child: Text('便签')),
+lib\src\ui\toolbar\toolbar.dart:340:        PopupMenuItem(value: 'counter', child: Text('计数器')),
+lib\src\ui\toolbar\toolbar.dart:341:        PopupMenuItem(value: 'mindmap', child: Text('思维导图')),
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-ChildItem -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\ui\\toolbar' -Force" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 256ms:
+
+
+    目录: D:\project\GitHub\wenz_flutter\wenz_draw\lib\src\ui\toolbar
+
+
+Mode                 LastWriteTime         Length Name                                                                 
+----                 -------------         ------ ----                                                                 
+-a----         2026/6/14     15:25           1532 line_tool_icon.dart                                                  
+-a----         2026/6/17     13:57          12753 toolbar.dart                                                         
+-a----         2026/6/16     23:59            355 toolbar_divider.dart                                                 
+-a----         2026/6/16     23:59           1570 tool_button.dart                                                     
+
+
+
+codex
+我会在 `showComponentMenu` 里只改“思维导图”这一项：保留 `value: 'mindmap'` 和回调分发，给它加一个 `Icons.account_tree_outlined` 图标，曲线按钮的 `Icons.timeline` 不动。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_draw\lib\src\ui\toolbar\toolbar.dart
+diff --git a/wenz_draw/lib/src/ui/toolbar/toolbar.dart b/wenz_draw/lib/src/ui/toolbar/toolbar.dart
+index 831139c900846f063dd1d5896884232de6256c92..05d7a7c2456951397b4bf4316cd4bb800fc72881
+--- a/wenz_draw/lib/src/ui/toolbar/toolbar.dart
++++ b/wenz_draw/lib/src/ui/toolbar/toolbar.dart
+@@ -338,7 +338,17 @@
+       items: const [
+         PopupMenuItem(value: 'note', child: Text('便签')),
+         PopupMenuItem(value: 'counter', child: Text('计数器')),
+-        PopupMenuItem(value: 'mindmap', child: Text('思维导图')),
++        PopupMenuItem(
++          value: 'mindmap',
++          child: Row(
++            mainAxisSize: MainAxisSize.min,
++            children: [
++              Icon(Icons.account_tree_outlined, size: 18),
++              SizedBox(width: 8),
++              Text('思维导图'),
++            ],
++          ),
++        ),
+       ],
+     ).then((value) {
+       if (value == 'counter') {
+
+diff --git a/wenz_draw/lib/src/ui/toolbar/toolbar.dart b/wenz_draw/lib/src/ui/toolbar/toolbar.dart
+index 831139c900846f063dd1d5896884232de6256c92..05d7a7c2456951397b4bf4316cd4bb800fc72881
+--- a/wenz_draw/lib/src/ui/toolbar/toolbar.dart
++++ b/wenz_draw/lib/src/ui/toolbar/toolbar.dart
+@@ -338,7 +338,17 @@
+       items: const [
+         PopupMenuItem(value: 'note', child: Text('便签')),
+         PopupMenuItem(value: 'counter', child: Text('计数器')),
+-        PopupMenuItem(value: 'mindmap', child: Text('思维导图')),
++        PopupMenuItem(
++          value: 'mindmap',
++          child: Row(
++            mainAxisSize: MainAxisSize.min,
++            children: [
++              Icon(Icons.account_tree_outlined, size: 18),
++              SizedBox(width: 8),
++              Text('思维导图'),
++            ],
++          ),
++        ),
+       ],
+     ).then((value) {
+       if (value == 'counter') {
+
+codex
+代码已按 P001 落地。现在只做轻量文件读取确认改动位置，不启动任何测试、分析或构建命令。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$path='"'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\ui\\toolbar\\toolbar.dart'; "'$lines=Get-Content -LiteralPath $path -Encoding UTF8; for($i=332;$i -le 356;$i++){ if($i -le $lines.Length){ '"'{0,4}: {1}' -f "'$i,$lines[$i-1] } }' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 278ms:
+ 332:     }
+ 333:   }
+ 334: 
+ 335:   void showComponentMenu(BuildContext context) {
+ 336:     showAnchoredMenu<String>(
+ 337:       context: context,
+ 338:       items: const [
+ 339:         PopupMenuItem(value: 'note', child: Text('便签')),
+ 340:         PopupMenuItem(value: 'counter', child: Text('计数器')),
+ 341:         PopupMenuItem(
+ 342:           value: 'mindmap',
+ 343:           child: Row(
+ 344:             mainAxisSize: MainAxisSize.min,
+ 345:             children: [
+ 346:               Icon(Icons.account_tree_outlined, size: 18),
+ 347:               SizedBox(width: 8),
+ 348:               Text('思维导图'),
+ 349:             ],
+ 350:           ),
+ 351:         ),
+ 352:       ],
+ 353:     ).then((value) {
+ 354:       if (value == 'counter') {
+ 355:         onAddCounter();
+ 356:       } else if (value == 'note') {
+
+diff --git a/wenz_draw/lib/src/ui/toolbar/toolbar.dart b/wenz_draw/lib/src/ui/toolbar/toolbar.dart
+index 831139c900846f063dd1d5896884232de6256c92..05d7a7c2456951397b4bf4316cd4bb800fc72881
+--- a/wenz_draw/lib/src/ui/toolbar/toolbar.dart
++++ b/wenz_draw/lib/src/ui/toolbar/toolbar.dart
+@@ -338,7 +338,17 @@
+       items: const [
+         PopupMenuItem(value: 'note', child: Text('便签')),
+         PopupMenuItem(value: 'counter', child: Text('计数器')),
+-        PopupMenuItem(value: 'mindmap', child: Text('思维导图')),
++        PopupMenuItem(
++          value: 'mindmap',
++          child: Row(
++            mainAxisSize: MainAxisSize.min,
++            children: [
++              Icon(Icons.account_tree_outlined, size: 18),
++              SizedBox(width: 8),
++              Text('思维导图'),
++            ],
++          ),
++        ),
+       ],
+     ).then((value) {
+       if (value == 'counter') {
+
+codex
+已完成 P001，仅修改 [toolbar.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/ui/toolbar/toolbar.dart:341)。
+
+“思维导图”菜单项现在显示独立的 `Icons.account_tree_outlined` 图标，未复用 `Icons.timeline`；曲线工具按钮和 `CurveTool.idValue` 选中态逻辑未改动。`value: 'mindmap'` 和 `onAddMindmap()` 回调分发保持不变，便签和计数器回调未受影响。
+
+按要求未修改 plan 文件，也未运行测试、构建、analyze 或 lint。
+diff --git a/wenz_draw/lib/src/ui/toolbar/toolbar.dart b/wenz_draw/lib/src/ui/toolbar/toolbar.dart
+index 831139c900846f063dd1d5896884232de6256c92..05d7a7c2456951397b4bf4316cd4bb800fc72881
+--- a/wenz_draw/lib/src/ui/toolbar/toolbar.dart
++++ b/wenz_draw/lib/src/ui/toolbar/toolbar.dart
+@@ -338,7 +338,17 @@
+       items: const [
+         PopupMenuItem(value: 'note', child: Text('便签')),
+         PopupMenuItem(value: 'counter', child: Text('计数器')),
+-        PopupMenuItem(value: 'mindmap', child: Text('思维导图')),
++        PopupMenuItem(
++          value: 'mindmap',
++          child: Row(
++            mainAxisSize: MainAxisSize.min,
++            children: [
++              Icon(Icons.account_tree_outlined, size: 18),
++              SizedBox(width: 8),
++              Text('思维导图'),
++            ],
++          ),
++        ),
+       ],
+     ).then((value) {
+       if (value == 'counter') {
+
+tokens used
+25,197
+已完成 P001，仅修改 [toolbar.dart](D:/project/GitHub/wenz_flutter/wenz_draw/lib/src/ui/toolbar/toolbar.dart:341)。
+
+“思维导图”菜单项现在显示独立的 `Icons.account_tree_outlined` 图标，未复用 `Icons.timeline`；曲线工具按钮和 `CurveTool.idValue` 选中态逻辑未改动。`value: 'mindmap'` 和 `onAddMindmap()` 回调分发保持不变，便签和计数器回调未受影响。
+
+按要求未修改 plan 文件，也未运行测试、构建、analyze 或 lint。

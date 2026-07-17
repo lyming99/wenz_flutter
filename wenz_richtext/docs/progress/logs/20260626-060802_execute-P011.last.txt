@@ -1,0 +1,13 @@
+已按 P011 只处理 scope 内测试文件，未修改 plan 文件、未勾选 checkbox。
+
+- 修改 `test/widgets/wenz_rich_text_editor_test.dart:2656`：稳定文件菜单尺寸/状态回归用例的菜单打开方式。
+- 修改 `test/widgets/wenz_rich_text_editor_test.dart:5904`：稳定窄视频卡片回归用例，避免单击后残留 double-tap timer。
+- 修改 `test/widgets/wenz_rich_text_editor_test.dart:6427`：补充/修正表格内 inline mention/embed 选择回归断言。
+- 新增 `test/widgets/wenz_rich_text_editor_test.dart:8878`：补齐 logical offset 到 render offset 的测试 helper。
+- 新增 `test/widgets/wenz_rich_text_editor_test.dart:8989`：补齐文件菜单测试 helper。
+
+验证记录：
+- 通过：`flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "paragraph inline embeds select atomically by tap drag keyboard"`
+- 通过：`flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "block drag handle menu switches row formats"`
+- 通过：`git diff --check -- test/widgets/wenz_rich_text_editor_test.dart`
+- 阻塞：后续 `flutter --version` / `flutter test ...` 在当前 `workspace-write` 沙箱下访问 Flutter cache lock 超时；`dart format` 也因无法读取全局 Pub cache 被拒绝，未能继续重跑。

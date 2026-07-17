@@ -1,0 +1,8 @@
+完成 P002，仅处理/核对指定 scope，未修改 plan 文件或勾选 checkbox。
+
+- `lib/src/widgets/table_floating_toolbar_overlay.dart:22` 定义编辑器级 overlay request/host/anchor 结构，路线为 `OverlayPortal` + `CompositedTransformFollower`。
+- `lib/src/widgets/block_renderer_registry.dart:232` 将 table toolbar action 与 overlay controller 注入 `BlockRenderContext`，避免 renderer 直接管理 overlay 生命周期。
+- `lib/src/widgets/wenz_rich_text_editor.dart:522` 增加编辑器级 controller 生命周期；`lib/src/widgets/wenz_rich_text_editor.dart:1076` 在 editor shell 统一承载 host。
+- `lib/src/widgets/wenz_rich_text_editor.dart:5367` 表格 renderer 只发布 anchor/request，不再把工具栏作为表格内部负偏移子节点管理。
+- 验证通过：`dart analyze lib/src/widgets/wenz_rich_text_editor.dart lib/src/widgets/table_floating_toolbar_overlay.dart lib/src/widgets/block_renderer_registry.dart`
+- 验证通过：`git diff --check -- lib/src/widgets/wenz_rich_text_editor.dart lib/src/widgets/table_floating_toolbar_overlay.dart lib/src/widgets/block_renderer_registry.dart`

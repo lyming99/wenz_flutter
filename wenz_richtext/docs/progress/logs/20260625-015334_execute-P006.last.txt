@@ -1,0 +1,11 @@
+已完成 P006，未执行 P007 或其它任务。
+
+- `lib/src/widgets/wenz_rich_text_editor.dart:48` 新增工具栏上方浮层偏移常量。
+- `lib/src/widgets/wenz_rich_text_editor.dart:3808` 将表格工具栏移到表格 Stack 上方，不再覆盖首行内容。
+- `lib/src/widgets/wenz_rich_text_editor.dart:3830` 增加视口感知定位，表格滚出顶部时工具栏贴近可见区域。
+- `test/widgets/wenz_rich_text_editor_test.dart:958` 新增工具栏位于表格单元格上方的回归测试。
+- `docs/plan/plan_feedback_2_20260625-004108.md:52` 已勾选 P006，并更新进度区与验证记录。
+
+验证已通过：
+- `flutter test test\widgets\wenz_rich_text_editor_test.dart --name "table floating toolbar" --reporter expanded`
+- `flutter test test\widgets\wenz_rich_text_editor_test.dart --name "table column resize handle" --reporter expanded`

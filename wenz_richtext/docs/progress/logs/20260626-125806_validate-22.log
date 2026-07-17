@@ -1,0 +1,6 @@
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+Analyzing wenz_richtext...                                      
+
+  error - The argument type 'List<InlineNode>' can't be assigned to the parameter type 'String'.  - lib\src\controller\slash_menu_controller.dart:403:65 - argument_type_not_assignable
+
+1 issue found. (ran in 2.9s)

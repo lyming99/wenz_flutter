@@ -1,0 +1,72 @@
+{
+  "title": "去除公式默认渲染背景色",
+  "summary": "根据反馈 #23，默认公式渲染不再需要背景色。项目中公式包含行内公式 InlineEmbed 和块级 formula BlockEmbedNode 两条默认渲染路径：行内公式当前通过 _InlineFormulaView 和 _defaultInlineEmbedStyle 使用 secondaryContainer 背景，块级公式当前通过 _FormulaBlockView 的卡片背景与预览背景使用 formula/secondaryContainer 背景。计划应移除公式专属背景填充，同时保留数学排版、尺寸占位、点击编辑、语义、选区/组合输入提示以及明暗主题可读性；mention、emoji、普通 inline embed、通用 block embed、引用、表格、callout 等其它背景样式不应被误改。",
+  "tasks": [
+    {
+      "title": "去除行内公式默认背景填充",
+      "scope": [
+        "lib/src/widgets/wenz_rich_text_editor.dart"
+      ],
+      "acceptance": [
+        "行内公式的 _InlineFormulaView 不再绘制 secondaryContainer 或其它底色，普通状态下公式周围没有彩色块、pill 或 chip 背景。",
+        "_defaultInlineEmbedStyle 中 formula 分支不再设置 backgroundColor，但仍保留必要的前景色、字体和 fallback 文本样式，确保浅色与深色主题下公式可读。",
+        "组合输入或编辑态需要的下划线、点击打开公式弹窗、Semantics 标签和值、表格单元格内行内公式渲染均保持可用。",
+        "行内公式占位尺寸、基线对齐、长公式/高公式高度估算、Math.tex 渲染和错误 fallback 不因移除背景而退化。",
+        "mention 的默认背景、emoji 原样渲染、未知 inline embed fallback、显式 TextAttributes.background 和正文修订/高亮背景不受影响。"
+      ]
+    },
+    {
+      "title": "去除块级公式卡片与预览背景色",
+      "scope": [
+        "lib/src/widgets/wenz_rich_text_editor.dart"
+      ],
+      "acceptance": [
+        "块级 formula BlockEmbedNode 不再使用 _formulaBlockBackgroundColor 或 secondaryContainer 作为公式卡片底色，默认展示区域不再出现公式专属背景色。",
+        "块级公式预览 DecoratedBox 不再绘制 secondaryContainer 背景；预览仍保留必要的布局约束、内边距、横向滚动和 display math 渲染。",
+        "公式源码文本、数学预览、空公式占位、错误 fallback 在浅色和深色主题下仍有足够可读性，前景色不再依赖 onSecondaryContainer 这类有色背景配套色。",
+        "块级公式的选择态、对象块工具栏、复制/删除/移动/编辑入口、点击打开公式弹窗和 Semantics 行为保持不变。",
+        "通用 BlockEmbedNode、文件块、代码块、callout、引用背景和表格背景继续沿用各自现有主题色，不被本次公式背景调整波及。"
+      ]
+    },
+    {
+      "title": "补齐公式无背景的 widget 与 golden 回归覆盖",
+      "scope": [
+        "test/widgets/wenz_rich_text_editor_test.dart",
+        "test/widgets/editor_golden_test.dart",
+        "test/widgets/goldens/"
+      ],
+      "acceptance": [
+        "更新现有明暗主题内置渲染器测试，不再断言公式卡片或公式预览使用 secondaryContainer 背景，改为断言公式背景为空或不绘制底色。",
+        "新增或调整行内公式测试，直接覆盖普通段落和表格单元格中的公式没有背景填充，同时公式 Math widget、fallback 文本和占位尺寸仍存在。",
+        "公式交互测试覆盖点击行内公式和块级公式仍能打开弹窗、确认修改后内容刷新，且移除背景不影响命中区域。",
+        "若 editor golden 中包含公式，更新对应 golden 基准图，视觉上公式区域没有旧的彩色背景块，且其它块级背景未发生非预期变化。",
+        "测试避免只通过文本存在性判断公式渲染，应包含背景为空、颜色未使用 secondaryContainer、或 golden 差异这类能阻止背景回归的断言。"
+      ]
+    },
+    {
+      "title": "更新公式渲染与主题文档口径",
+      "scope": [
+        "docs/api_reference.md",
+        "docs/rendering.md",
+        "docs/acceptance_manual_checklist.md"
+      ],
+      "acceptance": [
+        "文档不再描述默认 formula inline fallback、formula card 或 formula preview 会使用 chip、pill 或有色背景。",
+        "主题说明中 formula 相关条目调整为强调数学内容前景可读、编辑/选择状态可见，而不是从 ColorScheme 派生公式背景色。",
+        "保留 InlineEmbedRenderer 可自定义公式展示的说明，明确业务自定义 renderer 仍可自行决定是否绘制背景。",
+        "文档说明本次仅改变默认视觉样式，不涉及 schema、JSON/Markdown/HTML codec、公式数据字段或控制器 API 变更。"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter analyze; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; flutter test",
+    "criteria": [
+      "静态分析通过，没有新增 analyzer error 或 warning。",
+      "全量 Flutter 测试通过，包括公式相关 widget 测试与可能受影响的 golden 测试，没有新增失败、超时或渲染断言失败。",
+      "行内公式在普通段落、表格单元格和组合输入/编辑态下均不绘制默认背景色，同时公式内容、尺寸、基线、语义和点击编辑保持正常。",
+      "块级公式卡片和预览不再绘制公式专属背景色，浅色与深色主题下数学内容仍可读，选择态与对象块操作入口仍清晰可用。",
+      "mention、emoji、未知 inline embed、通用 block embed、引用、表格、callout、代码块、文件块和显式文本背景样式不发生非预期回归。",
+      "相关渲染和主题文档已同步更新，不再把公式默认背景色作为当前行为或验收口径。"
+    ]
+  }
+}

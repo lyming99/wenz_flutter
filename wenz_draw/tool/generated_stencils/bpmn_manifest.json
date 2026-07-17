@@ -1,0 +1,742 @@
+{
+  "library": "bpmn",
+  "group": "BPMN",
+  "shapeCount": 39,
+  "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+  "sourceSizeBytes": 44822,
+  "generatedAt": "2026-06-13T16:52:26.329701Z",
+  "shapes": [
+    {
+      "key": "bpmn.adHoc",
+      "label": "Ad Hoc",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 15.0,
+      "defaultHeight": 10.39,
+      "tags": [
+        "bpmn",
+        "ad",
+        "hoc"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.adHoc",
+        "mxgraph.bpmn.ad_hoc",
+        "mxgraph.bpmn.ad-hoc",
+        "mxgraph.bpmn.Ad Hoc"
+      ]
+    },
+    {
+      "key": "bpmn.businessRuleTask",
+      "label": "Business Rule Task",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 65.0,
+      "tags": [
+        "bpmn",
+        "business",
+        "rule",
+        "task"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.businessRuleTask",
+        "mxgraph.bpmn.business_rule_task",
+        "mxgraph.bpmn.business-rule-task",
+        "mxgraph.bpmn.Business Rule Task"
+      ]
+    },
+    {
+      "key": "bpmn.cancelEnd",
+      "label": "Cancel End",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 97.0,
+      "defaultHeight": 97.0,
+      "tags": [
+        "bpmn",
+        "cancel",
+        "end"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.cancelEnd",
+        "mxgraph.bpmn.cancel_end",
+        "mxgraph.bpmn.cancel-end",
+        "mxgraph.bpmn.Cancel End"
+      ]
+    },
+    {
+      "key": "bpmn.cancelIntermediate",
+      "label": "Cancel Intermediate",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "cancel",
+        "intermediate"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.cancelIntermediate",
+        "mxgraph.bpmn.cancel_intermediate",
+        "mxgraph.bpmn.cancel-intermediate",
+        "mxgraph.bpmn.Cancel Intermediate"
+      ]
+    },
+    {
+      "key": "bpmn.compensation",
+      "label": "Compensation",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 15.0,
+      "defaultHeight": 10.0,
+      "tags": [
+        "bpmn",
+        "compensation"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.compensation",
+        "mxgraph.bpmn.Compensation"
+      ]
+    },
+    {
+      "key": "bpmn.compensationEnd",
+      "label": "Compensation End",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 97.0,
+      "defaultHeight": 97.0,
+      "tags": [
+        "bpmn",
+        "compensation",
+        "end"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.compensationEnd",
+        "mxgraph.bpmn.compensation_end",
+        "mxgraph.bpmn.compensation-end",
+        "mxgraph.bpmn.Compensation End"
+      ]
+    },
+    {
+      "key": "bpmn.compensationIntermediate",
+      "label": "Compensation Intermediate",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "compensation",
+        "intermediate"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.compensationIntermediate",
+        "mxgraph.bpmn.compensation_intermediate",
+        "mxgraph.bpmn.compensation-intermediate",
+        "mxgraph.bpmn.Compensation Intermediate"
+      ]
+    },
+    {
+      "key": "bpmn.errorEnd",
+      "label": "Error End",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 97.0,
+      "defaultHeight": 97.0,
+      "tags": [
+        "bpmn",
+        "error",
+        "end"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.errorEnd",
+        "mxgraph.bpmn.error_end",
+        "mxgraph.bpmn.error-end",
+        "mxgraph.bpmn.Error End"
+      ]
+    },
+    {
+      "key": "bpmn.errorIntermediate",
+      "label": "Error Intermediate",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "error",
+        "intermediate"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.errorIntermediate",
+        "mxgraph.bpmn.error_intermediate",
+        "mxgraph.bpmn.error-intermediate",
+        "mxgraph.bpmn.Error Intermediate"
+      ]
+    },
+    {
+      "key": "bpmn.gateway",
+      "label": "Gateway",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "gateway"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.gateway",
+        "mxgraph.bpmn.Gateway"
+      ]
+    },
+    {
+      "key": "bpmn.gatewayAnd",
+      "label": "Gateway AND",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "gateway",
+        "and"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.gatewayAnd",
+        "mxgraph.bpmn.gateway_and",
+        "mxgraph.bpmn.gateway-and",
+        "mxgraph.bpmn.Gateway AND"
+      ]
+    },
+    {
+      "key": "bpmn.gatewayComplex",
+      "label": "Gateway COMPLEX",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "gateway",
+        "complex"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.gatewayComplex",
+        "mxgraph.bpmn.gateway_complex",
+        "mxgraph.bpmn.gateway-complex",
+        "mxgraph.bpmn.Gateway COMPLEX"
+      ]
+    },
+    {
+      "key": "bpmn.gatewayOr",
+      "label": "Gateway OR",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "gateway",
+        "or"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.gatewayOr",
+        "mxgraph.bpmn.gateway_or",
+        "mxgraph.bpmn.gateway-or",
+        "mxgraph.bpmn.Gateway OR"
+      ]
+    },
+    {
+      "key": "bpmn.gatewayXorData",
+      "label": "Gateway XOR (data)",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "gateway",
+        "xor",
+        "data"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.gatewayXorData",
+        "mxgraph.bpmn.gateway_xor_data",
+        "mxgraph.bpmn.gateway-xor-data",
+        "mxgraph.bpmn.Gateway XOR (data)"
+      ]
+    },
+    {
+      "key": "bpmn.gatewayXorEvent",
+      "label": "Gateway XOR (event)",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "gateway",
+        "xor",
+        "event"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.gatewayXorEvent",
+        "mxgraph.bpmn.gateway_xor_event",
+        "mxgraph.bpmn.gateway-xor-event",
+        "mxgraph.bpmn.Gateway XOR (event)"
+      ]
+    },
+    {
+      "key": "bpmn.generalEnd",
+      "label": "General End",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 97.0,
+      "defaultHeight": 97.0,
+      "tags": [
+        "bpmn",
+        "general",
+        "end"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.generalEnd",
+        "mxgraph.bpmn.general_end",
+        "mxgraph.bpmn.general-end",
+        "mxgraph.bpmn.General End"
+      ]
+    },
+    {
+      "key": "bpmn.generalIntermediate",
+      "label": "General Intermediate",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "general",
+        "intermediate"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.generalIntermediate",
+        "mxgraph.bpmn.general_intermediate",
+        "mxgraph.bpmn.general-intermediate",
+        "mxgraph.bpmn.General Intermediate"
+      ]
+    },
+    {
+      "key": "bpmn.generalStart",
+      "label": "General Start",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "general",
+        "start"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.generalStart",
+        "mxgraph.bpmn.general_start",
+        "mxgraph.bpmn.general-start",
+        "mxgraph.bpmn.General Start"
+      ]
+    },
+    {
+      "key": "bpmn.linkEnd",
+      "label": "Link End",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 97.0,
+      "defaultHeight": 97.0,
+      "tags": [
+        "bpmn",
+        "link",
+        "end"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.linkEnd",
+        "mxgraph.bpmn.link_end",
+        "mxgraph.bpmn.link-end",
+        "mxgraph.bpmn.Link End"
+      ]
+    },
+    {
+      "key": "bpmn.linkIntermediate",
+      "label": "Link Intermediate",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "link",
+        "intermediate"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.linkIntermediate",
+        "mxgraph.bpmn.link_intermediate",
+        "mxgraph.bpmn.link-intermediate",
+        "mxgraph.bpmn.Link Intermediate"
+      ]
+    },
+    {
+      "key": "bpmn.linkStart",
+      "label": "Link Start",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "link",
+        "start"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.linkStart",
+        "mxgraph.bpmn.link_start",
+        "mxgraph.bpmn.link-start",
+        "mxgraph.bpmn.Link Start"
+      ]
+    },
+    {
+      "key": "bpmn.loop",
+      "label": "Loop",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 22.49,
+      "defaultHeight": 21.62,
+      "tags": [
+        "bpmn",
+        "loop"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.loop",
+        "mxgraph.bpmn.Loop"
+      ]
+    },
+    {
+      "key": "bpmn.loopMarker",
+      "label": "Loop Marker",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 15.0,
+      "defaultHeight": 10.39,
+      "tags": [
+        "bpmn",
+        "loop",
+        "marker"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.loopMarker",
+        "mxgraph.bpmn.loop_marker",
+        "mxgraph.bpmn.loop-marker",
+        "mxgraph.bpmn.Loop Marker"
+      ]
+    },
+    {
+      "key": "bpmn.manualTask",
+      "label": "Manual Task",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 91.4,
+      "defaultHeight": 59.28,
+      "tags": [
+        "bpmn",
+        "manual",
+        "task"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.manualTask",
+        "mxgraph.bpmn.manual_task",
+        "mxgraph.bpmn.manual-task",
+        "mxgraph.bpmn.Manual Task"
+      ]
+    },
+    {
+      "key": "bpmn.messageEnd",
+      "label": "Message End",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 97.0,
+      "defaultHeight": 97.0,
+      "tags": [
+        "bpmn",
+        "message",
+        "end"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.messageEnd",
+        "mxgraph.bpmn.message_end",
+        "mxgraph.bpmn.message-end",
+        "mxgraph.bpmn.Message End"
+      ]
+    },
+    {
+      "key": "bpmn.messageIntermediate",
+      "label": "Message Intermediate",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "message",
+        "intermediate"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.messageIntermediate",
+        "mxgraph.bpmn.message_intermediate",
+        "mxgraph.bpmn.message-intermediate",
+        "mxgraph.bpmn.Message Intermediate"
+      ]
+    },
+    {
+      "key": "bpmn.messageStart",
+      "label": "Message Start",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "message",
+        "start"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.messageStart",
+        "mxgraph.bpmn.message_start",
+        "mxgraph.bpmn.message-start",
+        "mxgraph.bpmn.Message Start"
+      ]
+    },
+    {
+      "key": "bpmn.multipleEnd",
+      "label": "Multiple End",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 97.0,
+      "defaultHeight": 97.0,
+      "tags": [
+        "bpmn",
+        "multiple",
+        "end"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.multipleEnd",
+        "mxgraph.bpmn.multiple_end",
+        "mxgraph.bpmn.multiple-end",
+        "mxgraph.bpmn.Multiple End"
+      ]
+    },
+    {
+      "key": "bpmn.multipleInstances",
+      "label": "Multiple Instances",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 9.0,
+      "defaultHeight": 14.0,
+      "tags": [
+        "bpmn",
+        "multiple",
+        "instances"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.multipleInstances",
+        "mxgraph.bpmn.multiple_instances",
+        "mxgraph.bpmn.multiple-instances",
+        "mxgraph.bpmn.Multiple Instances"
+      ]
+    },
+    {
+      "key": "bpmn.multipleIntermediate",
+      "label": "Multiple Intermediate",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "multiple",
+        "intermediate"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.multipleIntermediate",
+        "mxgraph.bpmn.multiple_intermediate",
+        "mxgraph.bpmn.multiple-intermediate",
+        "mxgraph.bpmn.Multiple Intermediate"
+      ]
+    },
+    {
+      "key": "bpmn.multipleStart",
+      "label": "Multiple Start",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "multiple",
+        "start"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.multipleStart",
+        "mxgraph.bpmn.multiple_start",
+        "mxgraph.bpmn.multiple-start",
+        "mxgraph.bpmn.Multiple Start"
+      ]
+    },
+    {
+      "key": "bpmn.ruleIntermediate",
+      "label": "Rule Intermediate",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "rule",
+        "intermediate"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.ruleIntermediate",
+        "mxgraph.bpmn.rule_intermediate",
+        "mxgraph.bpmn.rule-intermediate",
+        "mxgraph.bpmn.Rule Intermediate"
+      ]
+    },
+    {
+      "key": "bpmn.ruleStart",
+      "label": "Rule Start",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "rule",
+        "start"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.ruleStart",
+        "mxgraph.bpmn.rule_start",
+        "mxgraph.bpmn.rule-start",
+        "mxgraph.bpmn.Rule Start"
+      ]
+    },
+    {
+      "key": "bpmn.scriptTask",
+      "label": "Script Task",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 73.4,
+      "defaultHeight": 100.0,
+      "tags": [
+        "bpmn",
+        "script",
+        "task"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.scriptTask",
+        "mxgraph.bpmn.script_task",
+        "mxgraph.bpmn.script-task",
+        "mxgraph.bpmn.Script Task"
+      ]
+    },
+    {
+      "key": "bpmn.serviceTask",
+      "label": "Service Task",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 90.9,
+      "defaultHeight": 93.3,
+      "tags": [
+        "bpmn",
+        "service",
+        "task"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.serviceTask",
+        "mxgraph.bpmn.service_task",
+        "mxgraph.bpmn.service-task",
+        "mxgraph.bpmn.Service Task"
+      ]
+    },
+    {
+      "key": "bpmn.terminate",
+      "label": "Terminate",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 97.0,
+      "defaultHeight": 97.0,
+      "tags": [
+        "bpmn",
+        "terminate"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.terminate",
+        "mxgraph.bpmn.Terminate"
+      ]
+    },
+    {
+      "key": "bpmn.timerIntermediate",
+      "label": "Timer Intermediate",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "timer",
+        "intermediate"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.timerIntermediate",
+        "mxgraph.bpmn.timer_intermediate",
+        "mxgraph.bpmn.timer-intermediate",
+        "mxgraph.bpmn.Timer Intermediate"
+      ]
+    },
+    {
+      "key": "bpmn.timerStart",
+      "label": "Timer Start",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 99.0,
+      "defaultHeight": 99.0,
+      "tags": [
+        "bpmn",
+        "timer",
+        "start"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.timerStart",
+        "mxgraph.bpmn.timer_start",
+        "mxgraph.bpmn.timer-start",
+        "mxgraph.bpmn.Timer Start"
+      ]
+    },
+    {
+      "key": "bpmn.userTask",
+      "label": "User Task",
+      "group": "BPMN",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\bpmn.xml",
+      "defaultWidth": 94.0,
+      "defaultHeight": 91.81,
+      "tags": [
+        "bpmn",
+        "user",
+        "task"
+      ],
+      "aliases": [
+        "mxgraph.bpmn.userTask",
+        "mxgraph.bpmn.user_task",
+        "mxgraph.bpmn.user-task",
+        "mxgraph.bpmn.User Task"
+      ]
+    }
+  ]
+}

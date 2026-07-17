@@ -1,0 +1,12 @@
+**P002 已完成**
+- 修复：收窄 inline embed 原子命中框的横向范围，避免 `@mention` 可视区域横向膨胀影响后续文字命中，见 `lib/src/widgets/wenz_rich_text_editor.dart:5260`。
+- 回归：补充段落与表格单元格中 mention 前/中/后拖到后续文字、mention 后边界 `Shift+Right` 的断言，见 `test/widgets/wenz_rich_text_editor_test.dart:1810`、`test/widgets/wenz_rich_text_editor_test.dart:1984`。
+- 测试辅助：新增真实等待多击窗口的 helper，避免连续近距离拖拽被误判多击，见 `test/widgets/wenz_rich_text_editor_test.dart:4393`。
+- 计划：已将 P002 勾选为完成，并更新进度区与下一步，见 `docs/plan/plan_feedback_2_20260625-004108.md:28`、`docs/plan/plan_feedback_2_20260625-004108.md:92`、`docs/plan/plan_feedback_2_20260625-004108.md:101`。
+
+**验证**
+- 已执行 `flutter test test\widgets\wenz_rich_text_editor_test.dart --name "inline embeds select atomically" --reporter expanded`，2 项通过。
+- 已执行 `flutter test test\widgets\wenz_rich_text_editor_test.dart --reporter expanded`，78 项通过。
+- 已执行 `dart format lib\src\widgets\wenz_rich_text_editor.dart test\widgets\wenz_rich_text_editor_test.dart`。
+
+仅处理了 P002，未执行 P003。工作区仍有既有未提交改动，本次未展开处理。

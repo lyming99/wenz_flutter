@@ -1,0 +1,10 @@
+P002 已完成，仅更新 [toolbar_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/toolbar_test.dart:8)，新增覆盖：
+
+- 独立“标识箭头”入口、实心图标及精确工具 ID。
+- 与通用“图形”按钮的互斥高亮。
+- 拖拽预览及创建 `arrows.arrowRight` 的 `DrawioShapeElement`。
+- 当前描边、填充样式继承，并排除 `ArrowElement`。
+- 选择、直线、RectTool、EllipseTool 和其他 ShapeTool 的切换反馈。
+- 窄视口横向滚动访问及无布局异常。
+
+保留了原有思维导图回归，未修改 plan 文件，按要求未运行测试、构建、lint 或 analyze。

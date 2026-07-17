@@ -1,0 +1,13 @@
+已完成 P002，未修改 plan 文件、未勾选 checkbox、未更新进度区。
+
+**完成内容**
+- 新增视频插入/更新/删除命令：`lib/src/core/commands/block_commands.dart:825`
+- 修复视频复制/属性克隆时字段丢失：`lib/src/core/commands/block_commands.dart:641`
+- 新增控制器 API：`insertVideo`、`copyVideoBlock`、`updateVideoBlock`、`deleteVideoBlock`：`lib/src/controller/wenz_rich_text_controller.dart:946`
+- 新增视频控制器定向测试：`test/controller/video_block_controller_test.dart:5`
+
+**验证**
+- `dart analyze lib/src/core/commands/block_commands.dart lib/src/controller/wenz_rich_text_controller.dart test/controller/video_block_controller_test.dart` 通过
+- `flutter test test/controller/video_block_controller_test.dart` 通过
+
+注意：工作区已有大量非本次未提交改动；我只写入了 P002 scope 内相关文件。

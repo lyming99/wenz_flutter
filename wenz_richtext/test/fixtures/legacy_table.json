@@ -1,0 +1,17 @@
+[
+  {
+    "type": "table",
+    "alignments": {"0": "left", "1": "right"},
+    "rows": [
+      [
+        {"type": "text", "children": [{"type": "text", "text": "Name"}]},
+        {"type": "text", "children": [{"type": "text", "text": "Value", "bold": true}]}
+      ],
+      [
+        {"type": "text", "children": [{"type": "text", "text": "Image"}]},
+        {"type": "image", "id": "img-1", "file": "assets/img-1.png", "width": 100, "height": 80}
+      ]
+    ]
+  }
+]
+

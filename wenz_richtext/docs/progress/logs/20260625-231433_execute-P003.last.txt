@@ -1,0 +1,9 @@
+已完成 P003，未修改 plan 文件、未勾选 checkbox。
+
+**变更**
+- 将 todo checkbox 布局宽度从 `32.0` 收窄为 `24.0`：`lib/src/widgets/wenz_rich_text_editor.dart:84`
+- 同步更新 todo checkbox 对齐测试的尺寸断言：`test/widgets/wenz_rich_text_editor_test.dart:4519`
+
+**验证**
+- 通过：`dart analyze lib/src/widgets/wenz_rich_text_editor.dart`
+- 阻塞：`flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "aligns todo checkbox with adjusted text line height"` 未能加载测试文件，原因是同文件非 P003 区域已有 `_caretRenderOffsetForLogicalOffset` 缺失编译错误：`test/widgets/wenz_rich_text_editor_test.dart:5933`

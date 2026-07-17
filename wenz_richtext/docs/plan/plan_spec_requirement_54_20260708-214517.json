@@ -1,0 +1,77 @@
+{
+  "title": "电脑端禁用手机选择器与选区悬浮工具栏",
+  "summary": "需求 #54 要求 wenz_richtext 在电脑上不显示手机端选择器和悬浮工具栏。当前代码已实现 MobileSelectionHandlesOverlay 和 WenzMobileSelectionToolbar，并通过 WenzRichTextEditor.enableMobileSelectionHandles 与 EditorTokens.resolve(context).isMobile 挂载；但 EditorTokens.isMobile 仅由 MediaQuery.shortestSide < 600 推导，桌面端窄窗口也会被视为移动端，从而可能挂载手机选区手柄与选区悬浮工具栏。WenzEditorBootstrap.resolveEditorLayout 同样用该断点决定默认工具栏布局，存在桌面窄窗口被自动切到手机布局的风险。本次计划将“响应式尺寸/密度”与“手机触屏选择 UI”拆开：电脑平台（Windows/macOS/Linux 以及桌面 Web）即使窗口很窄也不自动显示手机选择器、选区悬浮工具栏或默认手机布局；Android/iOS 手机端保留现有选择手柄、长按选词和选区工具条行为，显式配置仍按现有契约可控。",
+  "tasks": [
+    {
+      "title": "抽象平台感知的手机选择 UI 判定",
+      "scope": [
+        "lib/src/widgets/editor_tokens.dart",
+        "lib/src/widgets/wenz_rich_text_editor.dart",
+        "lib/src/integration/wenz_editor_bootstrap.dart",
+        "lib/src/integration/wenz_editor_configuration.dart"
+      ],
+      "acceptance": [
+        "新增或收敛一个共享判定入口，用于区分响应式尺寸 token 与真正可启用手机选择 UI 的平台/表单因子，避免多个文件各自用 shortestSide < 600 推断。",
+        "Windows、macOS、Linux 和桌面 Web 平台在窄窗口或小尺寸 MediaQuery 下仍判定为电脑端，不自动启用手机选择器与选区悬浮工具栏。",
+        "Android、iOS 等手机平台在 compact 尺寸下仍判定为手机端，继续允许手机选择手柄、长按选词和选区工具条。",
+        "WenzEditorConfiguration.layout 的 auto/desktop/mobile 文档说明同步更新：auto 不再只等同 shortestSide < 600，电脑端窄窗口默认仍走桌面 UI；显式 desktop/mobile 的覆盖语义保持清晰。",
+        "enableMobileSelectionHandles 继续作为最终开关：即使平台判定允许，配置为 false 时也不挂载手机选择 UI。"
+      ]
+    },
+    {
+      "title": "在编辑器内部禁用电脑端手机选区手柄和选区悬浮工具栏",
+      "scope": [
+        "lib/src/widgets/wenz_rich_text_editor.dart",
+        "lib/src/widgets/mobile_selection_handles_overlay.dart",
+        "lib/src/widgets/editor_context_menu.dart"
+      ],
+      "acceptance": [
+        "WenzRichTextEditor 构建 MobileSelectionHandlesOverlay 时改用平台感知判定，而不是只依赖 EditorTokens.resolve(context).isMobile。",
+        "电脑端存在非折叠选区时不出现 MobileSelectionHandlesOverlay，也不会由该 overlay 构建 WenzMobileSelectionToolbar。",
+        "电脑端鼠标选择、双击选词、三击选块、右键 context menu、链接 hover 浮层和键盘快捷键行为保持现有桌面路径。",
+        "手机端非折叠选区仍显示起止手柄和紧凑选区工具条，复制、剪切、全选、加粗、斜体动作继续复用现有 controller/context-menu 命令路径。",
+        "禁用逻辑不影响对象块工具栏、表格浮动工具栏、链接编辑弹窗等非手机选区 UI。"
+      ]
+    },
+    {
+      "title": "修正 bootstrap 自动布局避免电脑端自动选择默认手机工具栏",
+      "scope": [
+        "lib/src/integration/wenz_editor_bootstrap.dart",
+        "lib/src/integration/wenz_editor_configuration.dart"
+      ],
+      "acceptance": [
+        "WenzEditorBootstrap.resolveEditorLayout 在 WenzEditorLayout.auto 下使用平台感知判定，电脑端窄窗口解析为 desktop，手机端 compact 尺寸解析为 mobile。",
+        "shouldUseMobileLayout 的返回值与新的 resolveEditorLayout 保持一致，避免宿主在电脑窄窗口下自动调用 buildDefaultMobileToolbar。",
+        "WenzEditorLayout.desktop 和 WenzEditorLayout.mobile 显式配置仍按原语义覆盖 auto 判定，不破坏已有宿主的强制布局能力。",
+        "buildDefaultMobileToolbar 作为显式构建 API 保持可用，签名、异常行为、ToolbarController/registry 复用逻辑不变。",
+        "配置字段 copyWith、默认值和 bootstrap.buildEditor 透传 enableMobileSelectionHandles 的既有契约保持不变。"
+      ]
+    },
+    {
+      "title": "补充桌面窄窗口与手机端选区 UI 回归测试",
+      "scope": [
+        "test/widgets/wenz_rich_text_editor_test.dart",
+        "test/integration/wenz_editor_bootstrap_test.dart",
+        "test/widgets/default_mobile_toolbar_test.dart"
+      ],
+      "acceptance": [
+        "新增桌面平台窄尺寸 widget 测试：构造非折叠文本选区后断言不出现 MobileSelectionHandlesOverlay 和 WenzMobileSelectionToolbar。",
+        "新增手机平台 compact 尺寸 widget 测试：非折叠文本选区仍出现手机选择手柄与选区悬浮工具条，并可继续触发现有复制/剪切/全选或格式动作。",
+        "新增 enableMobileSelectionHandles=false 的回归断言：手机尺寸和手机平台下也不挂载手机选择手柄和选区工具条。",
+        "新增 bootstrap 布局解析测试：auto 在 Windows/macOS/Linux 或桌面 Web 的窄尺寸下解析为 desktop，在 Android/iOS compact 尺寸下解析为 mobile。",
+        "补充显式 WenzEditorLayout.desktop/mobile 覆盖测试，确保本次平台感知改动不改变强制布局配置的结果。",
+        "既有 WenzDefaultMobileToolbar 自身渲染测试保持通过，证明默认手机工具栏组件没有被删除，只是不再被电脑端 auto 布局误选。"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter analyze; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; flutter test test/widgets/wenz_rich_text_editor_test.dart test/integration/wenz_editor_bootstrap_test.dart test/widgets/default_mobile_toolbar_test.dart",
+    "criteria": [
+      "静态分析通过，lib/src/widgets/editor_tokens.dart、lib/src/widgets/wenz_rich_text_editor.dart、lib/src/integration/wenz_editor_bootstrap.dart、lib/src/integration/wenz_editor_configuration.dart 及相关测试无新增 error/warning。",
+      "电脑平台窄窗口下存在选区时不显示手机选择手柄和 WenzMobileSelectionToolbar，桌面鼠标选择、右键菜单、链接 hover 和快捷键路径保持可用。",
+      "手机平台 compact 尺寸下仍显示并可操作手机选择手柄与选区悬浮工具条，enableMobileSelectionHandles=false 时按配置关闭。",
+      "WenzEditorBootstrap.resolveEditorLayout/shouldUseMobileLayout 在 auto 模式下不再让电脑窄窗口自动选择默认手机工具栏，Android/iOS compact 尺寸仍可选择手机布局。",
+      "WenzEditorLayout.desktop/mobile 显式覆盖、buildDefaultMobileToolbar 手动构建 API 和既有默认手机工具栏 widget 测试保持兼容。"
+    ]
+  }
+}

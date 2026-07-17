@@ -1,0 +1,420 @@
+// ignore_for_file: avoid_print
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wenz_richtext/wenz_richtext.dart';
+
+/// Performance benchmarks for the editor's rendering layer.
+///
+/// These run as normal `flutter test` cases but their purpose is to *measure*
+/// frame build/layout/paint cost, not to assert correctness. Each case:
+///   1. mounts the editor in a fixed 800×600 viewport,
+///   2. warms up with a couple of frames,
+///   3. times a fixed number of frames and prints the average per-frame µs.
+///
+/// The numbers depend on the host machine, so each case also enforces a *loose*
+/// upper bound (well above what a healthy run produces) — enough to catch a
+/// severe regression (e.g. virtualisation accidentally disabled) without
+/// flaking on slower CI boxes. Compare before/after on the same machine for
+/// real signal.
+///
+/// Run manually:
+/// ```
+/// flutter test test/benchmarks/editor_benchmarks.dart
+/// ```
+///
+/// Roadmap scenarios (see docs/optimization_roadmap.md stage 5):
+/// - 1k blocks (large document).
+/// - 10k inline runs (a single block with many text runs).
+/// - a large table (50×20 cells).
+/// - an advanced mixed document (callouts, files, code, inline embeds).
+
+const Size _benchViewport = Size(800, 600);
+
+/// Average per-frame time (µs) across [frames] pumps, after a warm-up. Also
+/// returns the worst single-frame time for tail-latency reporting.
+Future<({double avgUs, double maxUs})> _timeFrames(
+  WidgetTester tester, {
+  required int frames,
+}) async {
+  // Warm up so the first build / layout / paint is not counted.
+  for (var i = 0; i < 3; i++) {
+    await tester.pump(const Duration(milliseconds: 16));
+  }
+  final stopwatch = Stopwatch()..start();
+  var maxMicros = 0;
+  for (var i = 0; i < frames; i++) {
+    final frame = Stopwatch()..start();
+    await tester.pump(const Duration(milliseconds: 16));
+    frame.stop();
+    if (frame.elapsedMicroseconds > maxMicros) {
+      maxMicros = frame.elapsedMicroseconds;
+    }
+  }
+  stopwatch.stop();
+  return (
+    avgUs: stopwatch.elapsedMicroseconds / frames,
+    maxUs: maxMicros.toDouble(),
+  );
+}
+
+typedef _CommandLatency = ({
+  double avgUs,
+  int p50Us,
+  int p95Us,
+  int p99Us,
+  int maxUs,
+});
+
+_CommandLatency _timeCommands({
+  required int iterations,
+  required void Function(int iteration) command,
+}) {
+  final samples = <int>[];
+  for (var i = 0; i < iterations; i++) {
+    final stopwatch = Stopwatch()..start();
+    command(i);
+    stopwatch.stop();
+    samples.add(stopwatch.elapsedMicroseconds);
+  }
+  samples.sort();
+  final total = samples.fold<int>(0, (sum, value) => sum + value);
+  return (
+    avgUs: total / samples.length,
+    p50Us: _percentile(samples, 0.50),
+    p95Us: _percentile(samples, 0.95),
+    p99Us: _percentile(samples, 0.99),
+    maxUs: samples.last,
+  );
+}
+
+int _percentile(List<int> sortedSamples, double percentile) {
+  final index = ((sortedSamples.length - 1) * percentile).round();
+  return sortedSamples[index.clamp(0, sortedSamples.length - 1)];
+}
+
+void _report(String label, ({double avgUs, double maxUs}) r) {
+  print('  $label: avg ${r.avgUs.toStringAsFixed(0)}µs/frame, '
+      'max ${r.maxUs.toStringAsFixed(0)}µs/frame');
+}
+
+void _reportCommand(String label, _CommandLatency result) {
+  print(
+    '  $label: avg ${result.avgUs.toStringAsFixed(0)}us, '
+    'p50 ${result.p50Us}us, p95 ${result.p95Us}us, '
+    'p99 ${result.p99Us}us, max ${result.maxUs}us',
+  );
+}
+
+Widget _harness(WenzRichTextController controller) {
+  return MaterialApp(
+    home: Scaffold(
+      body: SizedBox.fromSize(
+        size: _benchViewport,
+        child: WenzRichTextEditor(controller: controller, enableIme: false),
+      ),
+    ),
+  );
+}
+
+RichTextDocument _largeBlockDocument({int count = 1000}) {
+  return RichTextDocument(
+    blocks: <BlockNode>[
+      for (var i = 0; i < count; i++)
+        TextBlockNode(
+          id: 'p$i',
+          type: BlockType.paragraph,
+          content: <InlineNode>[
+            TextRun(text: 'Paragraph $i — the quick brown fox jumps over.'),
+          ],
+        ),
+    ],
+  );
+}
+
+RichTextDocument _largeOrderedListDocument({int count = 10000}) {
+  return RichTextDocument(
+    blocks: <BlockNode>[
+      for (var i = 0; i < count; i++)
+        TextBlockNode(
+          id: 'ordered-$i',
+          type: BlockType.listItem,
+          attributes: const BlockAttributes(listType: 'ordered'),
+          content: <InlineNode>[TextRun(text: 'Ordered item $i')],
+        ),
+    ],
+  );
+}
+
+/// A single paragraph containing [runCount] text runs, each one character with
+/// alternating bold, to stress the inline-span construction + layout.
+RichTextDocument _inlineRunDocument(int runCount) {
+  final runs = <InlineNode>[];
+  for (var i = 0; i < runCount; i++) {
+    runs.add(TextRun(text: 'a', attributes: TextAttributes(bold: i.isEven)));
+  }
+  return RichTextDocument(
+    blocks: <BlockNode>[
+      TextBlockNode(id: 'heavy', type: BlockType.paragraph, content: runs),
+    ],
+  );
+}
+
+RichTextDocument _largeTableDocument({int rows = 50, int columns = 20}) {
+  final tableRows = <List<TableCellNode>>[
+    for (var r = 0; r < rows; r++)
+      <TableCellNode>[
+        for (var c = 0; c < columns; c++)
+          TableCellNode(
+            id: 'cell-$r-$c',
+            blocks: <BlockNode>[
+              TextBlockNode(
+                id: 'cell-$r-$c-p',
+                type: BlockType.paragraph,
+                content: <InlineNode>[TextRun(text: '$r,$c')],
+              ),
+            ],
+            isHeader: r == 0,
+          ),
+      ],
+  ];
+  return RichTextDocument(
+    blocks: <BlockNode>[
+      TableBlockNode(id: 'bigtable', table: TableModel(rows: tableRows)),
+    ],
+  );
+}
+
+RichTextDocument _advancedFeatureDocument({int groups = 200}) {
+  return RichTextDocument(
+    blocks: <BlockNode>[
+      for (var i = 0; i < groups; i++) ...<BlockNode>[
+        TextBlockNode(
+          id: 'adv-$i-p',
+          type: BlockType.paragraph,
+          content: <InlineNode>[
+            const TextRun(text: 'Owner '),
+            InlineEmbed(
+              embedType: 'mention',
+              data: <String, Object?>{'id': 'u$i', 'label': 'User $i'},
+            ),
+            const TextRun(text: ' checks '),
+            InlineEmbed(
+              embedType: 'formula',
+              data: <String, Object?>{'text': 'x_$i^2'},
+            ),
+            const TextRun(text: ' before publishing.'),
+          ],
+        ),
+        CalloutBlockNode(
+          id: 'adv-$i-callout',
+          variant: i.isEven
+              ? CalloutBlockNode.infoVariant
+              : CalloutBlockNode.warningVariant,
+          title: 'Review note $i',
+          icon: i.isEven ? 'i' : '!',
+          content: <InlineNode>[
+            const TextRun(text: 'Keep the import/export fallback visible.'),
+          ],
+        ),
+        CodeBlockNode(
+          id: 'adv-$i-code',
+          language: 'dart',
+          code: 'final item$i = true;',
+        ),
+        FileBlockNode(
+          id: 'adv-$i-file',
+          assetId: 'file-$i',
+          name: 'attachment-$i.pdf',
+          size: 262144,
+          mimeType: 'application/pdf',
+          uploadStatus: FileUploadStatus.uploaded,
+        ),
+      ],
+    ],
+  );
+}
+
+void main() {
+  testWidgets('benchmark: 1k blocks initial mount + idle frames',
+      (tester) async {
+    tester.view.physicalSize = _benchViewport;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller =
+        WenzRichTextController(document: _largeBlockDocument(count: 1000));
+    await tester.pumpWidget(_harness(controller));
+
+    final r = await _timeFrames(tester, frames: 20);
+    _report('1k blocks', r);
+    // Loose guard: a healthy virtualised mount stays well under this even on
+    // slow machines. ~50ms/frame would indicate virtualisation regressed.
+    expect(r.avgUs, lessThan(50000), reason: '1k-block frame budget blew out');
+  });
+
+  testWidgets('benchmark: 1k blocks synchronous typing latency',
+      (tester) async {
+    tester.view.physicalSize = _benchViewport;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = WenzRichTextController(
+      document: _largeBlockDocument(count: 1000),
+      selection: _textPosition('p0', 0, 0),
+    );
+    await tester.pumpWidget(_harness(controller));
+    await tester.pump();
+
+    final latency = _timeCommands(
+      iterations: 50,
+      command: (_) => controller.insertText('x'),
+    );
+    _reportCommand('1k blocks insertText', latency);
+    await tester.pump();
+    expect(
+      latency.p95Us,
+      lessThan(8000),
+      reason: '1k-block insertText p95 budget blew out',
+    );
+  });
+
+  test('benchmark: 10k blocks synchronous typing latency', () {
+    final controller = WenzRichTextController(
+      document: _largeBlockDocument(count: 10000),
+      selection: _textPosition('p0', 0, 0),
+    );
+    addTearDown(controller.dispose);
+
+    final latency = _timeCommands(
+      iterations: 20,
+      command: (_) => controller.insertText('x'),
+    );
+    _reportCommand('10k blocks insertText', latency);
+    expect(
+      latency.p95Us,
+      lessThan(8000),
+      reason: '10k-block insertText p95 budget blew out',
+    );
+  });
+
+  testWidgets('benchmark: 10k ordered-list blocks initial mount',
+      (tester) async {
+    tester.view.physicalSize = _benchViewport;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = WenzRichTextController(
+      document: _largeOrderedListDocument(),
+    );
+    addTearDown(controller.dispose);
+    final stopwatch = Stopwatch()..start();
+    await tester.pumpWidget(_harness(controller));
+    await tester.pump();
+    stopwatch.stop();
+
+    print(
+      '  10k ordered-list mount: ${stopwatch.elapsedMilliseconds}ms',
+    );
+    expect(stopwatch.elapsed, lessThan(const Duration(seconds: 10)));
+  });
+
+  testWidgets('benchmark: 10k inline runs single-block mount', (tester) async {
+    tester.view.physicalSize = _benchViewport;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller =
+        WenzRichTextController(document: _inlineRunDocument(10000));
+    await tester.pumpWidget(_harness(controller));
+
+    final r = await _timeFrames(tester, frames: 20);
+    _report('10k inline runs', r);
+    // 10k runs is a heavy single block; allow a generous budget.
+    expect(r.avgUs, lessThan(120000), reason: '10k-run frame budget blew out');
+  });
+
+  testWidgets('benchmark: large table (50x20) mount', (tester) async {
+    tester.view.physicalSize = _benchViewport;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = WenzRichTextController(
+        document: _largeTableDocument(rows: 50, columns: 20));
+    await tester.pumpWidget(_harness(controller));
+
+    final r = await _timeFrames(tester, frames: 20);
+    _report('50x20 table', r);
+    expect(r.avgUs, lessThan(120000),
+        reason: 'large-table frame budget blew out');
+  });
+
+  testWidgets('benchmark: advanced mixed document mount', (tester) async {
+    tester.view.physicalSize = _benchViewport;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = WenzRichTextController(
+      document: _advancedFeatureDocument(groups: 200),
+    );
+    await tester.pumpWidget(_harness(controller));
+
+    final r = await _timeFrames(tester, frames: 20);
+    _report('advanced mixed document', r);
+    expect(
+      r.avgUs,
+      lessThan(90000),
+      reason: 'advanced mixed document frame budget blew out',
+    );
+  });
+
+  testWidgets('benchmark: 1k blocks scroll (remount cost)', (tester) async {
+    // Scrolling mounts/unmounts blocks continuously. With the shared
+    // TextPainter cache, re-entering a previously-viewed block should reuse its
+    // laid-out painter. This case exercises the remount path.
+    tester.view.physicalSize = _benchViewport;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller =
+        WenzRichTextController(document: _largeBlockDocument(count: 1000));
+    await tester.pumpWidget(_harness(controller));
+    // Scroll down then back up so blocks remount, then time steady scrolling.
+    await tester.drag(find.byType(WenzRichTextEditor), const Offset(0, -4000));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(WenzRichTextEditor), const Offset(0, 4000));
+    await tester.pumpAndSettle();
+
+    // Now time frames while scrolling (each pump advances ~16ms of scroll).
+    final stopwatch = Stopwatch()..start();
+    for (var i = 0; i < 20; i++) {
+      await tester.drag(
+        find.byType(WenzRichTextEditor),
+        const Offset(0, -120),
+      );
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    stopwatch.stop();
+    final avgUs = stopwatch.elapsedMicroseconds / 20;
+    print(
+        '  1k blocks scroll (remount): avg ${avgUs.toStringAsFixed(0)}µs/frame');
+    expect(avgUs, lessThan(80000), reason: 'scroll/remount budget blew out');
+  });
+}
+
+DocumentSelection _textPosition(String blockId, int blockIndex, int offset) {
+  final position = DocumentPosition(
+    blockId: blockId,
+    blockIndex: blockIndex,
+    path: PositionPath.blockText(blockId),
+    offset: offset,
+  );
+  return DocumentSelection(base: position, extent: position);
+}

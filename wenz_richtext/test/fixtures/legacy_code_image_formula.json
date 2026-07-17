@@ -1,0 +1,27 @@
+[
+  {
+    "type": "code",
+    "language": "dart",
+    "code": "void main() { print('hello'); }"
+  },
+  {
+    "type": "image",
+    "id": "cover",
+    "file": "assets/cover.png",
+    "width": 640,
+    "height": 360,
+    "showWidth": 320.0,
+    "showHeight": 180.0
+  },
+  {
+    "type": "text",
+    "children": [
+      {"type": "text", "text": "Area: "},
+      {"type": "text", "itemType": "formula", "text": "a^2+b^2=c^2"}
+    ]
+  },
+  {
+    "type": "line"
+  }
+]
+

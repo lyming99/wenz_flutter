@@ -1,0 +1,736 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR, C:\Users\98000\.codex\memories]
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efec4-c06a-7031-9d29-348d2c0daade
+--------
+user
+你是开发执行者。
+请只执行指定任务 P001，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_7_20260625-202854.md
+指定任务：- [ ] P001: 修复 mention 后续文字选择 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,test/widgets/wenz_rich_text_editor_test.dart,test/core/selection_commands_test.dart -->
+任务 scope：lib/src/widgets/wenz_rich_text_editor.dart, test/widgets/wenz_rich_text_editor_test.dart, test/core/selection_commands_test.dart
+
+完成后必须：
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 如需测试，只运行与当前任务直接相关的最小测试集，不要运行全量测试或与本任务无关的测试
+- 只有当前任务本身明确要求全量验证时，才允许运行全量测试
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+**Evaluating output methods**
+
+I realize I need to output truncated lines that are relevant to mention-specific tests. It seems I could use `Select-String -Pattern 'mention' -Context 0,10` to get output to a file, but I need enough context to cover specific line numbers like 6030. Using `Get-Content | Select-Object -Index` might be better for inspecting those lines, so I'll focus on checking the range around 5980-6100 to ensure I gather enough information.
+codex
+我把相关测试片段单独拉出来，看看 mention 的拖拽选择期望。
+exec
+powershell.exe -Command '$lines = Get-Content '"'test/widgets/wenz_rich_text_editor_test.dart'; "'$start=5980; $end=6105; for($i=$start; $i -le $end; $i++){ if($i -le $lines.Length){ '"'{0,5}: {1}' -f "'$i, $lines[$i-1] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 611ms:
+ 5980:                     blocks: <BlockNode>[
+ 5981:                       TextBlockNode(
+ 5982:                         id: 'cell-tail-text',
+ 5983:                         type: BlockType.paragraph,
+ 5984:                         content: <InlineNode>[TextRun(text: 'tail')],
+ 5985:                       ),
+ 5986:                     ],
+ 5987:                   ),
+ 5988:                 ],
+ 5989:               ],
+ 5990:             ),
+ 5991:           ),
+ 5992:         ],
+ 5993:       ),
+ 5994:     );
+ 5995: 
+ 5996:     await tester.pumpWidget(
+ 5997:       MaterialApp(
+ 5998:         home: Scaffold(
+ 5999:           body: WenzRichTextEditor(
+ 6000:             controller: controller,
+ 6001:             autofocus: true,
+ 6002:             enableIme: false,
+ 6003:           ),
+ 6004:         ),
+ 6005:       ),
+ 6006:     );
+ 6007:     await tester.pump();
+ 6008: 
+ 6009:     final emojiLeft = _globalTextRangePoint(tester, renderedText, 1, 3, 0.25);
+ 6010:     final emojiRight = _globalTextRangePoint(tester, renderedText, 1, 3, 0.75);
+ 6011:     final mentionLeft = _globalTextRangePoint(tester, renderedText, 4, 8, 0.25);
+ 6012:     final mentionMiddle =
+ 6013:         _globalTextRangePoint(tester, renderedText, 4, 8, 0.50);
+ 6014:     final mentionRight =
+ 6015:         _globalTextRangePoint(tester, renderedText, 4, 8, 0.75);
+ 6016:     final followingEnd =
+ 6017:         _globalTextOffset(tester, renderedText, renderedText.length);
+ 6018: 
+ 6019:     await _tapSingle(tester, emojiRight);
+ 6020:     _expectTableCellTextSelection(
+ 6021:       controller.selection,
+ 6022:       tableBlockId: 'table-inline',
+ 6023:       blockIndex: 0,
+ 6024:       tableRowIndex: 0,
+ 6025:       tableColumnIndex: 0,
+ 6026:       baseOffset: 2,
+ 6027:       extentOffset: 2,
+ 6028:     );
+ 6029: 
+ 6030:     await _tapSingle(tester, mentionLeft);
+ 6031:     _expectTableCellTextSelection(
+ 6032:       controller.selection,
+ 6033:       tableBlockId: 'table-inline',
+ 6034:       blockIndex: 0,
+ 6035:       tableRowIndex: 0,
+ 6036:       tableColumnIndex: 0,
+ 6037:       baseOffset: 3,
+ 6038:       extentOffset: 3,
+ 6039:     );
+ 6040: 
+ 6041:     await tester.dragFrom(emojiLeft, mentionRight - emojiLeft);
+ 6042:     await tester.pump();
+ 6043:     _expectTableCellTextSelection(
+ 6044:       controller.selection,
+ 6045:       tableBlockId: 'table-inline',
+ 6046:       blockIndex: 0,
+ 6047:       tableRowIndex: 0,
+ 6048:       tableColumnIndex: 0,
+ 6049:       baseOffset: 1,
+ 6050:       extentOffset: 4,
+ 6051:     );
+ 6052: 
+ 6053:     await _waitPastMultiClickWindow(tester);
+ 6054:     await tester.dragFrom(mentionLeft, followingEnd - mentionLeft);
+ 6055:     await tester.pump();
+ 6056:     _expectTableCellTextSelection(
+ 6057:       controller.selection,
+ 6058:       tableBlockId: 'table-inline',
+ 6059:       blockIndex: 0,
+ 6060:       tableRowIndex: 0,
+ 6061:       tableColumnIndex: 0,
+ 6062:       baseOffset: 3,
+ 6063:       extentOffset: 5,
+ 6064:     );
+ 6065: 
+ 6066:     await _waitPastMultiClickWindow(tester);
+ 6067:     await tester.dragFrom(mentionMiddle, followingEnd - mentionMiddle);
+ 6068:     await tester.pump();
+ 6069:     expect(controller.selection?.base.offset, inInclusiveRange(3, 4));
+ 6070:     _expectTableCellTextSelection(
+ 6071:       controller.selection,
+ 6072:       tableBlockId: 'table-inline',
+ 6073:       blockIndex: 0,
+ 6074:       tableRowIndex: 0,
+ 6075:       tableColumnIndex: 0,
+ 6076:       baseOffset: controller.selection!.base.offset,
+ 6077:       extentOffset: 5,
+ 6078:     );
+ 6079: 
+ 6080:     await _waitPastMultiClickWindow(tester);
+ 6081:     await tester.dragFrom(mentionRight, followingEnd - mentionRight);
+ 6082:     await tester.pump();
+ 6083:     _expectTableCellTextSelection(
+ 6084:       controller.selection,
+ 6085:       tableBlockId: 'table-inline',
+ 6086:       blockIndex: 0,
+ 6087:       tableRowIndex: 0,
+ 6088:       tableColumnIndex: 0,
+ 6089:       baseOffset: 4,
+ 6090:       extentOffset: 5,
+ 6091:     );
+ 6092: 
+ 6093:     controller.setSelection(
+ 6094:       _collapsedTableCellTextSelection(
+ 6095:         tableBlockId: 'table-inline',
+ 6096:         blockIndex: 0,
+ 6097:         tableRowIndex: 0,
+ 6098:         tableColumnIndex: 0,
+ 6099:         offset: 1,
+ 6100:       ),
+ 6101:     );
+ 6102:     await tester.pump();
+ 6103:     await _sendShiftArrowRight(tester);
+ 6104:     _expectTableCellTextSelection(
+ 6105:       controller.selection,
+
+**Investigating mention selection issues**
+
+I’m wondering if the mention selection might be buggy in the regular editor rather than in the table itself. It makes sense to inspect other tests around mention selection in different contexts, especially non-table ones. I think I could search for mentions around the lines near 4170 to get a better view of what's happening. This will help in isolating the issue more effectively!
+codex
+我再看普通段落里的 mention 交互测试有没有覆盖到。
+exec
+powershell.exe -Command '$lines = Get-Content '"'test/widgets/wenz_rich_text_editor_test.dart'; "'$start=4170; $end=4305; for($i=$start; $i -le $end; $i++){ if($i -le $lines.Length){ '"'{0,5}: {1}' -f "'$i, $lines[$i-1] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 627ms:
+ 4170:     const mentionRenderText = 'Ask @Ada follow';
+ 4171:     const calloutBody = 'Info body selectable';
+ 4172:     final controller = WenzRichTextController(
+ 4173:       document: const RichTextDocument(
+ 4174:         blocks: <BlockNode>[
+ 4175:           TextBlockNode(
+ 4176:             id: 'mention-p',
+ 4177:             type: BlockType.paragraph,
+ 4178:             content: <InlineNode>[
+ 4179:               TextRun(text: 'Ask '),
+ 4180:               InlineEmbed(
+ 4181:                 embedType: 'mention',
+ 4182:                 data: <String, Object?>{'id': 'u1', 'label': 'Ada'},
+ 4183:               ),
+ 4184:               TextRun(text: ' follow'),
+ 4185:             ],
+ 4186:           ),
+ 4187:           TextBlockNode(
+ 4188:             id: 'quote1',
+ 4189:             type: BlockType.quote,
+ 4190:             content: <InlineNode>[TextRun(text: 'Quoted background')],
+ 4191:           ),
+ 4192:           TextBlockNode(
+ 4193:             id: 'todo1',
+ 4194:             type: BlockType.listItem,
+ 4195:             attributes: BlockAttributes(listType: 'task', checked: false),
+ 4196:             content: <InlineNode>[TextRun(text: 'Finish regression')],
+ 4197:           ),
+ 4198:           CalloutBlockNode(
+ 4199:             id: 'info1',
+ 4200:             title: 'Info Title',
+ 4201:             content: <InlineNode>[TextRun(text: calloutBody)],
+ 4202:           ),
+ 4203:           TableBlockNode(
+ 4204:             id: 'table1',
+ 4205:             table: TableModel(
+ 4206:               rows: <List<TableCellNode>>[
+ 4207:                 <TableCellNode>[
+ 4208:                   TableCellNode(
+ 4209:                     id: 'cell-a1',
+ 4210:                     blocks: <BlockNode>[
+ 4211:                       TextBlockNode(
+ 4212:                         id: 'cell-a1-text',
+ 4213:                         type: BlockType.paragraph,
+ 4214:                         content: <InlineNode>[TextRun(text: 'A1')],
+ 4215:                       ),
+ 4216:                     ],
+ 4217:                   ),
+ 4218:                   TableCellNode(
+ 4219:                     id: 'cell-b1',
+ 4220:                     blocks: <BlockNode>[
+ 4221:                       TextBlockNode(
+ 4222:                         id: 'cell-b1-text',
+ 4223:                         type: BlockType.paragraph,
+ 4224:                         content: <InlineNode>[TextRun(text: 'B1')],
+ 4225:                       ),
+ 4226:                     ],
+ 4227:                   ),
+ 4228:                 ],
+ 4229:                 <TableCellNode>[
+ 4230:                   TableCellNode(
+ 4231:                     id: 'cell-a2',
+ 4232:                     blocks: <BlockNode>[
+ 4233:                       TextBlockNode(
+ 4234:                         id: 'cell-a2-text',
+ 4235:                         type: BlockType.paragraph,
+ 4236:                         content: <InlineNode>[TextRun(text: 'A2')],
+ 4237:                       ),
+ 4238:                     ],
+ 4239:                   ),
+ 4240:                   TableCellNode(
+ 4241:                     id: 'cell-b2',
+ 4242:                     blocks: <BlockNode>[
+ 4243:                       TextBlockNode(
+ 4244:                         id: 'cell-b2-text',
+ 4245:                         type: BlockType.paragraph,
+ 4246:                         content: <InlineNode>[TextRun(text: 'B2')],
+ 4247:                       ),
+ 4248:                     ],
+ 4249:                   ),
+ 4250:                 ],
+ 4251:               ],
+ 4252:             ),
+ 4253:           ),
+ 4254:           TextBlockNode(
+ 4255:             id: 'formula-p',
+ 4256:             type: BlockType.paragraph,
+ 4257:             content: <InlineNode>[
+ 4258:               TextRun(text: 'Inline '),
+ 4259:               InlineEmbed(
+ 4260:                 embedType: 'formula',
+ 4261:                 data: <String, Object?>{'text': 'x^2'},
+ 4262:               ),
+ 4263:               TextRun(text: ' end'),
+ 4264:             ],
+ 4265:           ),
+ 4266:           BlockEmbedNode(
+ 4267:             id: 'formula-block',
+ 4268:             embedType: 'formula',
+ 4269:             data: <String, Object?>{'text': r'\int_0^1 x dx'},
+ 4270:           ),
+ 4271:         ],
+ 4272:       ),
+ 4273:       selection: collapsedTextSelection('mention-p', 0, 4),
+ 4274:     );
+ 4275: 
+ 4276:     await tester.pumpWidget(
+ 4277:       MaterialApp(
+ 4278:         home: Scaffold(
+ 4279:           body: SizedBox(
+ 4280:             width: 960,
+ 4281:             height: 820,
+ 4282:             child: WenzRichTextEditor(
+ 4283:               controller: controller,
+ 4284:               padding: const EdgeInsets.only(
+ 4285:                 left: 16,
+ 4286:                 top: 72,
+ 4287:                 right: 16,
+ 4288:                 bottom: 16,
+ 4289:               ),
+ 4290:               autofocus: true,
+ 4291:               enableIme: false,
+ 4292:             ),
+ 4293:           ),
+ 4294:         ),
+ 4295:       ),
+ 4296:     );
+ 4297:     await tester.pump();
+ 4298: 
+ 4299:     final quoteBackground = tester.widget<DecoratedBox>(find.byKey(
+ 4300:       const ValueKey<String>('wenz-richtext-quote-background'),
+ 4301:     ));
+ 4302:     expect((quoteBackground.decoration as BoxDecoration).color, isNotNull);
+ 4303:     expect(find.text('|'), findsNothing);
+ 4304:     expect(_richText('Inline $_formulaPlaceholder end'), findsOneWidget);
+ 4305:     expect(find.byKey(_inlineFormulaKey), findsOneWidget);
+
+**Exploring inline embed options**
+
+I'm looking to search for display text and layout construction related to inline embedding. I want to focus on specific elements like `_buildInlineSpans` and `_InlineTextSpanBuilder`. To dive deeper, I plan to use a command to search patterns such as 'WidgetSpan', 'PlaceholderSpan', and 'TextSpan.' This should help me gather relevant information for my task. Let’s see what I can uncover!
+codex
+我现在追 inline embed 的文本布局和光标映射实现。
+exec
+powershell.exe -Command "Select-String -Path 'lib/src/widgets/wenz_rich_text_editor.dart' -Pattern 'WidgetSpan|PlaceholderSpan|TextSpan|InlineSpan|getPositionForOffset|getOffsetForCaret|TextPainter' -Context 2,4" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 655ms:
+
+  lib\src\widgets\wenz_rich_text_editor.dart:4615:      path: path,
+  lib\src\widgets\wenz_rich_text_editor.dart:4616:      textLength: textLength,
+> lib\src\widgets\wenz_rich_text_editor.dart:4617:      textSpan: TextSpan(
+  lib\src\widgets\wenz_rich_text_editor.dart:4618:        style: effectiveStyle,
+  lib\src\widgets\wenz_rich_text_editor.dart:4619:        children: inlineTextLayout.spans,
+  lib\src\widgets\wenz_rich_text_editor.dart:4620:      ),
+  lib\src\widgets\wenz_rich_text_editor.dart:4621:      offsetMapper: inlineTextLayout.offsetMapper,
+  lib\src\widgets\wenz_rich_text_editor.dart:5143:                  final contentWidth = math.max(
+  lib\src\widgets\wenz_rich_text_editor.dart:5144:                    availableWidth,
+> lib\src\widgets\wenz_rich_text_editor.dart:5145:                    _measureInlineSpanWidth(codeSpan, textDirection) 
++ 1,
+  lib\src\widgets\wenz_rich_text_editor.dart:5146:                  );
+  lib\src\widgets\wenz_rich_text_editor.dart:5147:                  return SingleChildScrollView(
+  lib\src\widgets\wenz_rich_text_editor.dart:5148:                    key: ValueKey<String>(
+  lib\src\widgets\wenz_rich_text_editor.dart:5149:                      'wenz-richtext-code-scroll-${block.id}',
+  lib\src\widgets\wenz_rich_text_editor.dart:5157:                        path: path,
+  lib\src\widgets\wenz_rich_text_editor.dart:5158:                        textLength: block.code.length,
+> lib\src\widgets\wenz_rich_text_editor.dart:5159:                        textSpan: codeSpan,
+  lib\src\widgets\wenz_rich_text_editor.dart:5160:                        offsetMapper: _InlineOffsetMapper.identity(
+  lib\src\widgets\wenz_rich_text_editor.dart:5161:                          block.code.length,
+  lib\src\widgets\wenz_rich_text_editor.dart:5162:                        ),
+  lib\src\widgets\wenz_rich_text_editor.dart:5163:                        textAlign: TextAlign.start,
+  lib\src\widgets\wenz_rich_text_editor.dart:5189:}
+  lib\src\widgets\wenz_rich_text_editor.dart:5190:
+> lib\src\widgets\wenz_rich_text_editor.dart:5191:double _measureInlineSpanWidth(InlineSpan span, TextDirection textDir
+ection) {
+> lib\src\widgets\wenz_rich_text_editor.dart:5192:  final painter = TextPainter(
+  lib\src\widgets\wenz_rich_text_editor.dart:5193:    text: span,
+  lib\src\widgets\wenz_rich_text_editor.dart:5194:    textDirection: textDirection,
+  lib\src\widgets\wenz_rich_text_editor.dart:5195:  )..layout(maxWidth: double.infinity);
+  lib\src\widgets\wenz_rich_text_editor.dart:5196:  final width = painter.width;
+  lib\src\widgets\wenz_rich_text_editor.dart:5978:  final displayText = text.isEmpty ? ' ' : text;
+  lib\src\widgets\wenz_rich_text_editor.dart:5979:  final innerWidth = cellWidth - _kTableCellPadding.horizontal;
+> lib\src\widgets\wenz_rich_text_editor.dart:5980:  final painter = TextPainter(
+> lib\src\widgets\wenz_rich_text_editor.dart:5981:    text: TextSpan(text: displayText, style: effectiveTextStyle),
+  lib\src\widgets\wenz_rich_text_editor.dart:5982:    textAlign: TextAlign.start,
+  lib\src\widgets\wenz_rich_text_editor.dart:5983:    textDirection: textDirection,
+  lib\src\widgets\wenz_rich_text_editor.dart:5984:  )..layout(maxWidth: innerWidth > 0 ? innerWidth : 0);
+  lib\src\widgets\wenz_rich_text_editor.dart:5985:  final height = painter.height + _kTableCellPadding.vertical;
+  lib\src\widgets\wenz_rich_text_editor.dart:6206:      path: path,
+  lib\src\widgets\wenz_rich_text_editor.dart:6207:      textLength: textLength,
+> lib\src\widgets\wenz_rich_text_editor.dart:6208:      textSpan: TextSpan(
+  lib\src\widgets\wenz_rich_text_editor.dart:6209:        style: effectiveTextStyle,
+  lib\src\widgets\wenz_rich_text_editor.dart:6210:        children: textLength == 0
+> lib\src\widgets\wenz_rich_text_editor.dart:6211:            ? const <InlineSpan>[TextSpan(text: ' ')]
+  lib\src\widgets\wenz_rich_text_editor.dart:6212:            : inlineTextLayout.spans,
+  lib\src\widgets\wenz_rich_text_editor.dart:6213:      ),
+  lib\src\widgets\wenz_rich_text_editor.dart:6214:      offsetMapper: inlineTextLayout.offsetMapper,
+  lib\src\widgets\wenz_rich_text_editor.dart:6215:      textAlign: widget.textAlign,
+  lib\src\widgets\wenz_rich_text_editor.dart:6516:    required this.path,
+  lib\src\widgets\wenz_rich_text_editor.dart:6517:    required this.textLength,
+> lib\src\widgets\wenz_rich_text_editor.dart:6518:    required this.textSpan,
+  lib\src\widgets\wenz_rich_text_editor.dart:6519:    required this.offsetMapper,
+  lib\src\widgets\wenz_rich_text_editor.dart:6520:    required this.textAlign,
+  lib\src\widgets\wenz_rich_text_editor.dart:6521:    required this.minHeight,
+  lib\src\widgets\wenz_rich_text_editor.dart:6522:    required this.selection,
+  lib\src\widgets\wenz_rich_text_editor.dart:6532:  final PositionPath path;
+  lib\src\widgets\wenz_rich_text_editor.dart:6533:  final int textLength;
+> lib\src\widgets\wenz_rich_text_editor.dart:6534:  final InlineSpan textSpan;
+  lib\src\widgets\wenz_rich_text_editor.dart:6535:  final _InlineOffsetMapper offsetMapper;
+  lib\src\widgets\wenz_rich_text_editor.dart:6536:  final TextAlign textAlign;
+  lib\src\widgets\wenz_rich_text_editor.dart:6537:  final double minHeight;
+  lib\src\widgets\wenz_rich_text_editor.dart:6538:  final DocumentSelection? selection;
+  lib\src\widgets\wenz_rich_text_editor.dart:6609:        oldWidget.path != widget.path ||
+  lib\src\widgets\wenz_rich_text_editor.dart:6610:        oldWidget.textLength != widget.textLength ||
+> lib\src\widgets\wenz_rich_text_editor.dart:6611:        oldWidget.textSpan != widget.textSpan) {
+  lib\src\widgets\wenz_rich_text_editor.dart:6612:      _register();
+  lib\src\widgets\wenz_rich_text_editor.dart:6613:    }
+  lib\src\widgets\wenz_rich_text_editor.dart:6614:    // When the caret stays visible but its position changes (typing,
+ arrow
+  lib\src\widgets\wenz_rich_text_editor.dart:6615:    // keys, programmatic moves), reset the blink phase so the caret 
+is shown
+  lib\src\widgets\wenz_rich_text_editor.dart:6739:  int _offsetForLocalPosition(Offset localPosition) {
+  lib\src\widgets\wenz_rich_text_editor.dart:6740:    final painter = _layoutService.layout(
+> lib\src\widgets\wenz_rich_text_editor.dart:6741:      span: widget.textSpan,
+  lib\src\widgets\wenz_rich_text_editor.dart:6742:      textAlign: widget.textAlign,
+  lib\src\widgets\wenz_rich_text_editor.dart:6743:      textDirection: Directionality.of(context),
+  lib\src\widgets\wenz_rich_text_editor.dart:6744:      maxWidth: _lastMaxWidth,
+  lib\src\widgets\wenz_rich_text_editor.dart:6745:    );
+> lib\src\widgets\wenz_rich_text_editor.dart:6746:    final renderLength = widget.textSpan.toPlainText().length;
+  lib\src\widgets\wenz_rich_text_editor.dart:6747:    final renderOffset = _layoutService.offsetAt(
+  lib\src\widgets\wenz_rich_text_editor.dart:6748:      painter,
+  lib\src\widgets\wenz_rich_text_editor.dart:6749:      localPosition,
+  lib\src\widgets\wenz_rich_text_editor.dart:6750:      renderLength,
+  lib\src\widgets\wenz_rich_text_editor.dart:6759:  TextRange _wordRangeAt(int offset) {
+  lib\src\widgets\wenz_rich_text_editor.dart:6760:    final painter = _layoutService.layout(
+> lib\src\widgets\wenz_rich_text_editor.dart:6761:      span: widget.textSpan,
+  lib\src\widgets\wenz_rich_text_editor.dart:6762:      textAlign: widget.textAlign,
+  lib\src\widgets\wenz_rich_text_editor.dart:6763:      textDirection: Directionality.of(context),
+  lib\src\widgets\wenz_rich_text_editor.dart:6764:      maxWidth: _lastMaxWidth,
+  lib\src\widgets\wenz_rich_text_editor.dart:6765:    );
+  lib\src\widgets\wenz_rich_text_editor.dart:6795:  Rect? _localCaretRectAt(int offset) {
+  lib\src\widgets\wenz_rich_text_editor.dart:6796:    final painter = _layoutService.layout(
+> lib\src\widgets\wenz_rich_text_editor.dart:6797:      span: widget.textSpan,
+  lib\src\widgets\wenz_rich_text_editor.dart:6798:      textAlign: widget.textAlign,
+  lib\src\widgets\wenz_rich_text_editor.dart:6799:      textDirection: Directionality.of(context),
+  lib\src\widgets\wenz_rich_text_editor.dart:6800:      maxWidth: _lastMaxWidth,
+  lib\src\widgets\wenz_rich_text_editor.dart:6801:    );
+  lib\src\widgets\wenz_rich_text_editor.dart:6819:  Rect? _localComposingRectForRange(int start, int end) {
+  lib\src\widgets\wenz_rich_text_editor.dart:6820:    final painter = _layoutService.layout(
+> lib\src\widgets\wenz_rich_text_editor.dart:6821:      span: widget.textSpan,
+  lib\src\widgets\wenz_rich_text_editor.dart:6822:      textAlign: widget.textAlign,
+  lib\src\widgets\wenz_rich_text_editor.dart:6823:      textDirection: Directionality.of(context),
+  lib\src\widgets\wenz_rich_text_editor.dart:6824:      maxWidth: _lastMaxWidth,
+  lib\src\widgets\wenz_rich_text_editor.dart:6825:    );
+  lib\src\widgets\wenz_rich_text_editor.dart:6851:      int offset, bool forward, double? preferX) {
+  lib\src\widgets\wenz_rich_text_editor.dart:6852:    final painter = _layoutService.layout(
+> lib\src\widgets\wenz_rich_text_editor.dart:6853:      span: widget.textSpan,
+  lib\src\widgets\wenz_rich_text_editor.dart:6854:      textAlign: widget.textAlign,
+  lib\src\widgets\wenz_rich_text_editor.dart:6855:      textDirection: Directionality.of(context),
+  lib\src\widgets\wenz_rich_text_editor.dart:6856:      maxWidth: _lastMaxWidth,
+  lib\src\widgets\wenz_rich_text_editor.dart:6857:    );
+  lib\src\widgets\wenz_rich_text_editor.dart:6903:        _lastMaxWidth = maxWidth;
+  lib\src\widgets\wenz_rich_text_editor.dart:6904:        // Warm the layout cache so painters and hit-testing reuse th
+e same
+> lib\src\widgets\wenz_rich_text_editor.dart:6905:        // laid-out TextPainter this frame.
+  lib\src\widgets\wenz_rich_text_editor.dart:6906:        _layoutService.layout(
+> lib\src\widgets\wenz_rich_text_editor.dart:6907:          span: widget.textSpan,
+  lib\src\widgets\wenz_rich_text_editor.dart:6908:          textAlign: widget.textAlign,
+  lib\src\widgets\wenz_rich_text_editor.dart:6909:          textDirection: direction,
+  lib\src\widgets\wenz_rich_text_editor.dart:6910:          maxWidth: maxWidth,
+  lib\src\widgets\wenz_rich_text_editor.dart:6911:        );
+  lib\src\widgets\wenz_rich_text_editor.dart:6920:        final caretPainter = _CaretPainter(
+  lib\src\widgets\wenz_rich_text_editor.dart:6921:          layoutService: _layoutService,
+> lib\src\widgets\wenz_rich_text_editor.dart:6922:          textSpan: widget.textSpan,
+  lib\src\widgets\wenz_rich_text_editor.dart:6923:          offsetMapper: widget.offsetMapper,
+  lib\src\widgets\wenz_rich_text_editor.dart:6924:          textAlign: widget.textAlign,
+  lib\src\widgets\wenz_rich_text_editor.dart:6925:          textDirection: direction,
+  lib\src\widgets\wenz_rich_text_editor.dart:6926:          maxWidth: maxWidth,
+  lib\src\widgets\wenz_rich_text_editor.dart:6933:          painter: _FindHighlightPainter(
+  lib\src\widgets\wenz_rich_text_editor.dart:6934:            layoutService: _layoutService,
+> lib\src\widgets\wenz_rich_text_editor.dart:6935:            textSpan: widget.textSpan,
+  lib\src\widgets\wenz_rich_text_editor.dart:6936:            textAlign: widget.textAlign,
+  lib\src\widgets\wenz_rich_text_editor.dart:6937:            textDirection: direction,
+  lib\src\widgets\wenz_rich_text_editor.dart:6938:            maxWidth: maxWidth,
+  lib\src\widgets\wenz_rich_text_editor.dart:6939:            ranges: widget.findRanges,
+  lib\src\widgets\wenz_rich_text_editor.dart:6944:            painter: _SelectionHighlightPainter(
+  lib\src\widgets\wenz_rich_text_editor.dart:6945:              layoutService: _layoutService,
+> lib\src\widgets\wenz_rich_text_editor.dart:6946:              textSpan: widget.textSpan,
+  lib\src\widgets\wenz_rich_text_editor.dart:6947:              offsetMapper: widget.offsetMapper,
+  lib\src\widgets\wenz_rich_text_editor.dart:6948:              textAlign: widget.textAlign,
+  lib\src\widgets\wenz_rich_text_editor.dart:6949:              textDirection: direction,
+  lib\src\widgets\wenz_rich_text_editor.dart:6950:              maxWidth: maxWidth,
+  lib\src\widgets\wenz_rich_text_editor.dart:6955:              constraints: BoxConstraints(minHeight: widget.minHeight
+),
+  lib\src\widgets\wenz_rich_text_editor.dart:6956:              child: RichText(
+> lib\src\widgets\wenz_rich_text_editor.dart:6957:                text: widget.textSpan,
+  lib\src\widgets\wenz_rich_text_editor.dart:6958:                textAlign: widget.textAlign,
+  lib\src\widgets\wenz_rich_text_editor.dart:6959:                textDirection: direction,
+  lib\src\widgets\wenz_rich_text_editor.dart:6960:              ),
+  lib\src\widgets\wenz_rich_text_editor.dart:6961:            ),
+  lib\src\widgets\wenz_rich_text_editor.dart:7080:  });
+  lib\src\widgets\wenz_rich_text_editor.dart:7081:
+> lib\src\widgets\wenz_rich_text_editor.dart:7082:  final List<InlineSpan> spans;
+  lib\src\widgets\wenz_rich_text_editor.dart:7083:  final _InlineOffsetMapper offsetMapper;
+  lib\src\widgets\wenz_rich_text_editor.dart:7084:}
+  lib\src\widgets\wenz_rich_text_editor.dart:7085:
+  lib\src\widgets\wenz_rich_text_editor.dart:7086:class _InlineOffsetMapper {
+  lib\src\widgets\wenz_rich_text_editor.dart:7115:
+  lib\src\widgets\wenz_rich_text_editor.dart:7116:  int logicalOffsetForHit(
+> lib\src\widgets\wenz_rich_text_editor.dart:7117:    TextPainter painter,
+  lib\src\widgets\wenz_rich_text_editor.dart:7118:    Offset localPosition,
+  lib\src\widgets\wenz_rich_text_editor.dart:7119:    int renderOffset,
+  lib\src\widgets\wenz_rich_text_editor.dart:7120:  ) {
+  lib\src\widgets\wenz_rich_text_editor.dart:7121:    final atomicHit = _atomicLogicalOffsetForHit(painter, localPositi
+on);
+  lib\src\widgets\wenz_rich_text_editor.dart:7152:
+  lib\src\widgets\wenz_rich_text_editor.dart:7153:  int? _atomicLogicalOffsetForHit(
+> lib\src\widgets\wenz_rich_text_editor.dart:7154:    TextPainter painter,
+  lib\src\widgets\wenz_rich_text_editor.dart:7155:    Offset localPosition,
+  lib\src\widgets\wenz_rich_text_editor.dart:7156:  ) {
+  lib\src\widgets\wenz_rich_text_editor.dart:7157:    for (final segment in segments) {
+  lib\src\widgets\wenz_rich_text_editor.dart:7158:      if (!segment.atomic || segment.renderStart == segment.renderEnd
+) {
+  lib\src\widgets\wenz_rich_text_editor.dart:7243:  const _FindHighlightPainter({
+  lib\src\widgets\wenz_rich_text_editor.dart:7244:    required this.layoutService,
+> lib\src\widgets\wenz_rich_text_editor.dart:7245:    required this.textSpan,
+  lib\src\widgets\wenz_rich_text_editor.dart:7246:    required this.textAlign,
+  lib\src\widgets\wenz_rich_text_editor.dart:7247:    required this.textDirection,
+  lib\src\widgets\wenz_rich_text_editor.dart:7248:    required this.maxWidth,
+  lib\src\widgets\wenz_rich_text_editor.dart:7249:    required this.ranges,
+  lib\src\widgets\wenz_rich_text_editor.dart:7253:
+  lib\src\widgets\wenz_rich_text_editor.dart:7254:  final TextLayoutService layoutService;
+> lib\src\widgets\wenz_rich_text_editor.dart:7255:  final InlineSpan textSpan;
+  lib\src\widgets\wenz_rich_text_editor.dart:7256:  final TextAlign textAlign;
+  lib\src\widgets\wenz_rich_text_editor.dart:7257:  final TextDirection textDirection;
+  lib\src\widgets\wenz_rich_text_editor.dart:7258:  final double maxWidth;
+  lib\src\widgets\wenz_rich_text_editor.dart:7259:  final List<_FindHighlightRange> ranges;
+  lib\src\widgets\wenz_rich_text_editor.dart:7267:    }
+  lib\src\widgets\wenz_rich_text_editor.dart:7268:    final painter = layoutService.layout(
+> lib\src\widgets\wenz_rich_text_editor.dart:7269:      span: textSpan,
+  lib\src\widgets\wenz_rich_text_editor.dart:7270:      textAlign: textAlign,
+  lib\src\widgets\wenz_rich_text_editor.dart:7271:      textDirection: textDirection,
+  lib\src\widgets\wenz_rich_text_editor.dart:7272:      maxWidth: maxWidth,
+  lib\src\widgets\wenz_rich_text_editor.dart:7273:    );
+  lib\src\widgets\wenz_rich_text_editor.dart:7290:  @override
+  lib\src\widgets\wenz_rich_text_editor.dart:7291:  bool shouldRepaint(covariant _FindHighlightPainter oldDelegate) {
+> lib\src\widgets\wenz_rich_text_editor.dart:7292:    return oldDelegate.textSpan != textSpan ||
+  lib\src\widgets\wenz_rich_text_editor.dart:7293:        oldDelegate.textAlign != textAlign ||
+  lib\src\widgets\wenz_rich_text_editor.dart:7294:        oldDelegate.textDirection != textDirection ||
+  lib\src\widgets\wenz_rich_text_editor.dart:7295:        oldDelegate.maxWidth != maxWidth ||
+  lib\src\widgets\wenz_rich_text_editor.dart:7296:        oldDelegate.ranges != ranges ||
+  lib\src\widgets\wenz_rich_text_editor.dart:7303:  const _SelectionHighlightPainter({
+  lib\src\widgets\wenz_rich_text_editor.dart:7304:    required this.layoutService,
+> lib\src\widgets\wenz_rich_text_editor.dart:7305:    required this.textSpan,
+  lib\src\widgets\wenz_rich_text_editor.dart:7306:    required this.offsetMapper,
+  lib\src\widgets\wenz_rich_text_editor.dart:7307:    required this.textAlign,
+  lib\src\widgets\wenz_rich_text_editor.dart:7308:    required this.textDirection,
+  lib\src\widgets\wenz_rich_text_editor.dart:7309:    required this.maxWidth,
+  lib\src\widgets\wenz_rich_text_editor.dart:7313:
+  lib\src\widgets\wenz_rich_text_editor.dart:7314:  final TextLayoutService layoutService;
+> lib\src\widgets\wenz_rich_text_editor.dart:7315:  final InlineSpan textSpan;
+  lib\src\widgets\wenz_rich_text_editor.dart:7316:  final _InlineOffsetMapper offsetMapper;
+  lib\src\widgets\wenz_rich_text_editor.dart:7317:  final TextAlign textAlign;
+  lib\src\widgets\wenz_rich_text_editor.dart:7318:  final TextDirection textDirection;
+  lib\src\widgets\wenz_rich_text_editor.dart:7319:  final double maxWidth;
+  lib\src\widgets\wenz_rich_text_editor.dart:7328:    }
+  lib\src\widgets\wenz_rich_text_editor.dart:7329:    final painter = layoutService.layout(
+> lib\src\widgets\wenz_rich_text_editor.dart:7330:      span: textSpan,
+  lib\src\widgets\wenz_rich_text_editor.dart:7331:      textAlign: textAlign,
+  lib\src\widgets\wenz_rich_text_editor.dart:7332:      textDirection: textDirection,
+  lib\src\widgets\wenz_rich_text_editor.dart:7333:      maxWidth: maxWidth,
+  lib\src\widgets\wenz_rich_text_editor.dart:7334:    );
+  lib\src\widgets\wenz_rich_text_editor.dart:7344:  @override
+  lib\src\widgets\wenz_rich_text_editor.dart:7345:  bool shouldRepaint(covariant _SelectionHighlightPainter oldDelegate
+) {
+> lib\src\widgets\wenz_rich_text_editor.dart:7346:    return oldDelegate.textSpan != textSpan ||
+  lib\src\widgets\wenz_rich_text_editor.dart:7347:        oldDelegate.offsetMapper != offsetMapper ||
+  lib\src\widgets\wenz_rich_text_editor.dart:7348:        oldDelegate.textAlign != textAlign ||
+  lib\src\widgets\wenz_rich_text_editor.dart:7349:        oldDelegate.textDirection != textDirection ||
+  lib\src\widgets\wenz_rich_text_editor.dart:7350:        oldDelegate.maxWidth != maxWidth ||
+  lib\src\widgets\wenz_rich_text_editor.dart:7358:  const _CaretPainter({
+  lib\src\widgets\wenz_rich_text_editor.dart:7359:    required this.layoutService,
+> lib\src\widgets\wenz_rich_text_editor.dart:7360:    required this.textSpan,
+  lib\src\widgets\wenz_rich_text_editor.dart:7361:    required this.offsetMapper,
+  lib\src\widgets\wenz_rich_text_editor.dart:7362:    required this.textAlign,
+  lib\src\widgets\wenz_rich_text_editor.dart:7363:    required this.textDirection,
+  lib\src\widgets\wenz_rich_text_editor.dart:7364:    required this.maxWidth,
+  lib\src\widgets\wenz_rich_text_editor.dart:7370:
+  lib\src\widgets\wenz_rich_text_editor.dart:7371:  final TextLayoutService layoutService;
+> lib\src\widgets\wenz_rich_text_editor.dart:7372:  final InlineSpan textSpan;
+  lib\src\widgets\wenz_rich_text_editor.dart:7373:  final _InlineOffsetMapper offsetMapper;
+  lib\src\widgets\wenz_rich_text_editor.dart:7374:  final TextAlign textAlign;
+  lib\src\widgets\wenz_rich_text_editor.dart:7375:  final TextDirection textDirection;
+  lib\src\widgets\wenz_rich_text_editor.dart:7376:  final double maxWidth;
+  lib\src\widgets\wenz_rich_text_editor.dart:7390:    }
+  lib\src\widgets\wenz_rich_text_editor.dart:7391:    final painter = layoutService.layout(
+> lib\src\widgets\wenz_rich_text_editor.dart:7392:      span: textSpan,
+  lib\src\widgets\wenz_rich_text_editor.dart:7393:      textAlign: textAlign,
+  lib\src\widgets\wenz_rich_text_editor.dart:7394:      textDirection: textDirection,
+  lib\src\widgets\wenz_rich_text_editor.dart:7395:      maxWidth: maxWidth,
+  lib\src\widgets\wenz_rich_text_editor.dart:7396:    );
+  lib\src\widgets\wenz_rich_text_editor.dart:7411:  @override
+  lib\src\widgets\wenz_rich_text_editor.dart:7412:  bool shouldRepaint(covariant _CaretPainter oldDelegate) {
+> lib\src\widgets\wenz_rich_text_editor.dart:7413:    return oldDelegate.textSpan != textSpan ||
+  lib\src\widgets\wenz_rich_text_editor.dart:7414:        oldDelegate.offsetMapper != offsetMapper ||
+  lib\src\widgets\wenz_rich_text_editor.dart:7415:        oldDelegate.textAlign != textAlign ||
+  lib\src\widgets\wenz_rich_text_editor.dart:7416:        oldDelegate.textDirection != textDirection ||
+  lib\src\widgets\wenz_rich_text_editor.dart:7417:        oldDelegate.maxWidth != maxWidth ||
+  lib\src\widgets\wenz_rich_text_editor.dart:8966:                      path: path,
+  lib\src\widgets\wenz_rich_text_editor.dart:8967:                      textLength: textLength,
+> lib\src\widgets\wenz_rich_text_editor.dart:8968:                      textSpan: TextSpan(
+  lib\src\widgets\wenz_rich_text_editor.dart:8969:                        style: bodyStyle,
+  lib\src\widgets\wenz_rich_text_editor.dart:8970:                        children: inlineTextLayout.spans,
+  lib\src\widgets\wenz_rich_text_editor.dart:8971:                      ),
+  lib\src\widgets\wenz_rich_text_editor.dart:8972:                      offsetMapper: inlineTextLayout.offsetMapper,
+  lib\src\widgets\wenz_rich_text_editor.dart:9225:  InlineEmbedRenderer? inlineEmbedRenderer,
+  lib\src\widgets\wenz_rich_text_editor.dart:9226:) {
+> lib\src\widgets\wenz_rich_text_editor.dart:9227:  final spans = <InlineSpan>[];
+  lib\src\widgets\wenz_rich_text_editor.dart:9228:  final segments = <_InlineOffsetSegment>[];
+  lib\src\widgets\wenz_rich_text_editor.dart:9229:  var logicalCursor = 0;
+  lib\src\widgets\wenz_rich_text_editor.dart:9230:  var renderCursor = 0;
+  lib\src\widgets\wenz_rich_text_editor.dart:9231:  for (final node in nodes) {
+  lib\src\widgets\wenz_rich_text_editor.dart:9242:        : (nodeEnd > compositionRange.end ? compositionRange.end : no
+deEnd);
+  lib\src\widgets\wenz_rich_text_editor.dart:9243:    final nodeSpans = compositionRange != null && overlapStart < over
+lapEnd
+> lib\src\widgets\wenz_rich_text_editor.dart:9244:        ? _inlineSpansForNodeWithComposition(
+  lib\src\widgets\wenz_rich_text_editor.dart:9245:            context,
+  lib\src\widgets\wenz_rich_text_editor.dart:9246:            node,
+  lib\src\widgets\wenz_rich_text_editor.dart:9247:            baseStyle,
+  lib\src\widgets\wenz_rich_text_editor.dart:9248:            inlineEmbedRenderer,
+  lib\src\widgets\wenz_rich_text_editor.dart:9250:            end: overlapEnd - nodeStart,
+  lib\src\widgets\wenz_rich_text_editor.dart:9251:          )
+> lib\src\widgets\wenz_rich_text_editor.dart:9252:        : <InlineSpan>[
+> lib\src\widgets\wenz_rich_text_editor.dart:9253:            _inlineSpanFor(
+  lib\src\widgets\wenz_rich_text_editor.dart:9254:              context,
+  lib\src\widgets\wenz_rich_text_editor.dart:9255:              node,
+  lib\src\widgets\wenz_rich_text_editor.dart:9256:              baseStyle,
+  lib\src\widgets\wenz_rich_text_editor.dart:9257:              inlineEmbedRenderer,
+  lib\src\widgets\wenz_rich_text_editor.dart:9259:            )
+  lib\src\widgets\wenz_rich_text_editor.dart:9260:          ];
+> lib\src\widgets\wenz_rich_text_editor.dart:9261:    final renderLength = _inlineSpanTextLength(nodeSpans);
+  lib\src\widgets\wenz_rich_text_editor.dart:9262:    spans.addAll(nodeSpans);
+  lib\src\widgets\wenz_rich_text_editor.dart:9263:    if (logicalLength > 0 || renderLength > 0) {
+  lib\src\widgets\wenz_rich_text_editor.dart:9264:      segments.add(
+  lib\src\widgets\wenz_rich_text_editor.dart:9265:        _InlineOffsetSegment(
+  lib\src\widgets\wenz_rich_text_editor.dart:9285:}
+  lib\src\widgets\wenz_rich_text_editor.dart:9286:
+> lib\src\widgets\wenz_rich_text_editor.dart:9287:int _inlineSpanTextLength(List<InlineSpan> spans) {
+  lib\src\widgets\wenz_rich_text_editor.dart:9288:  var length = 0;
+  lib\src\widgets\wenz_rich_text_editor.dart:9289:  for (final span in spans) {
+  lib\src\widgets\wenz_rich_text_editor.dart:9290:    length += span.toPlainText().length;
+  lib\src\widgets\wenz_rich_text_editor.dart:9291:  }
+  lib\src\widgets\wenz_rich_text_editor.dart:9293:}
+  lib\src\widgets\wenz_rich_text_editor.dart:9294:
+> lib\src\widgets\wenz_rich_text_editor.dart:9295:List<InlineSpan> _inlineSpansForNodeWithComposition(
+  lib\src\widgets\wenz_rich_text_editor.dart:9296:  BuildContext context,
+  lib\src\widgets\wenz_rich_text_editor.dart:9297:  InlineNode node,
+  lib\src\widgets\wenz_rich_text_editor.dart:9298:  TextStyle baseStyle,
+  lib\src\widgets\wenz_rich_text_editor.dart:9299:  InlineEmbedRenderer? inlineEmbedRenderer, {
+  lib\src\widgets\wenz_rich_text_editor.dart:9306:    final safeEnd = end.clamp(safeStart, text.length).toInt();
+  lib\src\widgets\wenz_rich_text_editor.dart:9307:    final style = _textStyleForAttributes(context, baseStyle, node.at
+tributes);
+> lib\src\widgets\wenz_rich_text_editor.dart:9308:    return <InlineSpan>[
+  lib\src\widgets\wenz_rich_text_editor.dart:9309:      if (safeStart > 0)
+> lib\src\widgets\wenz_rich_text_editor.dart:9310:        TextSpan(text: text.substring(0, safeStart), style: style),
+  lib\src\widgets\wenz_rich_text_editor.dart:9311:      if (safeStart < safeEnd)
+> lib\src\widgets\wenz_rich_text_editor.dart:9312:        TextSpan(
+  lib\src\widgets\wenz_rich_text_editor.dart:9313:          text: text.substring(safeStart, safeEnd),
+  lib\src\widgets\wenz_rich_text_editor.dart:9314:          style: _compositionTextStyle(style),
+  lib\src\widgets\wenz_rich_text_editor.dart:9315:        ),
+  lib\src\widgets\wenz_rich_text_editor.dart:9316:      if (safeEnd < text.length)
+> lib\src\widgets\wenz_rich_text_editor.dart:9317:        TextSpan(text: text.substring(safeEnd), style: style),
+  lib\src\widgets\wenz_rich_text_editor.dart:9318:    ];
+  lib\src\widgets\wenz_rich_text_editor.dart:9319:  }
+  lib\src\widgets\wenz_rich_text_editor.dart:9320:
+  lib\src\widgets\wenz_rich_text_editor.dart:9321:  if (node is InlineEmbed) {
+> lib\src\widgets\wenz_rich_text_editor.dart:9322:    return <InlineSpan>[
+  lib\src\widgets\wenz_rich_text_editor.dart:9323:      _inlineEmbedSpanFor(
+  lib\src\widgets\wenz_rich_text_editor.dart:9324:        context,
+  lib\src\widgets\wenz_rich_text_editor.dart:9325:        node,
+  lib\src\widgets\wenz_rich_text_editor.dart:9326:        baseStyle,
+  lib\src\widgets\wenz_rich_text_editor.dart:9334:  final safeStart = start.clamp(0, text.length).toInt();
+  lib\src\widgets\wenz_rich_text_editor.dart:9335:  final safeEnd = end.clamp(safeStart, text.length).toInt();
+> lib\src\widgets\wenz_rich_text_editor.dart:9336:  return <InlineSpan>[
+  lib\src\widgets\wenz_rich_text_editor.dart:9337:    if (safeStart > 0)
+> lib\src\widgets\wenz_rich_text_editor.dart:9338:      TextSpan(text: text.substring(0, safeStart), style: baseStyle),
+  lib\src\widgets\wenz_rich_text_editor.dart:9339:    if (safeStart < safeEnd)
+> lib\src\widgets\wenz_rich_text_editor.dart:9340:      TextSpan(
+  lib\src\widgets\wenz_rich_text_editor.dart:9341:        text: text.substring(safeStart, safeEnd),
+  lib\src\widgets\wenz_rich_text_editor.dart:9342:        style: _compositionTextStyle(baseStyle),
+  lib\src\widgets\wenz_rich_text_editor.dart:9343:      ),
+  lib\src\widgets\wenz_rich_text_editor.dart:9344:    if (safeEnd < text.length)
+> lib\src\widgets\wenz_rich_text_editor.dart:9345:      TextSpan(text: text.substring(safeEnd), style: baseStyle),
+  lib\src\widgets\wenz_rich_text_editor.dart:9346:  ];
+  lib\src\widgets\wenz_rich_text_editor.dart:9347:}
+  lib\src\widgets\wenz_rich_text_editor.dart:9348:
+> lib\src\widgets\wenz_rich_text_editor.dart:9349:InlineSpan _inlineSpanFor(
+  lib\src\widgets\wenz_rich_text_editor.dart:9350:  BuildContext context,
+  lib\src\widgets\wenz_rich_text_editor.dart:9351:  InlineNode node,
+  lib\src\widgets\wenz_rich_text_editor.dart:9352:  TextStyle baseStyle,
+  lib\src\widgets\wenz_rich_text_editor.dart:9353:  InlineEmbedRenderer? inlineEmbedRenderer, {
+  lib\src\widgets\wenz_rich_text_editor.dart:9364:      decorate ? _compositionTextStyle(undecoratedStyle) : undecorate
+dStyle;
+  lib\src\widgets\wenz_rich_text_editor.dart:9365:  return switch (node) {
+> lib\src\widgets\wenz_rich_text_editor.dart:9366:    final TextRun textRun => TextSpan(text: textRun.text, style: styl
+e),
+  lib\src\widgets\wenz_rich_text_editor.dart:9367:    final InlineEmbed embed => _inlineEmbedSpanFor(
+  lib\src\widgets\wenz_rich_text_editor.dart:9368:        context,
+  lib\src\widgets\wenz_rich_text_editor.dart:9369:        embed,
+  lib\src\widgets\wenz_rich_text_editor.dart:9370:        baseStyle,
+  lib\src\widgets\wenz_rich_text_editor.dart:9372:        decorate: decorate,
+  lib\src\widgets\wenz_rich_text_editor.dart:9373:      ),
+> lib\src\widgets\wenz_rich_text_editor.dart:9374:    _ => TextSpan(text: node.plainText, style: style),
+  lib\src\widgets\wenz_rich_text_editor.dart:9375:  };
+  lib\src\widgets\wenz_rich_text_editor.dart:9376:}
+  lib\src\widgets\wenz_rich_text_editor.dart:9377:
+> lib\src\widgets\wenz_rich_text_editor.dart:9378:InlineSpan _inlineEmbedSpanFor(
+  lib\src\widgets\wenz_rich_text_editor.dart:9379:  BuildContext context,
+  lib\src\widgets\wenz_rich_text_editor.dart:9380:  InlineEmbed embed,
+  lib\src\widgets\wenz_rich_text_editor.dart:9381:  TextStyle baseStyle,
+  lib\src\widgets\wenz_rich_text_editor.dart:9382:  InlineEmbedRenderer? inlineEmbedRenderer, {
+  lib\src\widgets\wenz_rich_text_editor.dart:9385:  final base = _textStyleForAttributes(context, baseStyle, embed.attr
+ibutes);
+  lib\src\widgets\wenz_rich_text_editor.dart:9386:  final style = decorate ? _compositionTextStyle(base) : base;
+> lib\src\widgets\wenz_rich_text_editor.dart:9387:  final custom = inlineEmbedRenderer?.buildTextSpan(context, embed, s
+tyle);
+  lib\src\widgets\wenz_rich_text_editor.dart:9388:  if (custom != null) {
+  lib\src\widgets\wenz_rich_text_editor.dart:9389:    return custom;
+  lib\src\widgets\wenz_rich_text_editor.dart:9390:  }
+  lib\src\widgets\wenz_rich_text_editor.dart:9391:  if (_isFormulaEmbedType(embed.embedType)) {
+> lib\src\widgets\wenz_rich_text_editor.dart:9392:    return _formulaInlineSpanFor(context, embed, style, decorate: dec
+orate);
+  lib\src\widgets\wenz_rich_text_editor.dart:9393:  }
+> lib\src\widgets\wenz_rich_text_editor.dart:9394:  return TextSpan(
+  lib\src\widgets\wenz_rich_text_editor.dart:9395:    text: _embedDisplayText(embed),
+  lib\src\widgets\wenz_rich_text_editor.dart:9396:    style: _defaultInlineEmbedStyle(context, embed, style),
+  lib\src\widgets\wenz_rich_text_editor.dart:9397:  );
+  lib\src\widgets\wenz_rich_text_editor.dart:9398:}
+  lib\src\widgets\wenz_rich_text_editor.dart:9399:
+> lib\src\widgets\wenz_rich_text_editor.dart:9400:InlineSpan _formulaInlineSpanFor(
+  lib\src\widgets\wenz_rich_text_editor.dart:9401:  BuildContext context,
+  lib\src\widgets\wenz_rich_text_editor.dart:9402:  InlineEmbed embed,
+  lib\src\widgets\wenz_rich_text_editor.dart:9403:  TextStyle style, {
+  lib\src\widgets\wenz_rich_text_editor.dart:9404:  required bool decorate,
+  lib\src\widgets\wenz_rich_text_editor.dart:9407:  final effectiveStyle = _defaultInlineEmbedStyle(context, embed, sty
+le);
+  lib\src\widgets\wenz_rich_text_editor.dart:9408:  final size = _inlineFormulaPlaceholderSize(formula, effectiveStyle)
+;
+> lib\src\widgets\wenz_rich_text_editor.dart:9409:  return MeasuredWidgetSpan(
+  lib\src\widgets\wenz_rich_text_editor.dart:9410:    placeholderSize: size,
+  lib\src\widgets\wenz_rich_text_editor.dart:9411:    alignment: PlaceholderAlignment.middle,
+  lib\src\widgets\wenz_rich_text_editor.dart:9412:    style: effectiveStyle,
+  lib\src\widgets\wenz_rich_text_editor.dart:9413:    child: _InlineFormulaView(
+  lib\src\widgets\wenz_rich_text_editor.dart:9670:/// Splits a code string into up to three spans, underlining the comp
+osition
+  lib\src\widgets\wenz_rich_text_editor.dart:9671:/// region.
+> lib\src\widgets\wenz_rich_text_editor.dart:9672:TextSpan _codeSpan(
+  lib\src\widgets\wenz_rich_text_editor.dart:9673:  String code,
+  lib\src\widgets\wenz_rich_text_editor.dart:9674:  String language,
+  lib\src\widgets\wenz_rich_text_editor.dart:9675:  TextStyle codeStyle,
+  lib\src\widgets\wenz_rich_text_editor.dart:9676:  _LocalSelectionRange? compositionRange,
+
+
+
+ERROR: Selected model is at capacity. Please try a different model.
+ERROR: Selected model is at capacity. Please try a different model.
+tokens used
+66,433

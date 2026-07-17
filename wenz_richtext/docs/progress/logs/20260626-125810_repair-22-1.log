@@ -1,0 +1,1050 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: medium
+reasoning summaries: none
+session id: 019f024a-e797-7a83-b021-eb224df85983
+--------
+user
+plan 已完成，但宿主项目验收失败。请只修复验证错误。
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_requirement_14_20260626-034143.md
+不要修改 plan 文件、checkbox 或进度区。
+失败命令：flutter analyze
+失败输出摘要：
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+Analyzing wenz_richtext...                                      
+
+  error - The argument type 'List<InlineNode>' can't be assigned to the parameter type 'String'.  - lib\src\controller\slash_menu_controller.dart:403:65 - argument_type_not_assignable
+
+1 issue found. (ran in 2.9s)
+
+codex
+我会只定位这处 analyzer 类型错误并做最小修复。
+  → 定位类型错误上下文
+  • 应用最小代码修复
+  • 复跑 flutter analyze
+exec
+powershell.exe -Command "Get-ChildItem -Force; if (Test-Path AGENTS.md) { Get-Content AGENTS.md }; Get-Content lib\\src\\controller\\slash_menu_controller.dart | Select-Object -Skip 380 -First 45" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 348ms:
+
+
+    目录: D:\project\GitHub\wenz_flutter\wenz_richtext
+
+
+Mode                 LastWriteTime         Length Name                                                                 
+----                 -------------         ------ ----                                                                 
+d-----         2026/6/26     12:24                .autoplan-runtime                                                    
+d-----         2026/6/26     12:56                .codegraph                                                           
+d-----         2026/6/24     15:10                .dart_appdata                                                        
+d-----         2026/6/24     15:10                .dart_localappdata                                                   
+d-----         2026/6/26      7:52                .dart_tool                                                           
+d-----         2026/6/24     16:13                .dart_tool_appdata                                                   
+d-----         2026/6/24     16:06                .dart_tool_localappdata                                              
+d-----         2026/6/20      0:26                .idea                                                                
+d-----         2026/6/25     10:14                build                                                                
+d-----         2026/6/19     17:02                doc                                                                  
+d-----         2026/6/24     18:05                docs                                                                 
+d-----         2026/6/22     14:56                example                                                              
+d-----         2026/6/22     17:09                lib                                                                  
+d-----         2026/6/24      3:35                scripts                                                              
+d-----         2026/6/25      3:33                test                                                                 
+d-----         2026/6/24     18:04                tool                                                                 
+d-----         2026/6/25      2:40                ui                                                                   
+-a----         2026/6/19     14:04             87 .gitignore                                                           
+-a----         2026/6/24     16:16             94 analysis_options.yaml                                                
+-a----         2026/6/24     14:38            726 CHANGELOG.md                                                         
+-a----         2026/6/25      2:56            157 nul                                                                  
+-a----         2026/6/25      2:18          10389 pubspec.lock                                                         
+-a----         2026/6/25      2:18            382 pubspec.yaml                                                         
+-a----         2026/6/25     10:45           4516 README.md                                                            
+    SlashMenuItem(
+      id: 'quote',
+      title: 'Quote',
+      description: 'Quoted block',
+      icon: 'format_quote',
+      keywords: const <String>['blockquote'],
+      handlesTriggerDeletion: true,
+      action: (editor, context) {
+        _replaceTriggerWithTextBlock(editor, context, type: BlockType.quote);
+      },
+    ),
+    SlashMenuItem(
+      id: 'code',
+      title: 'Code block',
+      description: 'Preformatted code',
+      icon: 'code',
+      keywords: const <String>['pre'],
+      handlesTriggerDeletion: true,
+      action: (editor, context) {
+        _replaceTriggerWithObjectBlock(
+          editor,
+          context,
+          (block, content) => CodeBlockNode(id: block.id, code: content),
+          (block, blockIndex) => DocumentSelection(
+            base: DocumentPosition.code(
+              blockId: block.id,
+              blockIndex: blockIndex,
+              offset: 0,
+            ),
+            extent: DocumentPosition.code(
+              blockId: block.id,
+              blockIndex: blockIndex,
+              offset: 0,
+            ),
+          ),
+        );
+      },
+    ),
+    SlashMenuItem(
+      id: 'table',
+      title: 'Table',
+      description: '3 by 3 table',
+      icon: 'table_chart',
+      keywords: const <String>['grid'],
+      handlesTriggerDeletion: true,
+
+
+
+codex
+已找到错误区域；现在查看相关构造函数签名以确认预期类型。
+exec
+powershell.exe -Command '$i=1; Get-Content lib'"\\src\\controller\\slash_menu_controller.dart | ForEach-Object { if ("'$i -ge 395 -and $i -le 410) { '"'{0,4}: {1}' -f "'$i, $_ }; $i++ }; rg "class CodeBlockNode|CodeBlockNode'"\\(\" -n lib test" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 383ms:
+ 395:       description: 'Preformatted code',
+ 396:       icon: 'code',
+ 397:       keywords: const <String>['pre'],
+ 398:       handlesTriggerDeletion: true,
+ 399:       action: (editor, context) {
+ 400:         _replaceTriggerWithObjectBlock(
+ 401:           editor,
+ 402:           context,
+ 403:           (block, content) => CodeBlockNode(id: block.id, code: content),
+ 404:           (block, blockIndex) => DocumentSelection(
+ 405:             base: DocumentPosition.code(
+ 406:               blockId: block.id,
+ 407:               blockIndex: blockIndex,
+ 408:               offset: 0,
+ 409:             ),
+ 410:             extent: DocumentPosition.code(
+test\widgets\wenz_rich_text_editor_test.dart:57:          CodeBlockNode(
+test\widgets\wenz_rich_text_editor_test.dart:1477:    const block = CodeBlockNode(
+test\widgets\wenz_rich_text_editor_test.dart:1613:          CodeBlockNode(
+test\widgets\wenz_rich_text_editor_test.dart:1664:            CodeBlockNode(id: 'dart1', code: dartCode, language: 'dart'),
+test\widgets\wenz_rich_text_editor_test.dart:1665:            CodeBlockNode(id: 'js1', code: jsCode, language: 'javascript'),
+test\widgets\wenz_rich_text_editor_test.dart:1666:            CodeBlockNode(id: 'json1', code: jsonCode, language: 'json'),
+test\widgets\wenz_rich_text_editor_test.dart:1667:            CodeBlockNode(
+test\widgets\wenz_rich_text_editor_test.dart:1672:            CodeBlockNode(
+test\widgets\wenz_rich_text_editor_test.dart:1739:          CodeBlockNode(id: 'code1', code: longCode, language: 'dart'),
+test\widgets\wenz_rich_text_editor_test.dart:1796:          CodeBlockNode(id: 'code1', code: code, language: 'dart'),
+test\widgets\wenz_rich_text_editor_test.dart:1864:          CodeBlockNode(id: 'code1', code: code, language: 'dart'),
+test\widgets\wenz_rich_text_editor_test.dart:2154:          CodeBlockNode(id: 'code1', code: 'final value = 1;'),
+test\widgets\wenz_rich_text_editor_test.dart:3002:            CodeBlockNode(
+test\widgets\wenz_rich_text_editor_test.dart:3422:            CodeBlockNode(id: 'code1', code: 'print(1);', language: 'dart'),
+test\widgets\wenz_rich_text_editor_test.dart:5686:        blocks: <BlockNode>[CodeBlockNode(id: 'code1', code: 'aa\nbb')],
+lib\src\widgets\wenz_rich_text_editor.dart:1797:          final nextBlock = CodeBlockNode(
+lib\src\widgets\wenz_rich_text_editor.dart:2093:      CodeBlockNode() => DocumentPosition.code(
+lib\src\widgets\wenz_rich_text_editor.dart:2154:      return CodeBlockNode(
+lib\src\widgets\wenz_rich_text_editor.dart:4803:    CodeBlockNode() => _RowBlockFormat.code,
+lib\src\widgets\wenz_rich_text_editor.dart:6752:    CodeBlockNode() => 'Code block',
+test\input\clipboard_service_test.dart:378:          CodeBlockNode(id: 'c1', code: 'abcdef'),
+test\widgets\editor_golden_test.dart:231:          CodeBlockNode(
+test\widgets\editor_golden_test.dart:717:        CodeBlockNode(
+test\codecs\plain_text_codec_test.dart:56:          CodeBlockNode(
+test\codecs\html_codec_test.dart:243:          CodeBlockNode(
+test\codecs\html_codec_test.dart:682:          CodeBlockNode(id: 'c1', language: 'dart', code: 'var x = 1;'),
+test\codecs\markdown_codec_test.dart:225:          CodeBlockNode(
+test\codecs\markdown_codec_test.dart:530:          CodeBlockNode(id: 'c1', language: 'dart', code: 'var x = 1;'),
+lib\src\controller\slash_menu_controller.dart:403:          (block, content) => CodeBlockNode(id: block.id, code: content),
+test\controller\document_stats_controller_test.dart:88:      CodeBlockNode(
+test\controller\toolbar_controller_test.dart:715:      CodeBlockNode(id: 'code', language: 'dart', code: 'final x = 1;'),
+test\controller\slash_menu_controller_test.dart:575:      CodeBlockNode(id: 'code1', code: code),
+test\benchmarks\editor_benchmarks.dart:163:        CodeBlockNode(
+test\controller\find_replace_controller_test.dart:111:      CodeBlockNode(id: 'c1', code: 'ALPHA();'),
+lib\src\codecs\markdown_codec.dart:382:        blocks.add(CodeBlockNode(
+lib\src\core\model\block_node.dart:169:class CodeBlockNode extends BlockNode {
+lib\src\core\model\block_node.dart:170:  const CodeBlockNode({
+lib\src\core\model\block_node.dart:185:    return CodeBlockNode(
+lib\src\core\model\block_node.dart:203:    return CodeBlockNode(
+lib\src\codecs\html_codec.dart:881:    return CodeBlockNode(
+lib\src\codecs\legacy_wen_json_codec.dart:98:        return CodeBlockNode(
+lib\src\core\commands\block_commands.dart:226:      CodeBlockNode(
+lib\src\core\commands\block_commands.dart:238:      CodeBlockNode(
+lib\src\core\commands\block_commands.dart:315:    CodeBlockNode() => DocumentPosition.code(
+lib\src\core\commands\block_commands.dart:609:    return CodeBlockNode(
+lib\src\core\commands\block_commands.dart:1337:    return CodeBlockNode(
+lib\src\core\commands\block_commands.dart:1565:    final nextBlock = CodeBlockNode(
+lib\src\core\commands\block_structure_commands.dart:101:    CodeBlockNode() => DocumentPosition.code(
+lib\src\core\commands\block_structure_commands.dart:338:    blocks[index] = CodeBlockNode(
+lib\src\core\commands\block_structure_commands.dart:521:    blocks[index] = CodeBlockNode(
+lib\src\core\commands\markdown_shortcut_commands.dart:171:  final nextBlock = CodeBlockNode(
+lib\src\core\commands\text_commands.dart:82:      final nextBlock = CodeBlockNode(
+lib\src\core\commands\text_commands.dart:160:      final nextBlock = CodeBlockNode(
+lib\src\core\commands\text_commands.dart:469:    return CodeBlockNode(
+lib\src\core\commands\text_commands.dart:498:    return CodeBlockNode(
+lib\src\core\commands\text_commands.dart:524:    return CodeBlockNode(
+lib\src\core\commands\text_commands.dart:753:  final nextBlock = CodeBlockNode(
+lib\src\core\commands\text_commands.dart:799:    final mergedBlock = CodeBlockNode(
+lib\src\core\commands\text_commands.dart:855:    final mergedBlock = CodeBlockNode(
+test\core\model_test.dart:13:        CodeBlockNode(id: 'c1', code: 'print(1);', language: 'dart'),
+test\core\document_schema_test.dart:267:          CodeBlockNode(id: 'c1', code: 'x'),
+test\core\block_commands_test.dart:371:          CodeBlockNode(id: 'c1', code: 'ab', language: 'text'),
+test\core\block_structure_commands_test.dart:377:            CodeBlockNode(id: 'c1', code: 'print(1)', language: 'text'),
+test\core\block_structure_commands_test.dart:396:            CodeBlockNode(id: 'c1', code: 'print(1)', language: 'text'),
+test\core\block_structure_commands_test.dart:436:          blocks: <BlockNode>[CodeBlockNode(id: 'c1', code: 'aa\nbb')],
+test\core\block_structure_commands_test.dart:463:          blocks: <BlockNode>[CodeBlockNode(id: 'c1', code: '  aa\n  bb\ncc')],
+test\core\selection_commands_test.dart:17:          CodeBlockNode(id: 'c1', code: 'ok'),
+test\core\selection_commands_test.dart:640:          CodeBlockNode(id: 'c1', code: 'ok'),
+test\core\text_commands_test.dart:167:          CodeBlockNode(id: 'c1', code: 'final value = 1;'),
+test\core\text_commands_test.dart:228:          CodeBlockNode(id: 'c2', code: 'print("tail");'),
+test\core\text_commands_test.dart:393:          CodeBlockNode(id: 'c1', code: 'print();', language: 'dart'),
+test\core\text_commands_test.dart:625:          CodeBlockNode(id: 'c1', code: 'final a = '),
+test\core\text_commands_test.dart:626:          CodeBlockNode(id: 'c2', code: '1;'),
+
+exec
+powershell.exe -Command "Get-Content lib\\src\\core\\model\\block_node.dart | Select-Object -Skip 150 -First 70; rg \"_replaceTriggerWithObjectBlock|InlineNode\" -n lib\\src\\controller\\slash_menu_controller.dart lib\\src" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 285ms:
+  factory TextBlockNode.fromJson(Map<String, Object?> json) {
+    final rawContent = json['content'];
+    return TextBlockNode(
+      id: json['id'] as String? ?? '',
+      type: BlockType.parse(json['type']),
+      attributes: BlockNode.attrsFromJson(json),
+      content: rawContent is List
+          ? rawContent
+              .whereType<Map>()
+              .map(
+                (node) => InlineNode.fromJson(Map<String, Object?>.from(node)),
+              )
+              .toList()
+          : const <InlineNode>[],
+    );
+  }
+}
+
+class CodeBlockNode extends BlockNode {
+  const CodeBlockNode({
+    required super.id,
+    required this.code,
+    this.language = '',
+    super.attributes,
+  }) : super(type: BlockType.code);
+
+  final String code;
+  final String language;
+
+  @override
+  String get plainText => code;
+
+  @override
+  CodeBlockNode copy() {
+    return CodeBlockNode(
+      id: id,
+      code: code,
+      language: language,
+      attributes: attributes,
+    );
+  }
+
+  @override
+  Map<String, Object?> toJson() {
+    return baseJson()
+      ..addAll(<String, Object?>{
+        'code': code,
+        if (language.isNotEmpty) 'language': language,
+      });
+  }
+
+  factory CodeBlockNode.fromJson(Map<String, Object?> json) {
+    return CodeBlockNode(
+      id: json['id'] as String? ?? '',
+      code: json['code'] as String? ?? '',
+      language: json['language'] as String? ?? '',
+      attributes: BlockNode.attrsFromJson(json),
+    );
+  }
+}
+
+class ImageBlockNode extends BlockNode {
+  const ImageBlockNode({
+    required super.id,
+    required this.assetId,
+    this.file = '',
+    this.width = 0,
+    this.height = 0,
+    this.showWidth,
+    this.showHeight,
+lib\src\controller\slash_menu_controller.dart:400:        _replaceTriggerWithObjectBlock(
+lib\src\controller\slash_menu_controller.dart:428:        _replaceTriggerWithObjectBlock(
+lib\src\controller\slash_menu_controller.dart:447:        _replaceTriggerWithObjectBlock(
+lib\src\controller\slash_menu_controller.dart:475:        _replaceTriggerWithObjectBlock(
+lib\src\controller\slash_menu_controller.dart:527:void _replaceTriggerWithObjectBlock(
+lib\src\controller\slash_menu_controller.dart:530:  BlockNode Function(TextBlockNode block, List<InlineNode> content) buildBlock,
+lib\src\controller\slash_menu_controller.dart:568:  BlockNode Function(TextBlockNode block, List<InlineNode> content) buildBlock,
+lib\src\controller\slash_menu_controller.dart:591:  _SlashReplacement Function(TextBlockNode block, List<InlineNode> content)
+lib\src\controller\slash_menu_controller.dart:653:                  content: const <InlineNode>[],
+lib\src\controller\slash_menu_controller.dart:678:  final List<InlineNode> before;
+lib\src\controller\slash_menu_controller.dart:679:  final List<InlineNode> after;
+lib\src\widgets\wenz_rich_text_editor.dart:1546:          content: const <InlineNode>[],
+lib\src\widgets\wenz_rich_text_editor.dart:2062:        content: const <InlineNode>[],
+lib\src\widgets\wenz_rich_text_editor.dart:4836:List<InlineNode> _plainTextInlineContent(String text) {
+lib\src\widgets\wenz_rich_text_editor.dart:4838:    return const <InlineNode>[];
+lib\src\widgets\wenz_rich_text_editor.dart:4840:  return <InlineNode>[TextRun(text: text)];
+lib\src\widgets\wenz_rich_text_editor.dart:6964:List<InlineNode> _tableCellInlineContent(TableCellNode? cell) {
+lib\src\widgets\wenz_rich_text_editor.dart:6966:    return const <InlineNode>[];
+lib\src\widgets\wenz_rich_text_editor.dart:6973:  return <InlineNode>[TextRun(text: cell.plainText)];
+lib\src\widgets\wenz_rich_text_editor.dart:10357:  List<InlineNode> nodes,
+lib\src\widgets\wenz_rich_text_editor.dart:10432:  InlineNode node,
+lib\src\widgets\wenz_rich_text_editor.dart:10486:  InlineNode node,
+lib\src\widgets\wenz_rich_text_editor.dart:10776:String _inlineDisplayText(InlineNode node) {
+lib\src\controller\document_stats_controller.dart:249:  void _visitInlineContent(List<InlineNode> nodes) {
+lib\src\controller\find_replace_controller.dart:415:List<InlineNode> _firstTextBlockInline(TableCellNode cell) {
+lib\src\controller\find_replace_controller.dart:421:  return const <InlineNode>[];
+lib\src\controller\find_replace_controller.dart:469:String _inlinePlainText(List<InlineNode> nodes) {
+lib\src\controller\wenz_rich_text_controller.dart:950:    List<InlineNode> content = const <InlineNode>[],
+lib\src\controller\wenz_rich_text_controller.dart:1144:  void _pasteInline(List<InlineNode> runs) {
+lib\src\input\clipboard_service.dart:149:                  InlineNode.fromJson(Map<String, Object?>.from(node)))
+lib\src\input\clipboard_service.dart:246:  String _encodeInlineSlice(List<InlineNode> nodes, int start, int end) {
+lib\src\input\clipboard_service.dart:248:    final plain = _plainTextForInlineNodes(range);
+lib\src\input\clipboard_service.dart:277:      final List<InlineNode> sliced;
+lib\src\input\clipboard_service.dart:337:          _plainTextForInlineNodes(
+lib\src\input\clipboard_service.dart:343:          _plainTextForInlineNodes(_sliceInline(content, 0, end.offset)),
+lib\src\input\clipboard_service.dart:354:            : _plainTextForInlineNodes(content));
+lib\src\input\clipboard_service.dart:360:  List<InlineNode>? _blockTextContent(BlockNode block) {
+lib\src\input\clipboard_service.dart:369:      BlockNode block, List<InlineNode> content,
+lib\src\input\clipboard_service.dart:393:      return _plainTextForInlineNodes(block.content);
+lib\src\input\clipboard_service.dart:396:      return _plainTextForInlineNodes(block.content);
+lib\src\input\clipboard_service.dart:422:  List<InlineNode>? pasteMarkdown(String markdown) {
+lib\src\input\clipboard_service.dart:451:      : inlineRuns = const <InlineNode>[],
+lib\src\input\clipboard_service.dart:457:      : inlineRuns = const <InlineNode>[],
+lib\src\input\clipboard_service.dart:463:  final List<InlineNode> inlineRuns;
+lib\src\input\clipboard_service.dart:486:    return _plainTextForInlineNodes(inlineRuns);
+lib\src\input\clipboard_service.dart:490:String _plainTextForInlineNodes(List<InlineNode> nodes) {
+lib\src\input\clipboard_service.dart:491:  return nodes.map(_plainTextForInlineNode).join();
+lib\src\input\clipboard_service.dart:494:String _plainTextForInlineNode(InlineNode node) {
+lib\src\input\clipboard_service.dart:535:List<InlineNode> _sliceInline(List<InlineNode> nodes, int start, int end) {
+lib\src\input\clipboard_service.dart:537:    return const <InlineNode>[];
+lib\src\input\clipboard_service.dart:539:  final result = <InlineNode>[];
+lib\src\codecs\markdown_codec.dart:179:  String _encodeInline(List<InlineNode> nodes) {
+lib\src\codecs\markdown_codec.dart:559:  /// `[text](url)`, `![alt](url)`) into a list of [InlineNode]s. Un-escapes
+lib\src\codecs\markdown_codec.dart:561:  List<InlineNode> _parseInline(String text) {
+lib\src\codecs\markdown_codec.dart:563:      return const <InlineNode>[];
+lib\src\codecs\markdown_codec.dart:565:    final runs = <InlineNode>[];
+lib\src\core\schema\document_schema.dart:38:            content: const <InlineNode>[],
+lib\src\core\schema\document_schema.dart:204:                  content: const <InlineNode>[],
+lib\src\controller\slash_menu_controller.dart:400:        _replaceTriggerWithObjectBlock(
+lib\src\controller\slash_menu_controller.dart:428:        _replaceTriggerWithObjectBlock(
+lib\src\controller\slash_menu_controller.dart:447:        _replaceTriggerWithObjectBlock(
+lib\src\controller\slash_menu_controller.dart:475:        _replaceTriggerWithObjectBlock(
+lib\src\controller\slash_menu_controller.dart:527:void _replaceTriggerWithObjectBlock(
+lib\src\controller\slash_menu_controller.dart:530:  BlockNode Function(TextBlockNode block, List<InlineNode> content) buildBlock,
+lib\src\controller\slash_menu_controller.dart:568:  BlockNode Function(TextBlockNode block, List<InlineNode> content) buildBlock,
+lib\src\controller\slash_menu_controller.dart:591:  _SlashReplacement Function(TextBlockNode block, List<InlineNode> content)
+lib\src\controller\slash_menu_controller.dart:653:                  content: const <InlineNode>[],
+lib\src\controller\slash_menu_controller.dart:678:  final List<InlineNode> before;
+lib\src\controller\slash_menu_controller.dart:679:  final List<InlineNode> after;
+lib\src\codecs\html_codec.dart:154:  String _encodeInline(List<InlineNode> nodes) {
+lib\src\codecs\html_codec.dart:446:        content: const <InlineNode>[],
+lib\src\codecs\html_codec.dart:791:  List<InlineNode> _parseCalloutInlineWithoutTitle(
+lib\src\codecs\html_codec.dart:795:    final runs = <InlineNode>[];
+lib\src\codecs\html_codec.dart:800:      runs.addAll(_parseInlineNode(child, const TextAttributes()));
+lib\src\codecs\html_codec.dart:846:    final inline = <InlineNode>[];
+lib\src\codecs\html_codec.dart:961:  /// Parses the inline content of [node] into a list of [InlineNode]s,
+lib\src\codecs\html_codec.dart:963:  List<InlineNode> _parseInline(dom.Node node) {
+lib\src\codecs\html_codec.dart:964:    final runs = <InlineNode>[];
+lib\src\codecs\html_codec.dart:966:      runs.addAll(_parseInlineNode(child, const TextAttributes()));
+lib\src\codecs\html_codec.dart:973:  List<InlineNode> _parseInlineNode(
+lib\src\codecs\html_codec.dart:980:        return const <InlineNode>[];
+lib\src\codecs\html_codec.dart:982:      return <InlineNode>[TextRun(text: text, attributes: attributes)];
+lib\src\codecs\html_codec.dart:1004:          return const <InlineNode>[TextRun(text: '\n')];
+lib\src\codecs\html_codec.dart:1009:            return <InlineNode>[TextRun(text: alt, attributes: attributes)];
+lib\src\codecs\html_codec.dart:1019:          return <InlineNode>[
+lib\src\codecs\html_codec.dart:1043:    return const <InlineNode>[];
+lib\src\codecs\html_codec.dart:1046:  List<InlineNode> _parseChildren(
+lib\src\codecs\html_codec.dart:1050:    final runs = <InlineNode>[];
+lib\src\codecs\html_codec.dart:1052:      runs.addAll(_parseInlineNode(child, attributes));
+lib\src\codecs\html_codec.dart:1058:  List<InlineNode> _parseInlineText(String text) {
+lib\src\codecs\html_codec.dart:1060:      return const <InlineNode>[];
+lib\src\codecs\html_codec.dart:1062:    return <InlineNode>[TextRun(text: text)];
+lib\src\codecs\html_codec.dart:1067:  List<InlineNode> _coalesce(List<InlineNode> nodes) {
+lib\src\codecs\html_codec.dart:1071:    final result = <InlineNode>[nodes.first.copy()];
+lib\src\controller\toolbar_controller.dart:796:    List<InlineNode> content,
+lib\src\controller\toolbar_controller.dart:880:    List<InlineNode> content,
+lib\src\codecs\legacy_wen_json_codec.dart:185:  List<InlineNode> _textContent(Map<String, Object?> json) {
+lib\src\codecs\legacy_wen_json_codec.dart:187:    final result = <InlineNode>[];
+lib\src\codecs\legacy_wen_json_codec.dart:203:  InlineNode _inlineNode(
+lib\src\core\commands\inline_editing.dart:7:  final List<InlineNode> before;
+lib\src\core\commands\inline_editing.dart:8:  final List<InlineNode> after;
+lib\src\core\commands\inline_editing.dart:11:List<InlineNode> insertInline(
+lib\src\core\commands\inline_editing.dart:12:  List<InlineNode> nodes,
+lib\src\core\commands\inline_editing.dart:17:  final result = <InlineNode>[];
+lib\src\core\commands\inline_editing.dart:63:List<InlineNode> deleteInline(List<InlineNode> nodes, int start, int end) {
+lib\src\core\commands\inline_editing.dart:68:  final result = <InlineNode>[];
+lib\src\core\commands\inline_editing.dart:99:List<InlineNode> formatInline(
+lib\src\core\commands\inline_editing.dart:100:  List<InlineNode> nodes,
+lib\src\core\commands\inline_editing.dart:109:  final result = <InlineNode>[];
+lib\src\core\commands\inline_editing.dart:155:List<InlineNode> clearInlineFormatting(
+lib\src\core\commands\inline_editing.dart:156:  List<InlineNode> nodes,
+lib\src\core\commands\inline_editing.dart:164:  final result = <InlineNode>[];
+lib\src\core\commands\inline_editing.dart:205:InlineSplit splitInline(List<InlineNode> nodes, int offset) {
+lib\src\core\commands\inline_editing.dart:206:  final before = <InlineNode>[];
+lib\src\core\commands\inline_editing.dart:207:  final after = <InlineNode>[];
+lib\src\core\commands\inline_editing.dart:245:List<InlineNode> mergeTextRuns(List<InlineNode> nodes) {
+lib\src\core\commands\inline_editing.dart:246:  final result = <InlineNode>[];
+lib\src\core\commands\inline_editing.dart:266:int inlineLength(InlineNode node) {
+lib\src\core\commands\inline_editing.dart:273:int inlineNodesLength(List<InlineNode> nodes) {
+lib\src\core\commands\inline_editing.dart:297:  List<InlineNode> nodes,
+lib\src\core\commands\inline_editing.dart:325:List<InlineNode> clearMark(
+lib\src\core\commands\inline_editing.dart:326:  List<InlineNode> nodes,
+lib\src\core\commands\inline_editing.dart:331:  final result = <InlineNode>[];
+lib\src\core\commands\inline_editing.dart:379:List<InlineNode> withUrl(
+lib\src\core\commands\inline_editing.dart:380:  List<InlineNode> nodes,
+lib\src\core\commands\inline_editing.dart:388:  final result = <InlineNode>[];
+lib\src\core\commands\inline_editing.dart:440:List<InlineNode> replacePlaceholderWithEmbed(
+lib\src\core\commands\inline_editing.dart:441:  List<InlineNode> nodes,
+lib\src\core\commands\inline_editing.dart:445:  final result = <InlineNode>[];
+lib\src\core\commands\inline_commands.dart:372:  final List<InlineNode> content;
+lib\src\core\commands\inline_commands.dart:396:  List<InlineNode> content,
+lib\src\core\commands\inline_commands.dart:477:bool _rangeHasLinkedRun(List<InlineNode> content, int start, int end) {
+lib\src\core\commands\markdown_shortcut_commands.dart:146:  List<InlineNode> content,
+lib\src\core\commands\markdown_shortcut_commands.dart:169:  List<InlineNode> content,
+lib\src\core\commands\markdown_shortcut_commands.dart:190:  List<InlineNode> trailingContent,
+lib\src\core\commands\selection_commands.dart:1105:        content: const <InlineNode>[],
+lib\src\core\commands\revision_commands.dart:408:List<InlineNode> _addRevisionIdToInline(
+lib\src\core\commands\revision_commands.dart:409:  List<InlineNode> nodes,
+lib\src\core\commands\revision_commands.dart:422:List<InlineNode> _removeRevisionIdFromInline(
+lib\src\core\commands\revision_commands.dart:423:  List<InlineNode> nodes,
+lib\src\core\commands\revision_commands.dart:436:List<InlineNode> _replaceAttributesInline(
+lib\src\core\commands\revision_commands.dart:437:  List<InlineNode> nodes,
+lib\src\core\commands\revision_commands.dart:445:List<InlineNode> _mapInlineRange(
+lib\src\core\commands\revision_commands.dart:446:  List<InlineNode> nodes,
+lib\src\core\commands\revision_commands.dart:455:  final result = <InlineNode>[];
+lib\src\core\commands\revision_commands.dart:494:TextAttributes _attributesAtOffset(List<InlineNode> nodes, int offset) {
+lib\src\core\commands\block_commands.dart:430:          content: mergeTextRuns(<InlineNode>[
+lib\src\core\commands\block_commands.dart:468:          content: mergeTextRuns(<InlineNode>[
+lib\src\core\commands\block_commands.dart:482:            content: mergeTextRuns(<InlineNode>[
+lib\src\core\commands\block_commands.dart:536:  int _endOffsetForMerge(List<InlineNode> beforeSlice, List<BlockNode> pasted) {
+lib\src\core\commands\block_commands.dart:580:  List<InlineNode>? _firstInlineSlice(List<BlockNode> blocks) {
+lib\src\core\commands\block_commands.dart:1135:        content: const <InlineNode>[],
+lib\src\core\commands\block_commands.dart:1508:      content: const <InlineNode>[],
+lib\src\core\commands\block_commands.dart:1600:          content: const <InlineNode>[],
+lib\src\core\commands\table_cell_editing.dart:253:  final List<InlineNode> nextContent;
+lib\src\core\commands\table_cell_editing.dart:479:            content: const <InlineNode>[],
+lib\src\core\commands\table_cell_editing.dart:523:    content: const <InlineNode>[],
+lib\src\core\commands\text_commands.dart:392:    content: const <InlineNode>[],
+lib\src\core\commands\text_commands.dart:517:      content: mergeTextRuns(<InlineNode>[
+lib\src\core\commands\text_commands.dart:686:        content: const <InlineNode>[],
+lib\src\core\commands\text_commands.dart:782:      content: mergeTextRuns(<InlineNode>[
+lib\src\core\commands\text_commands.dart:842:      content: mergeTextRuns(<InlineNode>[
+lib\src\core\commands\table_commands.dart:906:        content: const <InlineNode>[],
+lib\src\core\model\block_node.dart:120:    this.content = const <InlineNode>[],
+lib\src\core\model\block_node.dart:128:  final List<InlineNode> content;
+lib\src\core\model\block_node.dart:161:                (node) => InlineNode.fromJson(Map<String, Object?>.from(node)),
+lib\src\core\model\block_node.dart:164:          : const <InlineNode>[],
+lib\src\core\model\block_node.dart:665:  final List<InlineNode> content;
+lib\src\core\model\block_node.dart:745:    List<InlineNode>? content,
+lib\src\core\model\block_node.dart:783:                  InlineNode.fromJson(Map<String, Object?>.from(node)))
+lib\src\core\model\block_node.dart:785:          : const <InlineNode>[],
+lib\src\core\model\inline_node.dart:3:abstract class InlineNode {
+lib\src\core\model\inline_node.dart:4:  const InlineNode();
+lib\src\core\model\inline_node.dart:10:  InlineNode copy();
+lib\src\core\model\inline_node.dart:12:  static InlineNode fromJson(Map<String, Object?> json) {
+lib\src\core\model\inline_node.dart:21:class TextRun extends InlineNode {
+lib\src\core\model\inline_node.dart:55:class InlineEmbed extends InlineNode {
+
+codex
+类型不匹配来自通用替换器传入内联节点列表；我会复用现有纯文本工具转换为字符串。
+exec
+powershell.exe -Command "Get-Content lib\\src\\controller\\slash_menu_controller.dart | Select-Object -Skip 500 -First 210; Get-Content lib\\src\\core\\model\\inline_node.dart | Select-Object -First 90; rg \"inline.*plain|plainTextForInline|inlineNodes.*Text|String .*Inline\" -n lib\\src" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 311ms:
+  WenzRichTextController editor,
+  SlashMenuContext context,
+  {
+  required BlockType type,
+  BlockAttributes attributes = const BlockAttributes(),
+}) {
+  _replaceTriggerBlock(
+    editor,
+    context,
+    (block, content) => TextBlockNode(
+      id: block.id,
+      type: type,
+      attributes: attributes,
+      content: content,
+    ),
+    (block, blockIndex, textLength) {
+      final position = DocumentPosition.text(
+        blockId: block.id,
+        blockIndex: blockIndex,
+        offset: textLength,
+      );
+      return DocumentSelection(base: position, extent: position);
+    },
+  );
+}
+
+void _replaceTriggerWithObjectBlock(
+  WenzRichTextController editor,
+  SlashMenuContext context,
+  BlockNode Function(TextBlockNode block, List<InlineNode> content) buildBlock,
+  DocumentSelection Function(BlockNode block, int blockIndex) buildSelection,
+) {
+  _replaceTriggerBlockWithBlocks(
+    editor,
+    context,
+    (block, content) {
+      final split = _splitContentAroundTrigger(block, context.trigger);
+      final insertedBlock = buildBlock(block, content);
+      final blocks = <BlockNode>[
+        if (split.before.isNotEmpty)
+          TextBlockNode(
+            id: block.id,
+            type: block.type,
+            attributes: block.attributes,
+            content: split.before,
+          ),
+        insertedBlock,
+        if (split.after.isNotEmpty)
+          TextBlockNode(
+            id: context.generatedId('${block.id}-after'),
+            type: block.type,
+            attributes: block.attributes,
+            content: split.after,
+          ),
+      ];
+      final insertedIndex = context.blockIndex + (split.before.isEmpty ? 0 : 1);
+      return _SlashReplacement(
+        blocks: blocks,
+        selection: buildSelection(insertedBlock, insertedIndex),
+      );
+    },
+  );
+}
+
+void _replaceTriggerBlock(
+  WenzRichTextController editor,
+  SlashMenuContext context,
+  BlockNode Function(TextBlockNode block, List<InlineNode> content) buildBlock,
+  DocumentSelection Function(BlockNode block, int blockIndex, int caretOffset)
+      buildSelection,
+) {
+  _replaceTriggerBlockWithBlocks(
+    editor,
+    context,
+    (block, content) {
+      final nextBlock = buildBlock(block, content);
+      final caretOffset = context.trigger.start
+          .clamp(0, inlineNodesLength(content))
+          .toInt();
+      return _SlashReplacement(
+        blocks: <BlockNode>[nextBlock],
+        selection: buildSelection(nextBlock, context.blockIndex, caretOffset),
+      );
+    },
+  );
+}
+
+void _replaceTriggerBlockWithBlocks(
+  WenzRichTextController editor,
+  SlashMenuContext context,
+  _SlashReplacement Function(TextBlockNode block, List<InlineNode> content)
+      buildReplacement,
+) {
+  final index = context.blockIndex;
+  if (index < 0 || index >= editor.document.blocks.length) {
+    return;
+  }
+  final block = editor.document.blocks[index];
+  if (block is! TextBlockNode) {
+    return;
+  }
+  final start = context.trigger.start.clamp(0, block.plainText.length).toInt();
+  final end = context.trigger.end.clamp(start, block.plainText.length).toInt();
+  final content = deleteInline(block.content, start, end);
+  final replacement = buildReplacement(block, content);
+  editor.replaceBlocks(
+    index: index,
+    deleteCount: 1,
+    blocks: replacement.blocks,
+    selection: replacement.selection,
+  );
+}
+
+_SlashContentSplit _splitContentAroundTrigger(
+  TextBlockNode block,
+  SlashMenuTrigger trigger,
+) {
+  final start = trigger.start.clamp(0, block.plainText.length).toInt();
+  final end = trigger.end.clamp(start, block.plainText.length).toInt();
+  final before = splitInline(block.content, start).before;
+  final after = splitInline(block.content, end).after;
+  return _SlashContentSplit(before: before, after: after);
+}
+
+DocumentSelection _tableCellSelection(String tableId, int blockIndex) {
+  final position = DocumentPosition.tableCell(
+    tableBlockId: tableId,
+    blockIndex: blockIndex,
+    tableRowIndex: 0,
+    tableColumnIndex: 0,
+    offset: 0,
+  );
+  return DocumentSelection(base: position, extent: position);
+}
+
+TableModel _createSlashTable(
+  String tableId,
+  int rowCount,
+  int columnCount,
+  String Function(String prefix) generatedId,
+) {
+  return TableModel(
+    rows: <List<TableCellNode>>[
+      for (var rowIndex = 0; rowIndex < rowCount; rowIndex++)
+        <TableCellNode>[
+          for (var columnIndex = 0; columnIndex < columnCount; columnIndex++)
+            TableCellNode(
+              id: generatedId('$tableId-cell-$rowIndex-$columnIndex'),
+              blocks: <BlockNode>[
+                TextBlockNode(
+                  id: generatedId('$tableId-p-$rowIndex-$columnIndex'),
+                  type: BlockType.paragraph,
+                  content: const <InlineNode>[],
+                ),
+              ],
+            ),
+        ],
+    ],
+  );
+}
+
+class _SlashReplacement {
+  const _SlashReplacement({
+    required this.blocks,
+    required this.selection,
+  });
+
+  final List<BlockNode> blocks;
+  final DocumentSelection selection;
+}
+
+class _SlashContentSplit {
+  const _SlashContentSplit({
+    required this.before,
+    required this.after,
+  });
+
+  final List<InlineNode> before;
+  final List<InlineNode> after;
+}
+
+SlashMenuTrigger? _detectTrigger(WenzRichTextController editor) {
+  if (!editor.canEdit) {
+    return null;
+  }
+  if (editor.isApplyingComposingTextInput || editor.compositionState != null) {
+    return null;
+  }
+  final selection = editor.selection;
+  if (selection == null || !selection.isCollapsed) {
+    return null;
+  }
+  final position = selection.extent;
+  if (position.blockId.isEmpty) {
+    return null;
+  }
+  if (!position.path.isBlockText) {
+    return null;
+  }
+  if (position.blockIndex < 0 ||
+      position.blockIndex >= editor.document.blocks.length) {
+    return null;
+  }
+  final block = editor.document.blocks[position.blockIndex];
+  if (block is! TextBlockNode) {
+    return null;
+  }
+  if (block.id != position.blockId) {
+    return null;
+  }
+import 'attributes.dart';
+
+abstract class InlineNode {
+  const InlineNode();
+
+  String get plainText;
+
+  Map<String, Object?> toJson();
+
+  InlineNode copy();
+
+  static InlineNode fromJson(Map<String, Object?> json) {
+    final type = json['type'];
+    if (type == 'embed') {
+      return InlineEmbed.fromJson(json);
+    }
+    return TextRun.fromJson(json);
+  }
+}
+
+class TextRun extends InlineNode {
+  const TextRun({required this.text, this.attributes = const TextAttributes()});
+
+  final String text;
+  final TextAttributes attributes;
+
+  @override
+  String get plainText => text;
+
+  @override
+  TextRun copy() {
+    return TextRun(text: text, attributes: attributes);
+  }
+
+  @override
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'type': 'text',
+      'text': text,
+      if (!attributes.isEmpty) 'attrs': attributes.toJson(),
+    };
+  }
+
+  factory TextRun.fromJson(Map<String, Object?> json) {
+    final attrs = json['attrs'];
+    return TextRun(
+      text: json['text'] as String? ?? '',
+      attributes: attrs is Map
+          ? TextAttributes.fromJson(Map<String, Object?>.from(attrs))
+          : const TextAttributes(),
+    );
+  }
+}
+
+class InlineEmbed extends InlineNode {
+  const InlineEmbed({
+    required this.embedType,
+    this.data = const <String, Object?>{},
+    this.attributes = const TextAttributes(),
+  });
+
+  final String embedType;
+  final Map<String, Object?> data;
+  final TextAttributes attributes;
+
+  @override
+  String get plainText => embedType == 'formula' ? ' ' : '\uFFFC';
+
+  @override
+  InlineEmbed copy() {
+    return InlineEmbed(
+      embedType: embedType,
+      data: Map<String, Object?>.from(data),
+      attributes: attributes,
+    );
+  }
+
+  @override
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'type': 'embed',
+      'embedType': embedType,
+      if (data.isNotEmpty) 'data': data,
+      if (!attributes.isEmpty) 'attrs': attributes.toJson(),
+    };
+  }
+
+  factory InlineEmbed.fromJson(Map<String, Object?> json) {
+    final attrs = json['attrs'];
+    final data = json['data'];
+lib\src\widgets\wenz_rich_text_editor.dart:10764:String _embedDisplayText(InlineEmbed embed) {
+lib\src\widgets\wenz_rich_text_editor.dart:10776:String _inlineDisplayText(InlineNode node) {
+lib\src\widgets\wenz_rich_text_editor.dart:10784:String _mentionDisplayText(InlineEmbed embed) {
+lib\src\widgets\wenz_rich_text_editor.dart:10790:String _formulaDisplayText(InlineEmbed embed) {
+lib\src\widgets\wenz_rich_text_editor.dart:10795:String _emojiDisplayText(InlineEmbed embed) {
+lib\src\core\commands\block_commands.dart:716:        offset: inlineNodesLength(cellTextBlock(cell).content),
+lib\src\core\commands\inline_commands.dart:259:  String get description => 'insertInlineEmbed:$embedType';
+lib\src\core\commands\selection_commands.dart:988:  return inlineNodesLength(cellTextBlock(cell).content);
+lib\src\core\commands\text_commands.dart:706:  return inlineNodesLength(cellTextBlock(cell).content);
+lib\src\codecs\html_codec.dart:154:  String _encodeInline(List<InlineNode> nodes) {
+lib\src\codecs\html_codec.dart:188:  String _encodeEmbed(InlineEmbed embed) {
+lib\src\codecs\html_codec.dart:230:  String _embedDisplayText(InlineEmbed embed) {
+lib\src\codecs\html_codec.dart:239:  String _mentionDisplayText(InlineEmbed embed) {
+lib\src\codecs\html_codec.dart:245:  String _formulaDisplayText(InlineEmbed embed) {
+lib\src\codecs\html_codec.dart:252:  String _emojiDisplayText(InlineEmbed embed) {
+lib\src\input\clipboard_service.dart:246:  String _encodeInlineSlice(List<InlineNode> nodes, int start, int end) {
+lib\src\input\clipboard_service.dart:248:    final plain = _plainTextForInlineNodes(range);
+lib\src\input\clipboard_service.dart:337:          _plainTextForInlineNodes(
+lib\src\input\clipboard_service.dart:343:          _plainTextForInlineNodes(_sliceInline(content, 0, end.offset)),
+lib\src\input\clipboard_service.dart:354:            : _plainTextForInlineNodes(content));
+lib\src\input\clipboard_service.dart:393:      return _plainTextForInlineNodes(block.content);
+lib\src\input\clipboard_service.dart:396:      return _plainTextForInlineNodes(block.content);
+lib\src\input\clipboard_service.dart:486:    return _plainTextForInlineNodes(inlineRuns);
+lib\src\input\clipboard_service.dart:490:String _plainTextForInlineNodes(List<InlineNode> nodes) {
+lib\src\input\clipboard_service.dart:491:  return nodes.map(_plainTextForInlineNode).join();
+lib\src\input\clipboard_service.dart:494:String _plainTextForInlineNode(InlineNode node) {
+lib\src\codecs\markdown_codec.dart:179:  String _encodeInline(List<InlineNode> nodes) {
+lib\src\codecs\markdown_codec.dart:212:  String _encodeEmbed(InlineEmbed embed) {
+lib\src\codecs\markdown_codec.dart:226:  String _embedDisplayText(InlineEmbed embed) {
+lib\src\codecs\markdown_codec.dart:235:  String _mentionDisplayText(InlineEmbed embed) {
+lib\src\codecs\markdown_codec.dart:241:  String _formulaDisplayText(InlineEmbed embed) {
+lib\src\codecs\markdown_codec.dart:248:  String _emojiDisplayText(InlineEmbed embed) {
+lib\src\codecs\markdown_codec.dart:261:  String _escapeInline(String text) {
+lib\src\controller\document_stats_controller.dart:279:String _embedDisplayText(InlineEmbed embed) {
+lib\src\controller\document_stats_controller.dart:292:String _mentionDisplayText(InlineEmbed embed) {
+lib\src\controller\document_stats_controller.dart:298:String _formulaDisplayText(InlineEmbed embed) {
+lib\src\controller\document_stats_controller.dart:304:String _emojiDisplayText(InlineEmbed embed) {
+lib\src\controller\find_replace_controller.dart:469:String _inlinePlainText(List<InlineNode> nodes) {
+
+codex
+修复点很小：把保留下来的内联内容转成代码块所需的纯文本。
+exec
+powershell.exe -Command "Get-Content lib\\src\\controller\\slash_menu_controller.dart | Select-Object -First 35; Get-Content lib\\src\\controller\\slash_menu_controller.dart | Select-Object -Skip 420 -First 65" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 280ms:
+import 'package:flutter/foundation.dart';
+
+import '../core/commands/inline_editing.dart';
+import '../core/model/attributes.dart';
+import '../core/model/block_node.dart';
+import '../core/model/inline_node.dart';
+import '../core/model/table_model.dart';
+import '../core/position/document_position.dart';
+import 'wenz_rich_text_controller.dart';
+
+typedef SlashMenuAction = void Function(
+  WenzRichTextController editor,
+  SlashMenuContext context,
+);
+
+typedef SlashMenuItemFilter = bool Function(SlashMenuItem item, String query);
+
+typedef SlashMenuItemSorter = int Function(
+  SlashMenuItem a,
+  SlashMenuItem b,
+  String query,
+);
+
+class SlashMenuItem {
+  const SlashMenuItem({
+    required this.id,
+    required this.title,
+    required this.icon,
+    required this.action,
+    this.description = '',
+    this.keywords = const <String>[],
+    this.handlesTriggerDeletion = false,
+  });
+
+  final String id;
+      title: 'Table',
+      description: '3 by 3 table',
+      icon: 'table_chart',
+      keywords: const <String>['grid'],
+      handlesTriggerDeletion: true,
+      action: (editor, context) {
+        final tableId = context.generatedId('table');
+        _replaceTriggerWithObjectBlock(
+          editor,
+          context,
+          (block, content) => TableBlockNode(
+            id: tableId,
+            table: _createSlashTable(tableId, 3, 3, context.generatedId),
+          ),
+          (block, blockIndex) => _tableCellSelection(tableId, blockIndex),
+        );
+      },
+    ),
+    SlashMenuItem(
+      id: 'image',
+      title: 'Image',
+      description: 'Image placeholder',
+      icon: 'image',
+      keywords: const <String>['media', 'picture'],
+      handlesTriggerDeletion: true,
+      action: (editor, context) {
+        _replaceTriggerWithObjectBlock(
+          editor,
+          context,
+          (block, content) => ImageBlockNode(
+            id: block.id,
+            assetId: context.generatedId('image'),
+          ),
+          (block, blockIndex) {
+            final base = DocumentPosition(
+              blockId: block.id,
+              blockIndex: blockIndex,
+              path: PositionPath.blockObject(block.id),
+              offset: 0,
+            );
+            final extent = base.copyWith(offset: 1);
+            return DocumentSelection(base: base, extent: extent);
+          },
+        );
+      },
+    ),
+    SlashMenuItem(
+      id: 'video',
+      title: 'Video',
+      description: 'Video placeholder',
+      icon: 'video',
+      keywords: const <String>['media', 'movie', 'play', '瑙嗛'],
+      handlesTriggerDeletion: true,
+      action: (editor, context) {
+        _replaceTriggerWithObjectBlock(
+          editor,
+          context,
+          (block, content) => VideoBlockNode(
+            id: block.id,
+            assetId: context.generatedId('video'),
+            title: 'Video placeholder',
+            aspectRatio: VideoBlockNode.defaultAspectRatio,
+          ),
+          (block, blockIndex) {
+            final base = DocumentPosition(
+
+**Considering code adjustments**
+
+I need to address a patch, and I'm also wondering about warnings related to unused content in the table lambdas. If the analyzer is only showing errors, it could be that Dart doesn’t flag unused parameters or lints. Maybe I could use a helper function like content.map and name it something like _inlinePlainText. I'll check if it's okay to have duplicate private functions in the same library. So, I can add the helper near the splits and then patch that line or just inline content.map to simplify things.
+codex
+我会直接改这一行，避免扩大作用域或影响 plan 内容。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_richtext\lib\src\controller\slash_menu_controller.dart
+diff --git a/wenz_richtext/lib/src/controller/slash_menu_controller.dart b/wenz_richtext/lib/src/controller/slash_menu_controller.dart
+index 77f33627b59324661dd6cfeb054a2db175aeac2d..c2b2835bf15952ea7ba695c83082ca7fffae423f
+--- a/wenz_richtext/lib/src/controller/slash_menu_controller.dart
++++ b/wenz_richtext/lib/src/controller/slash_menu_controller.dart
+@@ -400,7 +400,10 @@
+         _replaceTriggerWithObjectBlock(
+           editor,
+           context,
+-          (block, content) => CodeBlockNode(id: block.id, code: content),
++          (block, content) => CodeBlockNode(
++            id: block.id,
++            code: content.map((node) => node.plainText).join(),
++          ),
+           (block, blockIndex) => DocumentSelection(
+             base: DocumentPosition.code(
+               blockId: block.id,
+
+diff --git a/wenz_richtext/lib/src/controller/slash_menu_controller.dart b/wenz_richtext/lib/src/controller/slash_menu_controller.dart
+index 77f33627b59324661dd6cfeb054a2db175aeac2d..c2b2835bf15952ea7ba695c83082ca7fffae423f
+--- a/wenz_richtext/lib/src/controller/slash_menu_controller.dart
++++ b/wenz_richtext/lib/src/controller/slash_menu_controller.dart
+@@ -400,7 +400,10 @@
+         _replaceTriggerWithObjectBlock(
+           editor,
+           context,
+-          (block, content) => CodeBlockNode(id: block.id, code: content),
++          (block, content) => CodeBlockNode(
++            id: block.id,
++            code: content.map((node) => node.plainText).join(),
++          ),
+           (block, blockIndex) => DocumentSelection(
+             base: DocumentPosition.code(
+               blockId: block.id,
+
+**Evaluating tool options**
+
+I’ve got a warning here, but it looks like only the shell tool is available right now. The developer mentioned using the apply_patch tool, but I don't see that available in my namespace. That’s okay! I think I just need to run an analysis on this existing situation instead. It's a little frustrating, but I’ll find a way to work with what I have. Let's see what I can do!
+codex
+代码已做最小修改；现在复跑失败命令确认只剩验证结果。
+  ✓ 定位类型错误上下文
+  ✓ 应用最小代码修复
+  → 复跑 flutter analyze
+diff --git a/wenz_richtext/lib/src/controller/slash_menu_controller.dart b/wenz_richtext/lib/src/controller/slash_menu_controller.dart
+index 77f33627b59324661dd6cfeb054a2db175aeac2d..c2b2835bf15952ea7ba695c83082ca7fffae423f
+--- a/wenz_richtext/lib/src/controller/slash_menu_controller.dart
++++ b/wenz_richtext/lib/src/controller/slash_menu_controller.dart
+@@ -400,7 +400,10 @@
+         _replaceTriggerWithObjectBlock(
+           editor,
+           context,
+-          (block, content) => CodeBlockNode(id: block.id, code: content),
++          (block, content) => CodeBlockNode(
++            id: block.id,
++            code: content.map((node) => node.plainText).join(),
++          ),
+           (block, blockIndex) => DocumentSelection(
+             base: DocumentPosition.code(
+               blockId: block.id,
+
+exec
+powershell.exe -Command 'flutter analyze' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 3749ms:
+Analyzing wenz_richtext...                                      
+No issues found! (ran in 2.4s)
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+
+diff --git a/wenz_richtext/lib/src/controller/slash_menu_controller.dart b/wenz_richtext/lib/src/controller/slash_menu_controller.dart
+index 77f33627b59324661dd6cfeb054a2db175aeac2d..c2b2835bf15952ea7ba695c83082ca7fffae423f
+--- a/wenz_richtext/lib/src/controller/slash_menu_controller.dart
++++ b/wenz_richtext/lib/src/controller/slash_menu_controller.dart
+@@ -400,7 +400,10 @@
+         _replaceTriggerWithObjectBlock(
+           editor,
+           context,
+-          (block, content) => CodeBlockNode(id: block.id, code: content),
++          (block, content) => CodeBlockNode(
++            id: block.id,
++            code: content.map((node) => node.plainText).join(),
++          ),
+           (block, blockIndex) => DocumentSelection(
+             base: DocumentPosition.code(
+               blockId: block.id,
+
+codex
+验证通过；我会记录完成状态并给你简短汇总。
+  ✓ 定位类型错误上下文
+  ✓ 应用最小代码修复
+  ✓ 复跑 flutter analyze
+diff --git a/wenz_richtext/lib/src/controller/slash_menu_controller.dart b/wenz_richtext/lib/src/controller/slash_menu_controller.dart
+index 77f33627b59324661dd6cfeb054a2db175aeac2d..c2b2835bf15952ea7ba695c83082ca7fffae423f
+--- a/wenz_richtext/lib/src/controller/slash_menu_controller.dart
++++ b/wenz_richtext/lib/src/controller/slash_menu_controller.dart
+@@ -400,7 +400,10 @@
+         _replaceTriggerWithObjectBlock(
+           editor,
+           context,
+-          (block, content) => CodeBlockNode(id: block.id, code: content),
++          (block, content) => CodeBlockNode(
++            id: block.id,
++            code: content.map((node) => node.plainText).join(),
++          ),
+           (block, blockIndex) => DocumentSelection(
+             base: DocumentPosition.code(
+               blockId: block.id,
+
+codex
+已只修复验证错误，未修改 plan 文件。
+
+- 修复：`lib/src/controller/slash_menu_controller.dart:403` 将 `List<InlineNode>` 转为 `String` 后传给 `CodeBlockNode.code`
+- 原因：`CodeBlockNode.code` 需要 `String`，而 slash 替换逻辑传入的是删除触发词后的内联节点列表
+- 验证：`flutter analyze` 已通过，结果为 `No issues found!`
+diff --git a/wenz_richtext/lib/src/controller/slash_menu_controller.dart b/wenz_richtext/lib/src/controller/slash_menu_controller.dart
+index 77f33627b59324661dd6cfeb054a2db175aeac2d..c2b2835bf15952ea7ba695c83082ca7fffae423f
+--- a/wenz_richtext/lib/src/controller/slash_menu_controller.dart
++++ b/wenz_richtext/lib/src/controller/slash_menu_controller.dart
+@@ -400,7 +400,10 @@
+         _replaceTriggerWithObjectBlock(
+           editor,
+           context,
+-          (block, content) => CodeBlockNode(id: block.id, code: content),
++          (block, content) => CodeBlockNode(
++            id: block.id,
++            code: content.map((node) => node.plainText).join(),
++          ),
+           (block, blockIndex) => DocumentSelection(
+             base: DocumentPosition.code(
+               blockId: block.id,
+
+tokens used
+42,851
+已只修复验证错误，未修改 plan 文件。
+
+- 修复：`lib/src/controller/slash_menu_controller.dart:403` 将 `List<InlineNode>` 转为 `String` 后传给 `CodeBlockNode.code`
+- 原因：`CodeBlockNode.code` 需要 `String`，而 slash 替换逻辑传入的是删除触发词后的内联节点列表
+- 验证：`flutter analyze` 已通过，结果为 `No issues found!`

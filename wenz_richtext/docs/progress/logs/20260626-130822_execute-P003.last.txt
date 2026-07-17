@@ -1,0 +1,11 @@
+P003 已完成；未修改 plan 文件，未运行测试/构建/分析/格式化命令。
+
+**变更**
+- 在 `lib/src/widgets/wenz_rich_text_editor.dart:637` 新增 `shortcutConfiguration` 编辑器入参，默认保持空配置，不改变既有行为。
+- 在 `lib/src/widgets/wenz_rich_text_editor.dart:766` 用入参创建 `EditorShortcutManager`，并在 `didUpdateWidget` 中随配置变化刷新解析器，不要求重建 controller。
+- 在 `lib/src/widgets/wenz_rich_text_editor.dart:2355` 传入 Ctrl/Alt/Meta 精确修饰键状态，支持 P002 的精确匹配与 primary 抽象。
+- 在 `test/widgets/wenz_rich_text_editor_test.dart:5720` 补充 widget 测试：配置触发现有 `_performShortcut` 路径、配置更新后生效、代码块 Tab 优先级不被普通配置覆盖。
+
+**说明**
+- 只改了当前 P003 scope：`lib/src/widgets/wenz_rich_text_editor.dart`、`test/widgets/wenz_rich_text_editor_test.dart`。
+- 按要求未执行 `flutter test`、`dart analyze` 等命令，留给 AutoPlan 最终验收。

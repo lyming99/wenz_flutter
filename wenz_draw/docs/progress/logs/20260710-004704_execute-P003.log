@@ -1,0 +1,1384 @@
+OpenAI Codex v0.142.5
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_draw
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f47b0-986c-78f0-b7e0-c10a355e56e1
+--------
+user
+你是开发执行者，在无人值守模式下工作：禁止反问用户、禁止请求确认或补充信息、禁止输出“请告诉我…/是否需要…”之类等待回复的话；遇到不确定一律自行从代码推断，按最合理的工程方案直接推进，不要停下来等待输入。
+请只执行指定任务 P003，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_draw\docs\plan\plan_feedback_51_20260710-002141.md
+指定任务：- [ ] P003: 补充工具栏插入图标的回归覆盖 <!-- scope: test/toolbar_test.dart -->
+任务 scope：test/toolbar_test.dart
+
+完成后必须：
+- 当前任务已恢复同一 plan 前序任务的 Codex 会话，请沿用已有分析结论和修改背景，避免重新从零梳理
+- 这是无人值守执行：不要提问、不要请求确认、不要等待用户输入，所有不确定项自行基于代码推断并直接落地修改
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 当前阶段只做开发修改，不运行测试、回归、验收、构建、lint/analyze、coverage、e2e 或 benchmark 命令；AutoPlan 会在所有任务完成后统一执行最终验收命令
+- 即使任务验收要点提到测试，也只补充或调整必要代码/测试文件，不在当前任务内启动测试进程；除非当前任务或 plan 总体说明明确写着“本任务必须执行某命令”
+- 若识别到 Flutter/Dart 项目，可遵循其代码组织、格式和测试文件约定，但当前任务内不要运行 flutter test、dart test、flutter analyze 或 dart analyze
+- 如果工具链命令因 PathAccessException、Permission denied、拒绝访问或超时失败，停止重试并说明环境阻塞，把验证留给最终验收阶段
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+codex
+我会继续沿用前序背景：P001 已给思维导图使用 `Icons.account_tree_outlined`，P002 写入受环境阻塞未落地。P003 只改 `test/toolbar_test.dart`，补覆盖“菜单项存在且有独立图标、不同于曲线图标、点击只触发思维导图回调”。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\docs\\plan\\plan_feedback_51_20260710-002141.md' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "if (Test-Path -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\test\\toolbar_test.dart') { Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\test\\toolbar_test.dart' -Encoding UTF8 } else { 'MISSING' }" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 308ms:
+# 区分思维导图与曲线插入图标
+
+## 需求概要
+
+绘图白板当前曲线工具在工具栏中使用 Icons.timeline，思维导图从特殊组件插入菜单触发。需要为思维导图插入入口提供独立且可识别的图标，确保它不再与曲线插入图标混淆，同时保持原有插入回调和其他组件菜单行为不变。
+
+## 任务拆解
+
+- [x] P001: 为思维导图插入入口配置独立图标 <!-- scope: lib/src/ui/toolbar/toolbar.dart -->
+  - 验收要点：曲线工具按钮继续使用当前曲线图标和选中态逻辑，activeTool 为 CurveTool.idValue 时仍能正确高亮。
+  - 验收要点：特殊组件插入菜单中的思维导图项显示独立图标，图标不得使用 Icons.timeline，也不得与曲线工具视觉表现一致。
+  - 验收要点：点击思维导图菜单项仍只触发 onAddMindmap，不影响便签和计数器菜单项的回调分发。
+- [x] P002: 统一特殊组件插入菜单的图标行布局 <!-- scope: lib/src/ui/toolbar/toolbar.dart -->
+  - 验收要点：便签、计数器、思维导图菜单项在同一菜单中保持一致的图标加文字排列，文本仍完整显示。
+  - 验收要点：菜单项的点击区域、弹出位置和关闭行为与现有 showAnchoredMenu 流程一致。
+  - 验收要点：新增图标布局不引入额外业务依赖，也不改变 Toolbar 对外构造参数。
+- [ ] P003: 补充工具栏插入图标的回归覆盖 <!-- scope: test/toolbar_test.dart -->
+  - 验收要点：覆盖打开特殊组件菜单后可找到思维导图菜单项及其图标的场景。
+  - 验收要点：覆盖思维导图图标与曲线工具图标不同的场景，防止后续再次复用 Icons.timeline。
+  - 验收要点：覆盖选择思维导图菜单项后 onAddMindmap 被调用，且曲线工具按钮行为不受影响。
+- [ ] P004: 完整验收 <!-- scope: validation -->
+  - 验收要点：最终验收命令为 flutter test
+  - 验收要点：Flutter 全量测试通过，包含新增或更新的工具栏插入菜单覆盖。
+  - 验收要点：绘图白板工具栏中的曲线按钮仍显示曲线图标，插入菜单中的思维导图项显示不同的思维导图图标。
+  - 验收要点：从特殊组件菜单插入思维导图、便签和计数器的回调行为保持正确，现有画布工具选择逻辑不回退。
+
+## 总体验收标准
+
+- 最终验收命令：flutter test
+- 验收范围：lib/src/ui/toolbar/toolbar.dart、test/toolbar_test.dart、validation
+- 通过标准：所有总体验收标准均满足。
+- Flutter 全量测试通过，包含新增或更新的工具栏插入菜单覆盖。
+- 绘图白板工具栏中的曲线按钮仍显示曲线图标，插入菜单中的思维导图项显示不同的思维导图图标。
+- 从特殊组件菜单插入思维导图、便签和计数器的回调行为保持正确，现有画布工具选择逻辑不回退。
+
+## 进度区
+
+| 任务 | 状态 | 备注 |
+| --- | --- | --- |
+| P001 | 未开始 | 为思维导图插入入口配置独立图标 |
+| P002 | 未开始 | 统一特殊组件插入菜单的图标行布局 |
+| P003 | 未开始 | 补充工具栏插入图标的回归覆盖 |
+| P004 | 未开始 | 完整验收 |
+- P001 AutoPlan 完成：2026-07-09T16:24:08.139Z；日志：docs/progress/logs/20260710-002303_execute-P001.log
+- P002 AutoPlan 完成：2026-07-09T16:47:02.869Z；日志：docs/progress/logs/20260710-004304_execute-P002.log
+
+ succeeded in 305ms:
+MISSING
+
+codex
+`test/toolbar_test.dart` 当前不存在，所以 P003 需要在该 scope 下新建测试文件。plan 已由 AutoPlan 标记 P002 完成，但我会只按 P003 的测试覆盖落地，不回改 toolbar 业务文件。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'rg --files test | Select-Object -First 40' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg \"Toolbar\\(|WenzDrawEditor|CanvasController|InfiniteCanvasController|find\\.byTooltip|find\\.text\\('特殊组件创建'|Icons\\.timeline|CurveTool\" -n test lib/src/ui" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 341ms:
+test\widget_element_test.dart
+test\text_element_test.dart
+test\svg_exporter_test.dart
+test\stencil_parser_test.dart
+test\stencil_parser_advanced_test.dart
+test\snap_resolver_test.dart
+test\shape_label_test.dart
+test\serialization_test.dart
+test\routing\routing_test.dart
+test\roundtrip_closure_test.dart
+test\polyline_element_test.dart
+test\performance_widget_test.dart
+test\minimap_widget_test.dart
+test\mindmap_module_test.dart
+test\line_label_test.dart
+test\image_loader_test.dart
+test\drawio_style_parser_test.dart
+test\drawio_shape_element_test.dart
+test\drawio_importer_test.dart
+test\document_robustness_test.dart
+test\curve_element_test.dart
+test\clipboard_test.dart
+test\canvas_transform_test.dart
+test\canvas_controller_test.dart
+test\canvas_config_test.dart
+
+ succeeded in 262ms:
+test\canvas_config_test.dart:13:  group('InfiniteCanvasController scale bounds', () {
+test\canvas_config_test.dart:15:      final controller = InfiniteCanvasController(
+test\canvas_config_test.dart:16:        canvasController: CanvasController(),
+test\canvas_config_test.dart:27:      final controller = InfiniteCanvasController(
+test\canvas_config_test.dart:28:        canvasController: CanvasController(),
+test\canvas_config_test.dart:39:      final controller = InfiniteCanvasController(
+test\canvas_config_test.dart:40:        canvasController: CanvasController(),
+test\canvas_controller_test.dart:9:      final controller = CanvasController();
+test\canvas_controller_test.dart:66:    final controller = CanvasController();
+test\canvas_controller_test.dart:85:    final controller = CanvasController()
+test\canvas_controller_test.dart:107:    final controller = CanvasController();
+test\canvas_controller_test.dart:126:    final controller = CanvasController();
+test\canvas_controller_test.dart:143:    final controller = CanvasController()
+test\canvas_controller_test.dart:155:    final controller = CanvasController()
+test\canvas_controller_test.dart:177:    final controller = CanvasController()
+test\canvas_controller_test.dart:199:    final controller = CanvasController(
+test\canvas_controller_test.dart:233:          CanvasController(
+test\canvas_controller_test.dart:267:    final controller = CanvasController(
+test\canvas_controller_test.dart:291:      final controller = CanvasController(
+test\canvas_controller_test.dart:335:    final controller = CanvasController(
+test\canvas_controller_test.dart:368:    final controller = CanvasController(
+test\canvas_controller_test.dart:393:    final controller = CanvasController();
+test\canvas_controller_test.dart:440:    final controller = CanvasController();
+test\canvas_controller_test.dart:484:    final controller = CanvasController();
+test\clipboard_test.dart:14:  CanvasController createController() {
+test\clipboard_test.dart:15:    return CanvasController(
+lib/src/ui\widgets\floating_pill.dart:9:  final InfiniteCanvasController viewController;
+lib/src/ui\panels\left_shape_panel.dart:21:  final CanvasController canvasController;
+lib/src/ui\panels\right_inspector_panel.dart:18:  final CanvasController canvasController;
+lib/src/ui\panels\right_inspector_panel.dart:411:  final CanvasController canvasController;
+lib/src/ui\panels\right_inspector_panel.dart:781:  final CanvasController canvasController;
+test\widget_element_test.dart:353:      final canvasController = CanvasController();
+test\widget_element_test.dart:354:      final viewController = InfiniteCanvasController(
+lib/src/ui\toolbar\toolbar.dart:16:  const Toolbar({
+lib/src/ui\toolbar\toolbar.dart:29:  final CanvasController canvasController;
+lib/src/ui\toolbar\toolbar.dart:30:  final InfiniteCanvasController viewController;
+lib/src/ui\toolbar\toolbar.dart:41:  final Future<void> Function(BuildContext, CanvasController, InfiniteCanvasController)?
+lib/src/ui\toolbar\toolbar.dart:120:                    icon: Icons.timeline,
+lib/src/ui\toolbar\toolbar.dart:121:                    selected: activeTool == CurveTool.idValue,
+lib/src/ui\toolbar\toolbar.dart:123:                        canvasController.setTool(CurveTool.idValue),
+test\text_element_test.dart:87:    final controller = CanvasController();
+test\text_element_test.dart:106:    final controller = CanvasController();
+test\text_element_test.dart:127:    final controller = CanvasController();
+test\text_element_test.dart:152:    final controller = CanvasController();
+test\text_element_test.dart:168:    final controller = CanvasController();
+test\text_element_test.dart:186:    final controller = CanvasController();
+test\text_element_test.dart:209:    final controller = CanvasController();
+test\text_element_test.dart:260:    final controller = CanvasController();
+test\roundtrip_closure_test.dart:23:      final canvas1 = CanvasController(
+test\roundtrip_closure_test.dart:59:      final view1 = InfiniteCanvasController(canvasController: canvas1);
+test\roundtrip_closure_test.dart:77:      final canvas2 = CanvasController();
+test\roundtrip_closure_test.dart:78:      final view2 = InfiniteCanvasController(canvasController: canvas2);
+test\roundtrip_closure_test.dart:162:      final canvas = CanvasController();
+test\roundtrip_closure_test.dart:176:      final canvas1 = CanvasController();
+test\roundtrip_closure_test.dart:181:      final view1 = InfiniteCanvasController(canvasController: canvas1);
+test\roundtrip_closure_test.dart:187:      final canvas2 = CanvasController();
+test\roundtrip_closure_test.dart:188:      final view2 = InfiniteCanvasController(canvasController: canvas2);
+test\roundtrip_closure_test.dart:200:      final canvas3 = CanvasController();
+test\polyline_element_test.dart:178:    final controller = CanvasController(
+test\polyline_element_test.dart:223:    final controller = CanvasController()
+test\polyline_element_test.dart:333:    final controller = CanvasController()
+test\polyline_element_test.dart:378:    final controller = CanvasController()
+test\polyline_element_test.dart:425:    final controller = CanvasController()
+test\polyline_element_test.dart:470:    final controller = CanvasController()
+test\polyline_element_test.dart:508:    final controller = CanvasController()
+test\polyline_element_test.dart:558:    final controller = CanvasController()
+test\polyline_element_test.dart:611:      final controller = CanvasController()
+lib/src/ui\theme\editor_theme.dart:6:/// passing it to [WenzDrawEditor.theme]. Every token has a sensible default, so
+test\snap_resolver_test.dart:7:    final controller = CanvasController(
+test\snap_resolver_test.dart:37:    final controller = CanvasController(
+test\snap_resolver_test.dart:68:    final controller = CanvasController(
+test\snap_resolver_test.dart:117:    final controller = CanvasController(
+test\snap_resolver_test.dart:141:    final controller = CanvasController(
+test\snap_resolver_test.dart:189:    final controller = CanvasController(
+test\snap_resolver_test.dart:220:    final controller = CanvasController();
+test\snap_resolver_test.dart:264:    final controller = CanvasController(
+test\snap_resolver_test.dart:330:    final controller = CanvasController(
+test\snap_resolver_test.dart:386:    final controller = CanvasController()
+test\svg_exporter_test.dart:12:      final controller = CanvasController()
+test\serialization_test.dart:398:      final controller = CanvasController(
+test\serialization_test.dart:426:      final newController = CanvasController(
+test\serialization_test.dart:455:      final controller = CanvasController();
+test\serialization_test.dart:468:      final controller = CanvasController();
+test\serialization_test.dart:530:        CanvasController(),
+test\line_label_test.dart:139:    final controller = CanvasController();
+test\line_label_test.dart:164:    final controller = CanvasController();
+lib/src/ui\editor\editor_actions.dart:36:  CanvasController controller, {
+lib/src/ui\editor\editor_actions.dart:118:  CanvasController controller,
+lib/src/ui\editor\editor_actions.dart:141:  CanvasController controller, {
+lib/src/ui\editor\editor_actions.dart:165:  CanvasController controller,
+lib/src/ui\editor\canvas_stage.dart:16:  final CanvasController canvasController;
+lib/src/ui\editor\canvas_stage.dart:17:  final InfiniteCanvasController viewController;
+test\performance_widget_test.dart:182:      final controller = CanvasController();
+test\performance_widget_test.dart:199:      final controller = CanvasController();
+test\performance_widget_test.dart:224:      final controller = CanvasController();
+test\performance_widget_test.dart:261:      final controller = CanvasController();
+test\performance_widget_test.dart:290:        final canvasController = CanvasController();
+test\performance_widget_test.dart:291:        final viewController = InfiniteCanvasController(
+test\performance_widget_test.dart:343:      final controller = CanvasController();
+test\performance_widget_test.dart:363:      final controller = CanvasController();
+test\performance_widget_test.dart:396:        final canvasController = CanvasController();
+test\performance_widget_test.dart:397:        final viewController = InfiniteCanvasController(
+test\performance_widget_test.dart:427:      final canvasController = CanvasController();
+test\performance_widget_test.dart:428:      final viewController = InfiniteCanvasController(
+test\performance_widget_test.dart:472:      final canvasController = CanvasController();
+test\performance_widget_test.dart:473:      final viewController = InfiniteCanvasController(
+test\performance_widget_test.dart:517:      final canvasController = CanvasController();
+test\performance_widget_test.dart:518:      final viewController = InfiniteCanvasController(
+test\performance_widget_test.dart:566:        final canvasController = CanvasController();
+test\performance_widget_test.dart:567:        final viewController = InfiniteCanvasController(
+test\performance_widget_test.dart:617:int _countUndos(CanvasController controller) {
+lib/src/ui\editor\editor_config.dart:20:  final void Function(CanvasController canvas, InfiniteCanvasController view)
+lib/src/ui\editor\editor_config.dart:53:    CanvasController canvas,
+lib/src/ui\editor\editor_config.dart:54:    InfiniteCanvasController view,
+lib/src/ui\editor\editor_config.dart:61:/// Configuration for [WenzDrawEditor]. Every option defaults to a value that
+lib/src/ui\editor\editor_config.dart:93:    CanvasController canvas,
+lib/src/ui\editor\editor_config.dart:94:    InfiniteCanvasController view,
+lib/src/ui\editor\editor_config.dart:99:    CanvasController canvas,
+lib/src/ui\editor\editor_config.dart:100:    InfiniteCanvasController view,
+lib/src/ui\editor\editor_config.dart:105:    CanvasController canvas,
+lib/src/ui\editor\editor_config.dart:106:    InfiniteCanvasController view,
+lib/src/ui\editor\wenz_draw_editor.dart:19:/// WenzDrawEditor(
+lib/src/ui\editor\wenz_draw_editor.dart:29:class WenzDrawEditor extends StatelessWidget {
+lib/src/ui\editor\wenz_draw_editor.dart:30:  const WenzDrawEditor({
+lib/src/ui\editor\wenz_draw_editor.dart:38:  final CanvasController canvasController;
+lib/src/ui\editor\wenz_draw_editor.dart:39:  final InfiniteCanvasController viewController;
+lib/src/ui\editor\wenz_draw_editor.dart:56:  Widget _buildToolbar(BuildContext context) {
+lib/src/ui\editor\wenz_draw_editor.dart:61:    return Toolbar(
+lib/src/ui\editor\wenz_draw_editor.dart:110:  final WenzDrawEditor editor;
+lib/src/ui\editor\wenz_draw_editor.dart:150:        editor._buildToolbar(context),
+
+codex
+我会参考现有 Flutter widget 测试的导入和控制器创建方式来写新测试文件，避免引入额外依赖，也不运行测试。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\test\\performance_widget_test.dart' -Encoding UTF8 | Select-Object -First 80" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 347ms:
+// ignore_for_file: avoid_print
+
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+
+/// A minimal widget builder used for stress testing.  Each instance renders a
+/// thin colored border + a small label so we can visually verify placement.
+class PerfBoxBuilder extends WidgetElementBuilder {
+  const PerfBoxBuilder();
+
+  static int buildCount = 0;
+  static int previewCount = 0;
+
+  static void reset() {
+    buildCount = 0;
+    previewCount = 0;
+  }
+
+  @override
+  Widget build(
+    BuildContext context,
+    CanvasWidgetElement element, {
+    required CanvasWidgetBuildContext canvas,
+  }) {
+    buildCount++;
+    final colorValue =
+        int.tryParse(element.widgetData['color'] as String? ?? '0xFFE5E7EB') ??
+        0xFFE5E7EB;
+    final label = element.widgetData['label'] as String? ?? '';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Color(colorValue),
+        border: Border.all(color: const Color(0x33000000)),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 8, color: Color(0xFF374151)),
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
+      ),
+    );
+  }
+
+  @override
+  Widget buildPreview(
+    BuildContext context,
+    CanvasWidgetElement element, {
+    required CanvasWidgetBuildContext canvas,
+  }) {
+    previewCount++;
+    return super.buildPreview(context, element, canvas: canvas);
+  }
+}
+
+void main() {
+  // -----------------------------------------------------------------
+  // Helper: create 500 elements arranged in a grid.
+  // -----------------------------------------------------------------
+  List<CanvasWidgetElement> _make500Elements({
+    double cellWidth = 80,
+    double cellHeight = 48,
+    int columns = 25,
+    int rows = 20,
+  }) {
+    final elements = <CanvasWidgetElement>[];
+    final rng = math.Random(42); // deterministic
+    for (int row = 0; row < rows; row++) {
+      for (int col = 0; col < columns; col++) {
+        final id = 'perf-${row * columns + col}';
+        final x = col * (cellWidth + 4);
+        final y = row * (cellHeight + 4);
+        // Pick a random light pastel hue for visual variety.
+        final hue = rng.nextInt(360);
+        final color = HSLColor.fromAHSL(
+          0.9,
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\test\\minimap_widget_test.dart' -Encoding UTF8 | Select-Object -First 80" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\wenz_draw.dart' -Encoding UTF8 | Select-Object -First 140" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 352ms:
+import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+
+void main() {
+  group('MinimapLayout', () {
+    test(
+      'keeps viewport inside minimap when visible rect is outside content',
+      () {
+        final layout = MinimapLayout.resolve(
+          contentBounds: const Rect.fromLTWH(0, 0, 100, 100),
+          visibleWorldRect: const Rect.fromLTWH(1000, 1000, 500, 300),
+          minimapSize: const Size(180, 120),
+        );
+
+        expect(layout.viewportRect.left, greaterThanOrEqualTo(0));
+        expect(layout.viewportRect.top, greaterThanOrEqualTo(0));
+        expect(layout.viewportRect.right, lessThanOrEqualTo(180));
+        expect(layout.viewportRect.bottom, lessThanOrEqualTo(120));
+      },
+    );
+
+    test('maps viewport as relative position in combined world bounds', () {
+      final layout = MinimapLayout.resolve(
+        contentBounds: const Rect.fromLTWH(0, 0, 1000, 500),
+        visibleWorldRect: const Rect.fromLTWH(250, 100, 250, 200),
+        minimapSize: const Size(180, 120),
+        worldPadding: 0,
+      );
+
+      expect(layout.worldBounds, const Rect.fromLTWH(0, 0, 1000, 500));
+      expect(layout.scale, 0.18);
+      expect(layout.viewportRect, const Rect.fromLTWH(45, 33, 45, 36));
+    });
+
+    test('converts minimap position back to world position', () {
+      final layout = MinimapLayout.resolve(
+        contentBounds: const Rect.fromLTWH(0, 0, 1000, 500),
+        visibleWorldRect: const Rect.fromLTWH(250, 100, 250, 200),
+        minimapSize: const Size(180, 120),
+        worldPadding: 0,
+      );
+
+      expect(
+        layout.screenToWorld(const Offset(90, 60)),
+        const Offset(500, 250),
+      );
+    });
+  });
+}
+
+ succeeded in 355ms:
+library wenz_draw;
+
+export 'src/canvas/canvas_controller.dart';
+export 'src/canvas/canvas_state.dart';
+export 'src/canvas/element_manager.dart';
+export 'src/canvas/image_loader.dart';
+export 'src/canvas/paint_style.dart';
+export 'src/canvas/selection_manager.dart';
+export 'src/canvas/spatial_index.dart';
+export 'src/drawio/drawio_color.dart';
+export 'src/drawio/drawio_importer.dart';
+export 'src/drawio/drawio_shape_adapter.dart';
+export 'src/drawio/drawio_style.dart';
+export 'src/drawio/drawio_style_parser.dart';
+export 'src/elements/arrow_element.dart';
+export 'src/elements/canvas_element.dart';
+export 'src/elements/curve_element.dart';
+export 'src/elements/drawio_shape_definitions.dart';
+export 'src/elements/drawio_shape_element.dart';
+export 'src/elements/element_registry.dart';
+export 'src/elements/element_renderer.dart';
+export 'src/elements/ellipse_element.dart';
+export 'src/elements/image_element.dart';
+export 'src/elements/line_element.dart';
+export 'src/elements/line_label_painter.dart';
+export 'src/elements/path_element.dart';
+export 'src/elements/polyline_element.dart';
+export 'src/elements/rect_element.dart';
+export 'src/elements/shape_connection_points.dart';
+export 'src/elements/shape_definition.dart';
+export 'src/elements/shape_definition_registry.dart';
+export 'src/elements/shape_label_painter.dart';
+export 'src/elements/text_element.dart';
+export 'src/elements/unknown_element.dart';
+export 'src/elements/widget_element.dart';
+export 'src/history/canvas_command.dart';
+export 'src/history/commands/add_element_command.dart';
+export 'src/history/commands/batch_command.dart';
+export 'src/history/commands/move_element_command.dart';
+export 'src/history/commands/remove_element_command.dart';
+export 'src/history/commands/remove_layer_command.dart';
+export 'src/history/commands/update_element_command.dart';
+export 'src/history/history_manager.dart';
+export 'src/infinite_canvas/canvas_event.dart';
+export 'src/infinite_canvas/canvas_transform.dart';
+export 'src/infinite_canvas/infinite_canvas_config.dart';
+export 'src/infinite_canvas/infinite_canvas_controller.dart';
+export 'src/infinite_canvas/infinite_canvas_painter.dart';
+export 'src/infinite_canvas/infinite_canvas_widget.dart';
+export 'src/infinite_canvas/minimap_widget.dart';
+export 'src/infinite_canvas/zoom_controls.dart';
+export 'src/layers/auto_layering.dart';
+export 'src/layers/canvas_layer.dart';
+export 'src/layers/layer_manager.dart';
+export 'src/rendering/grid_renderer.dart';
+export 'src/rendering/selection_renderer.dart';
+export 'src/rendering/viewport_culling.dart';
+export 'src/routing/connector_routing.dart';
+export 'src/routing/elbow_router.dart';
+export 'src/routing/orth_connector.dart';
+export 'src/routing/perimeter.dart';
+export 'src/routing/segment_connector.dart';
+export 'src/serialization/canvas_document.dart';
+export 'src/serialization/canvas_serializer.dart';
+export 'src/serialization/document_format_exception.dart';
+export 'src/serialization/document_migrator.dart';
+export 'src/serialization/document_store.dart';
+export 'src/serialization/exporters/png_exporter.dart';
+export 'src/serialization/exporters/svg_exporter.dart';
+export 'src/snap/snap_resolver.dart';
+export 'src/stencils/builtin_stencils.dart';
+export 'src/stencils/libraries/arrow_stencils.dart';
+export 'src/stencils/libraries/basic_stencils.dart';
+export 'src/stencils/libraries/flowchart_stencils.dart';
+export 'src/stencils/libraries/stencil_library_registry.dart';
+export 'src/stencils/stencil_command.dart';
+export 'src/stencils/stencil_definition.dart';
+export 'src/stencils/stencil_parser.dart';
+export 'src/stencils/stencil_renderer.dart';
+export 'src/tools/arrow_tool.dart';
+export 'src/tools/brush_settings.dart';
+export 'src/tools/canvas_tool.dart';
+export 'src/tools/curve_tool.dart';
+export 'src/tools/ellipse_tool.dart';
+export 'src/tools/eraser_tool.dart';
+export 'src/tools/highlighter_tool.dart';
+export 'src/tools/line_tool.dart';
+export 'src/tools/pan_tool.dart';
+export 'src/tools/pen_tool.dart';
+export 'src/tools/polyline_arrow_tool.dart';
+export 'src/tools/polyline_tool.dart';
+export 'src/tools/rect_tool.dart';
+export 'src/tools/select_tool.dart';
+export 'src/tools/shape_tool.dart';
+export 'src/tools/text_tool.dart';
+export 'src/tools/tool_manager.dart';
+export 'src/widgets/canvas_image_resolver.dart';
+export 'src/widgets/canvas_widget_layer.dart';
+export 'src/widgets/inspector_section_registry.dart';
+export 'src/widgets/widget_element_builder.dart';
+export 'src/widgets/widget_element_registry.dart';
+export 'src/utils/path_simplifier.dart';
+export 'src/utils/quad_tree.dart';
+
+codex
+`Toolbar` 不是公共导出的一部分，测试需要按现有包结构导入内部 toolbar 文件；控制器仍用公共 `wenz_draw.dart` 导出。接下来我会读取菜单定位和按钮实现，确保测试点击流程匹配现有 widget 行为。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\ui\\toolbar\\tool_button.dart' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\ui\\toolbar\\toolbar.dart' -Encoding UTF8 | Select-Object -Skip 40 -First 110" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\ui\\editor\\editor_actions.dart' -Encoding UTF8 | Select-Object -Skip 80 -First 60" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 327ms:
+import 'package:flutter/material.dart';
+
+import '../theme/ui_colors.dart';
+
+class ToolButton extends StatelessWidget {
+  const ToolButton({
+    required this.label,
+    required this.selected,
+    required this.onPressed,
+    this.icon,
+    this.iconWidget,
+    this.enabled = true,
+  });
+
+  final String label;
+  final IconData? icon;
+  final Widget? iconWidget;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = !enabled
+        ? const Color(0xFFB8C2CC)
+        : selected
+            ? UiColors.accent
+            : UiColors.muted;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Tooltip(
+        message: label,
+        child: Material(
+          color: selected ? UiColors.accentSoft : Colors.transparent,
+          shape: RoundedRectangleBorder(
+            side: BorderSide(
+              color: selected ? const Color(0xFFC7DDF2) : Colors.transparent,
+            ),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(6),
+            onTap: enabled ? onPressed : null,
+            child: SizedBox(
+              width: 30,
+              height: 30,
+              child: Center(
+                child: IconTheme(
+                  data: IconThemeData(size: 16, color: foreground),
+                  child: iconWidget ?? Icon(icon),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+ succeeded in 430ms:
+            child: const Text('导入'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+String prettyJson(Object value) {
+  return const JsonEncoder.withIndent('  ').convert(value);
+}
+
+Future<T?> showAnchoredMenu<T>({
+  required BuildContext context,
+  required List<PopupMenuEntry<T>> items,
+}) {
+  final button = context.findRenderObject() as RenderBox?;
+  final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
+  if (button == null || overlay == null) {
+    return Future<T?>.value();
+  }
+  final position = RelativeRect.fromRect(
+    Rect.fromPoints(
+      button.localToGlobal(Offset.zero, ancestor: overlay),
+      button.localToGlobal(
+        button.size.bottomRight(Offset.zero),
+        ancestor: overlay,
+      ),
+    ),
+    Offset.zero & overlay.size,
+  );
+  return showMenu<T>(context: context, position: position, items: items);
+}
+
+Future<void> showTextColorPicker(
+  BuildContext context,
+  CanvasElement selected,
+  CanvasController controller,
+) async {
+  final initialColor =
+      textColorOf(selected) ?? controller.brushSettings.color;
+  final color = await showDialog<Color>(
+    context: context,
+    builder: (context) => ColorPickerDialog(
+      initialColor: initialColor,
+      swatches: toolbarColorSwatches,
+    ),
+  );
+  if (color != null) {
+    if (selected is TextElement) {
+      controller.updateTextElementStyle(selected.id, color: color);
+    } else {
+      controller.updateShapeLabelStyle(selected.id, color: color);
+    }
+  }
+}
+
+Future<void> showShapeColorPicker(
+  BuildContext context,
+  CanvasElement selected,
+
+ succeeded in 440ms:
+  final Future<void> Function(BuildContext, CanvasController, InfiniteCanvasController)?
+      onExportPng;
+
+  /// Optional metadata embedded into saved documents.
+  final DocumentMetadata? metadata;
+
+  /// Host-contributed actions rendered in the toolbar's trailing cluster.
+  final List<EditorToolbarAction> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([canvasController, viewController]),
+      builder: (context, _) {
+        final activeTool = canvasController.currentTool?.id;
+
+        return Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: const BoxDecoration(
+            color: UiColors.panel,
+            border: Border(bottom: BorderSide(color: UiColors.line)),
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: math.max(MediaQuery.sizeOf(context).width - 24, 760),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ToolButton(
+                    label: '菜单',
+                    icon: Icons.menu,
+                    selected: false,
+                    onPressed: () => showFileMenu(context),
+                  ),
+                  const ToolbarDivider(),
+                  ToolButton(
+                    label: '选择',
+                    icon: Icons.near_me_outlined,
+                    selected: activeTool == SelectTool.idValue,
+                    onPressed: () =>
+                        canvasController.setTool(SelectTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '拖拽',
+                    icon: Icons.open_with,
+                    selected: activeTool == PanTool.idValue,
+                    onPressed: () => canvasController.setTool(PanTool.idValue),
+                  ),
+                  const ToolbarDivider(),
+                  ToolButton(
+                    label: '画笔',
+                    icon: Icons.edit_outlined,
+                    selected: activeTool == PenTool.idValue,
+                    onPressed: () => canvasController.setTool(PenTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '荧光笔',
+                    icon: Icons.border_color_outlined,
+                    selected: activeTool == HighlighterTool.idValue,
+                    onPressed: () =>
+                        canvasController.setTool(HighlighterTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '直线',
+                    iconWidget: const LineToolIcon(polyline: false),
+                    selected: activeTool == LineTool.idValue,
+                    onPressed: () => canvasController.setTool(LineTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '折线',
+                    iconWidget: const LineToolIcon(polyline: true),
+                    selected: activeTool == PolylineTool.idValue,
+                    onPressed: () =>
+                        canvasController.setTool(PolylineTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '曲线',
+                    icon: Icons.timeline,
+                    selected: activeTool == CurveTool.idValue,
+                    onPressed: () =>
+                        canvasController.setTool(CurveTool.idValue),
+                  ),
+                  const ToolbarDivider(),
+                  ToolButton(
+                    label: '图形',
+                    icon: Icons.category_outlined,
+                    selected:
+                        activeTool == RectTool.idValue ||
+                        activeTool == EllipseTool.idValue ||
+                        (activeTool?.startsWith(ShapeTool.idPrefix) ?? false),
+                    onPressed: () => canvasController.setTool(RectTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '文字',
+                    icon: Icons.text_fields,
+                    selected: activeTool == TextTool.idValue,
+                    onPressed: () => canvasController.setTool(TextTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '橡皮擦',
+                    icon: Icons.cleaning_services_outlined,
+                    selected: activeTool == EraserTool.idValue,
+                    onPressed: () =>
+                        canvasController.setTool(EraserTool.idValue),
+                  ),
+                  ToolButton(
+                    label: '颜色选择器',
+                    selected: false,
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg \"class CanvasController|void dispose\\(\" -n lib/src/canvas/canvas_controller.dart lib/src/infinite_canvas/infinite_canvas_controller.dart" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\canvas\\canvas_controller.dart' -Encoding UTF8 | Select-Object -First 40" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\infinite_canvas\\infinite_canvas_controller.dart' -Encoding UTF8 | Select-Object -First 50" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 464ms:
+lib/src/canvas/canvas_controller.dart:56:class CanvasController extends ChangeNotifier {
+lib/src/canvas/canvas_controller.dart:1670:  void dispose() {
+
+ succeeded in 563ms:
+import 'package:flutter/widgets.dart';
+
+import '../canvas/image_loader.dart';
+import '../canvas/paint_style.dart';
+import '../elements/arrow_element.dart';
+import '../elements/canvas_element.dart';
+import '../elements/drawio_shape_element.dart';
+import '../elements/element_registry.dart';
+import '../elements/ellipse_element.dart';
+import '../elements/image_element.dart';
+import '../elements/line_element.dart';
+import '../elements/polyline_element.dart';
+import '../elements/rect_element.dart';
+import '../elements/text_element.dart';
+import '../elements/widget_element.dart';
+import '../history/commands/add_element_command.dart';
+import '../history/commands/add_layer_command.dart';
+import '../history/commands/batch_command.dart';
+import '../history/commands/remove_element_command.dart';
+import '../history/commands/remove_layer_command.dart';
+import '../history/commands/reorder_layer_command.dart';
+import '../history/commands/update_element_command.dart';
+import '../history/commands/update_layer_command.dart';
+import '../history/canvas_command.dart';
+import '../history/history_manager.dart';
+import '../infinite_canvas/canvas_event.dart';
+import '../layers/auto_layering.dart';
+import '../layers/canvas_layer.dart';
+import '../layers/layer_manager.dart';
+import '../routing/connector_routing.dart';
+import '../serialization/canvas_serializer.dart';
+import '../snap/snap_resolver.dart';
+import '../tools/brush_settings.dart';
+import '../tools/alignment_tools.dart';
+import '../tools/canvas_tool.dart';
+import '../tools/ellipse_tool.dart';
+import '../tools/eraser_tool.dart';
+import '../tools/highlighter_tool.dart';
+import '../tools/line_tool.dart';
+import '../tools/curve_tool.dart';
+
+ succeeded in 572ms:
+import 'dart:math' as math;
+
+import 'package:flutter/widgets.dart';
+
+import '../canvas/canvas_controller.dart';
+import '../serialization/canvas_document.dart';
+import 'canvas_transform.dart';
+
+class InfiniteCanvasController extends ChangeNotifier {
+  InfiniteCanvasController({
+    CanvasController? canvasController,
+    CanvasTransform transform = CanvasTransform.identity,
+    this.minScale = CanvasTransform.minScale,
+    this.maxScale = CanvasTransform.maxScale,
+  }) : canvasController = canvasController ?? CanvasController(),
+       _transform = transform;
+
+  final CanvasController canvasController;
+
+  /// Minimum zoom scale. Defaults to [CanvasTransform.minScale]; override via
+  /// the constructor to match a host's [InfiniteCanvasConfig.minScale].
+  final double minScale;
+
+  /// Maximum zoom scale. Defaults to [CanvasTransform.maxScale]; override via
+  /// the constructor to match a host's [InfiniteCanvasConfig.maxScale].
+  final double maxScale;
+
+  CanvasTransform _transform;
+  Size _viewportSize = Size.zero;
+
+  CanvasTransform get transform => _transform;
+  Size get viewportSize => _viewportSize;
+
+  void setViewportSize(Size size) {
+    if (_viewportSize == size) {
+      return;
+    }
+    _viewportSize = size;
+    notifyListeners();
+  }
+
+  void pan(Offset delta) {
+    if (delta == Offset.zero) {
+      return;
+    }
+    _setTransform(_transform.pan(delta));
+  }
+
+  void zoomTo(double newScale, {Offset? focalPoint}) {
+    final focus = focalPoint ?? _viewportCenter;
+
+codex
+控制器都有 `dispose`，测试 helper 会注册清理。测试会直接 pump `MaterialApp + Scaffold + Toolbar`，通过 tooltip 打开“特殊组件创建”菜单，再断言图标与回调。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg \"void dispose\\(\" -n lib/src/infinite_canvas/infinite_canvas_controller.dart" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\lib\\src\\canvas\\canvas_controller.dart' -Encoding UTF8 | Select-Object -Skip 1658 -First 24" in D:\project\GitHub\wenz_flutter\wenz_draw
+2026-07-09T16:48:24.930290Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.3 seconds
+Output:
+
+ exited 1 in 276ms:
+ succeeded in 373ms:
+  int nextZIndex(String layerId) {
+    var maxZ = 0;
+    for (final element in elements) {
+      if (element.layerId == layerId && element.zIndex > maxZ) {
+        maxZ = element.zIndex;
+      }
+    }
+    return maxZ + 1;
+  }
+
+  @override
+  void dispose() {
+    historyManager.removeListener(notifyListeners);
+    layerManager.removeListener(notifyListeners);
+    super.dispose();
+  }
+}
+
+class _WidgetPasteParent {
+  const _WidgetPasteParent({required this.dataId, required this.childSide});
+
+  final String dataId;
+  final String childSide;
+}
+
+codex
+我会新建 `test/toolbar_test.dart`，包含两个 widget 测试：一个验证菜单中的思维导图文本和独立图标，另一个验证点击思维导图只触发 `onAddMindmap` 且曲线工具仍能设置为当前工具。
+apply patch
+patch: failed
+D:\project\GitHub\wenz_flutter\wenz_draw\test\toolbar_test.dart
+2026-07-09T16:49:01.308399Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.1 seconds
+Output:
+Failed to write file D:\project\GitHub\wenz_flutter\wenz_draw\test\toolbar_test.dart
+
+codex
+`apply_patch` 创建测试文件失败但没有给出具体权限类型。为了完成当前 scope，我会用 UTF-8 的 `git apply` 添加同一文件；如果写入仍被权限拒绝，就按约束停止。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$utf8 = [System.Text.UTF8Encoding]::new($false)
+$OutputEncoding = $utf8
+[Console]::OutputEncoding = $utf8
+@'"'
+diff --git a/wenz_draw/test/toolbar_test.dart b/wenz_draw/test/toolbar_test.dart
+new file mode 100644
+--- /dev/null
++++ b/wenz_draw/test/toolbar_test.dart
+@@ -0,0 +1,106 @@
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
++import 'package:wenz_draw/wenz_draw.dart';
++
++void main() {
++  group('Toolbar component insert menu', () {
++    testWidgets('shows mindmap with an icon distinct from curve', (
++      tester,
++    ) async {
++      await _pumpToolbar(tester);
++
++      expect(find.byIcon(Icons.timeline), findsOneWidget);
++
++      await tester.tap(find.byTooltip('特殊组件创建'));
++      await tester.pumpAndSettle();
++
++      final mindmapText = find.text('思维导图');
++      expect(mindmapText, findsOneWidget);
++
++      final mindmapItem = find.ancestor(
++        of: mindmapText,
++        matching: find.byWidgetPredicate(
++          (widget) => widget is PopupMenuItem<String>,
++        ),
++      );
++      expect(mindmapItem, findsOneWidget);
++      expect(
++        find.descendant(
++          of: mindmapItem,
++          matching: find.byIcon(Icons.account_tree_outlined),
++        ),
++        findsOneWidget,
++      );
++      expect(
++        find.descendant(
++          of: mindmapItem,
++          matching: find.byIcon(Icons.timeline),
++        ),
++        findsNothing,
++      );
++      expect(find.byIcon(Icons.timeline), findsOneWidget);
++    });
++
++    testWidgets('selecting mindmap calls only the mindmap callback', (
++      tester,
++    ) async {
++      final harness = await _pumpToolbar(tester);
++
++      await tester.tap(find.byTooltip('曲线'));
++      await tester.pump();
++
++      expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
++      expect(find.byIcon(Icons.timeline), findsOneWidget);
++
++      await tester.tap(find.byTooltip('特殊组件创建'));
++      await tester.pumpAndSettle();
++      await tester.tap(find.text('思维导图'));
++      await tester.pumpAndSettle();
++
++      expect(harness.mindmapAdds, 1);
++      expect(harness.stickyNoteAdds, 0);
++      expect(harness.counterAdds, 0);
++      expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
++    });
++  });
++}
++
++Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
++  final harness = _ToolbarHarness();
++  addTearDown(harness.dispose);
++
++  await tester.pumpWidget(
++    MaterialApp(
++      home: Scaffold(
++        body: Align(
++          alignment: Alignment.topCenter,
++          child: Toolbar(
++            canvasController: harness.canvasController,
++            viewController: harness.viewController,
++            onAddStickyNote: () => harness.stickyNoteAdds++,
++            onAddCounter: () => harness.counterAdds++,
++            onAddMindmap: () => harness.mindmapAdds++,
++            onInsertImage: () => harness.imageInserts++,
++          ),
++        ),
++      ),
++    ),
++  );
++
++  return harness;
++}
++
++class _ToolbarHarness {
++  _ToolbarHarness() {
++    viewController = InfiniteCanvasController(
++      canvasController: canvasController,
++    );
++  }
++
++  final CanvasController canvasController = CanvasController();
++  late final InfiniteCanvasController viewController;
++  int stickyNoteAdds = 0;
++  int counterAdds = 0;
++  int mindmapAdds = 0;
++  int imageInserts = 0;
++
++  void dispose() {
++    viewController.dispose();
++    canvasController.dispose();
++  }
++}
+'@ | git -C 'D:\\project\\GitHub\\wenz_flutter' apply --whitespace=nowarn" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 308ms:
+codex
+测试文件已创建成功。我会只读取新文件关键内容和工作区状态，确认 P003 文件存在且没有触碰其它 scope；不运行测试。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$path='"'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\test\\toolbar_test.dart'; "'$lines=Get-Content -LiteralPath $path -Encoding UTF8; for($i=1;$i -le $lines.Length;$i++){ if($i -le 120){ '"'{0,4}: {1}' -f "'$i,$lines[$i-1] } }' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 295ms:
+   1: import 'package:flutter/material.dart';
+   2: import 'package:flutter_test/flutter_test.dart';
+   3: import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
+   4: import 'package:wenz_draw/wenz_draw.dart';
+   5: 
+   6: void main() {
+   7:   group('Toolbar component insert menu', () {
+   8:     testWidgets('shows mindmap with an icon distinct from curve', (
+   9:       tester,
+  10:     ) async {
+  11:       await _pumpToolbar(tester);
+  12: 
+  13:       expect(find.byIcon(Icons.timeline), findsOneWidget);
+  14: 
+  15:       await tester.tap(find.byTooltip('特殊组件创建'));
+  16:       await tester.pumpAndSettle();
+  17: 
+  18:       final mindmapText = find.text('思维导图');
+  19:       expect(mindmapText, findsOneWidget);
+  20: 
+  21:       final mindmapItem = find.ancestor(
+  22:         of: mindmapText,
+  23:         matching: find.byWidgetPredicate(
+  24:           (widget) => widget is PopupMenuItem<String>,
+  25:         ),
+  26:       );
+  27:       expect(mindmapItem, findsOneWidget);
+  28:       expect(
+  29:         find.descendant(
+  30:           of: mindmapItem,
+  31:           matching: find.byIcon(Icons.account_tree_outlined),
+  32:         ),
+  33:         findsOneWidget,
+  34:       );
+  35:       expect(
+  36:         find.descendant(
+  37:           of: mindmapItem,
+  38:           matching: find.byIcon(Icons.timeline),
+  39:         ),
+  40:         findsNothing,
+  41:       );
+  42:       expect(find.byIcon(Icons.timeline), findsOneWidget);
+  43:     });
+  44: 
+  45:     testWidgets('selecting mindmap calls only the mindmap callback', (
+  46:       tester,
+  47:     ) async {
+  48:       final harness = await _pumpToolbar(tester);
+  49: 
+  50:       await tester.tap(find.byTooltip('曲线'));
+  51:       await tester.pump();
+  52: 
+  53:       expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+  54:       expect(find.byIcon(Icons.timeline), findsOneWidget);
+  55: 
+  56:       await tester.tap(find.byTooltip('特殊组件创建'));
+  57:       await tester.pumpAndSettle();
+  58:       await tester.tap(find.text('思维导图'));
+  59:       await tester.pumpAndSettle();
+  60: 
+  61:       expect(harness.mindmapAdds, 1);
+  62:       expect(harness.stickyNoteAdds, 0);
+  63:       expect(harness.counterAdds, 0);
+  64:       expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+  65:     });
+  66:   });
+  67: }
+  68: 
+  69: Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
+  70:   final harness = _ToolbarHarness();
+  71:   addTearDown(harness.dispose);
+  72: 
+  73:   await tester.pumpWidget(
+  74:     MaterialApp(
+  75:       home: Scaffold(
+  76:         body: Align(
+  77:           alignment: Alignment.topCenter,
+  78:           child: Toolbar(
+  79:             canvasController: harness.canvasController,
+  80:             viewController: harness.viewController,
+  81:             onAddStickyNote: () => harness.stickyNoteAdds++,
+  82:             onAddCounter: () => harness.counterAdds++,
+  83:             onAddMindmap: () => harness.mindmapAdds++,
+  84:             onInsertImage: () => harness.imageInserts++,
+  85:           ),
+  86:         ),
+  87:       ),
+  88:     ),
+  89:   );
+  90: 
+  91:   return harness;
+  92: }
+  93: 
+  94: class _ToolbarHarness {
+  95:   _ToolbarHarness() {
+  96:     viewController = InfiniteCanvasController(
+  97:       canvasController: canvasController,
+  98:     );
+  99:   }
+ 100: 
+ 101:   final CanvasController canvasController = CanvasController();
+ 102:   late final InfiniteCanvasController viewController;
+ 103:   int stickyNoteAdds = 0;
+ 104:   int counterAdds = 0;
+ 105:   int mindmapAdds = 0;
+ 106:   int imageInserts = 0;
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git status --short -- test/toolbar_test.dart' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 261ms:
+?? test/toolbar_test.dart
+
+codex
+新测试文件结构正常，当前状态显示只新增了 `test/toolbar_test.dart`。我会再做一次静态代码阅读，确认 `CurveTool` 注册路径和 toolbar 菜单行为与测试假设一致；不启动测试进程。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "rg \"setTool\\(|currentTool|CurveTool|register\" -n lib/src/canvas/canvas_controller.dart lib/src/tools/tool_manager.dart" in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\test\\toolbar_test.dart' -Encoding UTF8 | Select-Object -Skip 100 -First 30" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 351ms:
+lib/src/tools/tool_manager.dart:14:  void registerTool(CanvasTool tool) {
+lib/src/tools/tool_manager.dart:23:    // Dynamically create ShapeTool for unregistered `shape:` toolIds.
+lib/src/tools/tool_manager.dart:25:    // without requiring every shape key to be pre-registered.
+lib/src/tools/tool_manager.dart:29:      registerTool(tool);
+lib/src/canvas/canvas_controller.dart:71:    _registerBuiltInTools();
+lib/src/canvas/canvas_controller.dart:74:    setTool(PenTool.idValue);
+lib/src/canvas/canvas_controller.dart:89:  /// serialized source (base64 / URL / file path). Hosts register custom
+lib/src/canvas/canvas_controller.dart:112:  CanvasTool? get currentTool => toolManager.activeTool;
+lib/src/canvas/canvas_controller.dart:583:  void setTool(String toolId) {
+lib/src/canvas/canvas_controller.dart:1595:          setTool(SelectTool.idValue);
+lib/src/canvas/canvas_controller.dart:1602:  void _registerBuiltInTools() {
+lib/src/canvas/canvas_controller.dart:1608:      ..registerTool(SelectTool())
+lib/src/canvas/canvas_controller.dart:1609:      ..registerTool(PenTool())
+lib/src/canvas/canvas_controller.dart:1610:      ..registerTool(HighlighterTool())
+lib/src/canvas/canvas_controller.dart:1611:      ..registerTool(LineTool())
+lib/src/canvas/canvas_controller.dart:1612:      ..registerTool(CurveTool())
+lib/src/canvas/canvas_controller.dart:1613:      ..registerTool(PolylineTool())
+lib/src/canvas/canvas_controller.dart:1614:      ..registerTool(PolylineArrowTool())
+lib/src/canvas/canvas_controller.dart:1615:      ..registerTool(RectTool())
+lib/src/canvas/canvas_controller.dart:1616:      ..registerTool(EllipseTool())
+lib/src/canvas/canvas_controller.dart:1617:      ..registerTool(ShapeTool(shapeKey: 'rhombus', name: 'Rhombus'))
+lib/src/canvas/canvas_controller.dart:1618:      ..registerTool(ShapeTool(shapeKey: 'triangle', name: 'Triangle'))
+lib/src/canvas/canvas_controller.dart:1619:      ..registerTool(ShapeTool(shapeKey: 'hexagon', name: 'Hexagon'))
+lib/src/canvas/canvas_controller.dart:1620:      ..registerTool(
+lib/src/canvas/canvas_controller.dart:1623:      ..registerTool(ShapeTool(shapeKey: 'trapezoid', name: 'Trapezoid'))
+lib/src/canvas/canvas_controller.dart:1624:      ..registerTool(ShapeTool(shapeKey: 'cylinder', name: 'Cylinder'))
+lib/src/canvas/canvas_controller.dart:1625:      ..registerTool(
+lib/src/canvas/canvas_controller.dart:1628:      ..registerTool(ShapeTool(shapeKey: 'actor', name: 'Actor'))
+lib/src/canvas/canvas_controller.dart:1629:      ..registerTool(ShapeTool(shapeKey: 'cloud', name: 'Cloud'))
+lib/src/canvas/canvas_controller.dart:1630:      ..registerTool(ShapeTool(shapeKey: 'swimlane', name: 'Swimlane'))
+lib/src/canvas/canvas_controller.dart:1631:      ..registerTool(ShapeTool(shapeKey: 'document', name: 'Document'))
+lib/src/canvas/canvas_controller.dart:1632:      ..registerTool(ShapeTool(shapeKey: 'note', name: 'Note'))
+lib/src/canvas/canvas_controller.dart:1633:      ..registerTool(ShapeTool(shapeKey: 'callout', name: 'Callout'))
+lib/src/canvas/canvas_controller.dart:1634:      ..registerTool(ShapeTool(shapeKey: 'plus', name: 'Plus'))
+lib/src/canvas/canvas_controller.dart:1635:      ..registerTool(ShapeTool(shapeKey: 'cross', name: 'Cross'))
+lib/src/canvas/canvas_controller.dart:1636:      ..registerTool(ShapeTool(shapeKey: 'step', name: 'Step'))
+lib/src/canvas/canvas_controller.dart:1637:      ..registerTool(ShapeTool(shapeKey: 'cube', name: 'Cube'))
+lib/src/canvas/canvas_controller.dart:1638:      ..registerTool(ArrowTool())
+lib/src/canvas/canvas_controller.dart:1639:      ..registerTool(const TextTool())
+lib/src/canvas/canvas_controller.dart:1640:      ..registerTool(EraserTool())
+lib/src/canvas/canvas_controller.dart:1641:      ..registerTool(const PanTool());
+
+ succeeded in 437ms:
+  final CanvasController canvasController = CanvasController();
+  late final InfiniteCanvasController viewController;
+  int stickyNoteAdds = 0;
+  int counterAdds = 0;
+  int mindmapAdds = 0;
+  int imageInserts = 0;
+
+codex
+读取末尾发现新文件被补丁行数截断，缺少 `dispose` 和类闭合。我要只补齐当前测试文件尾部，仍不触碰其它文件。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$path='"'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\test\\toolbar_test.dart'; "'$lines=Get-Content -LiteralPath $path -Encoding UTF8; $lines.Length; for($i=[Math]::Max(1,$lines.Length-15);$i -le $lines.Length;$i++){ '"'{0,4}: {1}' -f "'$i,$lines[$i-1] }' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 341ms:
+106
+  91:   return harness;
+  92: }
+  93: 
+  94: class _ToolbarHarness {
+  95:   _ToolbarHarness() {
+  96:     viewController = InfiniteCanvasController(
+  97:       canvasController: canvasController,
+  98:     );
+  99:   }
+ 100: 
+ 101:   final CanvasController canvasController = CanvasController();
+ 102:   late final InfiniteCanvasController viewController;
+ 103:   int stickyNoteAdds = 0;
+ 104:   int counterAdds = 0;
+ 105:   int mindmapAdds = 0;
+ 106:   int imageInserts = 0;
+
+codex
+我会用一个很小的追加补丁补上缺失的 `dispose` 方法和闭合括号。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "@'
+diff --git a/wenz_draw/test/toolbar_test.dart b/wenz_draw/test/toolbar_test.dart
+--- a/wenz_draw/test/toolbar_test.dart
++++ b/wenz_draw/test/toolbar_test.dart
+@@ -103,4 +103,11 @@ class _ToolbarHarness {
+   int stickyNoteAdds = 0;
+   int counterAdds = 0;
+   int mindmapAdds = 0;
+   int imageInserts = 0;
++
++  void dispose() {
++    viewController.dispose();
++    canvasController.dispose();
++  }
++}
+'@ | git -C 'D:\\project\\GitHub\\wenz_flutter' apply --whitespace=nowarn" in D:\project\GitHub\wenz_flutter\wenz_draw
+2026-07-09T16:50:05.584917Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.3 seconds
+Output:
+error: corrupt patch at line 15
+
+ exited 1 in 319ms:
+error: corrupt patch at line 15
+
+codex
+追加补丁的 hunk 计数多了一行，文件仍未改。我会修正计数后重新应用。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "@'
+diff --git a/wenz_draw/test/toolbar_test.dart b/wenz_draw/test/toolbar_test.dart
+--- a/wenz_draw/test/toolbar_test.dart
++++ b/wenz_draw/test/toolbar_test.dart
+@@ -103,4 +103,10 @@ class _ToolbarHarness {
+   int stickyNoteAdds = 0;
+   int counterAdds = 0;
+   int mindmapAdds = 0;
+   int imageInserts = 0;
++
++  void dispose() {
++    viewController.dispose();
++    canvasController.dispose();
++  }
++}
+'@ | git -C 'D:\\project\\GitHub\\wenz_flutter' apply --whitespace=nowarn" in D:\project\GitHub\wenz_flutter\wenz_draw
+2026-07-09T16:50:12.050550Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.5 seconds
+Output:
+warning: unable to unlink 'wenz_draw/test/toolbar_test.dart': Invalid argument
+warning: unable to unlink 'wenz_draw/test/toolbar_test.dart~32100': Invalid argument
+error: unable to write file 'wenz_draw/test/toolbar_test.dart' mode 100644: Invalid argument
+
+ exited 1 in 512ms:
+warning: unable to unlink 'wenz_draw/test/toolbar_test.dart': Invalid argument
+warning: unable to unlink 'wenz_draw/test/toolbar_test.dart~32100': Invalid argument
+error: unable to write file 'wenz_draw/test/toolbar_test.dart' mode 100644: Invalid argument
+
+codex
+`git apply` 对已创建的新文件追加时无法 unlink 临时文件，但不是权限拒绝。为了补齐这个文件尾部，我会改用追加写入；若追加写入被拒绝则停止。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$path='"'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\test\\toolbar_test.dart'
+"'$encoding = [System.Text.UTF8Encoding]::new($false)
+$tail = @'"'
+
+  void dispose() {
+    viewController.dispose();
+    canvasController.dispose();
+  }
+}
+'@
+[System.IO.File]::AppendAllText("'$path, $tail, $encoding)
+' in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 266ms:
+codex
+尾部补齐成功。我会确认文件完整性，并检查是否有 `git apply` 遗留的临时备份文件；若存在，只清理这次操作产生的测试文件临时副本。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git status --short -- test/toolbar_test.dart test/toolbar_test.dart~32100' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$path='"'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\test\\toolbar_test.dart'; "'$lines=Get-Content -LiteralPath $path -Encoding UTF8; $lines.Length; for($i=[Math]::Max(1,$lines.Length-20);$i -le $lines.Length;$i++){ '"'{0,4}: {1}' -f "'$i,$lines[$i-1] }' in D:\project\GitHub\wenz_flutter\wenz_draw
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-ChildItem -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\test' -Filter 'toolbar_test.dart*' -Force | Select-Object Name,Length,Attributes" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 967ms:
+?? test/toolbar_test.dart
+?? test/toolbar_test.dart~32100
+
+ succeeded in 1098ms:
+112
+  92: }
+  93: 
+  94: class _ToolbarHarness {
+  95:   _ToolbarHarness() {
+  96:     viewController = InfiniteCanvasController(
+  97:       canvasController: canvasController,
+  98:     );
+  99:   }
+ 100: 
+ 101:   final CanvasController canvasController = CanvasController();
+ 102:   late final InfiniteCanvasController viewController;
+ 103:   int stickyNoteAdds = 0;
+ 104:   int counterAdds = 0;
+ 105:   int mindmapAdds = 0;
+ 106:   int imageInserts = 0;
+ 107: 
+ 108:   void dispose() {
+ 109:     viewController.dispose();
+ 110:     canvasController.dispose();
+ 111:   }
+ 112: }
+
+ succeeded in 1204ms:
+
+Name                    Length Attributes
+----                    ------ ----------
+toolbar_test.dart         3265    Archive
+toolbar_test.dart~32100   3161    Archive
+
+
+
+codex
+确认有 `toolbar_test.dart~32100` 临时备份，这是本次失败的 `git apply` 遗留物。我会删除这个临时文件，只保留目标测试文件。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Remove-Item -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_draw\\test\\toolbar_test.dart~32100'" in D:\project\GitHub\wenz_flutter\wenz_draw
+2026-07-09T16:50:39.720143Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.4 seconds
+Output:
+Remove-Item : Cannot remove item D:\project\GitHub\wenz_flutter\wenz_draw\test\toolbar_test.dart~32100: Access to the p
+ath 'D:\project\GitHub\wenz_flutter\wenz_draw\test\toolbar_test.dart~32100' is denied.
+At line:2 char:1
++ Remove-Item -LiteralPath 'D:\project\GitHub\wenz_flutter\wenz_draw\te ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : PermissionDenied: (D:\project\GitH...test.dart~32100:FileInfo) [Remove-Item], Unauthoriz 
+   edAccessException
+    + FullyQualifiedErrorId : RemoveFileSystemItemUnAuthorizedAccess,Microsoft.PowerShell.Commands.RemoveItemCommand
+
+ exited 1 in 441ms:
+Remove-Item : Cannot remove item D:\project\GitHub\wenz_flutter\wenz_draw\test\toolbar_test.dart~32100: Access to the p
+ath 'D:\project\GitHub\wenz_flutter\wenz_draw\test\toolbar_test.dart~32100' is denied.
+At line:2 char:1
++ Remove-Item -LiteralPath 'D:\project\GitHub\wenz_flutter\wenz_draw\te ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : PermissionDenied: (D:\project\GitH...test.dart~32100:FileInfo) [Remove-Item], Unauthoriz 
+   edAccessException
+    + FullyQualifiedErrorId : RemoveFileSystemItemUnAuthorizedAccess,Microsoft.PowerShell.Commands.RemoveItemCommand
+
+codex
+P003 已落地，新增 [toolbar_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/toolbar_test.dart:1)。
+
+覆盖内容：
+- 打开“特殊组件创建”菜单后能找到“思维导图”项和 `Icons.account_tree_outlined` 图标。
+- 断言思维导图菜单项内没有复用 `Icons.timeline`，同时曲线工具栏按钮仍保留 `Icons.timeline`。
+- 点击曲线按钮后 `currentTool` 为 `CurveTool.idValue`；再选择思维导图菜单项只触发 `onAddMindmap`，不触发便签/计数器回调，曲线工具状态保持不变。
+
+按要求未运行测试、构建、analyze 或 lint，未修改 plan 文件。
+
+注意：`git apply` 失败过程中遗留了 `test/toolbar_test.dart~32100`，我尝试清理时系统返回 `Access to the path ... is denied`，按约束已停止重试。
+tokens used
+114,302
+P003 已落地，新增 [toolbar_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/toolbar_test.dart:1)。
+
+覆盖内容：
+- 打开“特殊组件创建”菜单后能找到“思维导图”项和 `Icons.account_tree_outlined` 图标。
+- 断言思维导图菜单项内没有复用 `Icons.timeline`，同时曲线工具栏按钮仍保留 `Icons.timeline`。
+- 点击曲线按钮后 `currentTool` 为 `CurveTool.idValue`；再选择思维导图菜单项只触发 `onAddMindmap`，不触发便签/计数器回调，曲线工具状态保持不变。
+
+按要求未运行测试、构建、analyze 或 lint，未修改 plan 文件。
+
+注意：`git apply` 失败过程中遗留了 `test/toolbar_test.dart~32100`，我尝试清理时系统返回 `Access to the path ... is denied`，按约束已停止重试。

@@ -1,0 +1,1741 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efcfe-981e-71c1-b0dd-d87209c5495c
+--------
+user
+你是开发执行者。
+请只执行指定任务 P004，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_requirement_10_20260625-034349.md
+指定任务：
+- [ ] P004: 渲染标题折叠入口与状态反馈 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png -->
+任务 scope：lib/src/widgets/wenz_rich_text_editor.dart, lib/src/widgets/block_renderer_registry.dart, test/widgets/wenz_rich_text_editor_test.dart, test/widgets/editor_golden_test.dart, test/widgets/goldens/editor_blocks.png
+
+完成后必须：
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 如需测试，只运行与当前任务直接相关的最小测试集，不要运行全量测试或与本任务无关的测试
+- 只有当前任务本身明确要求全量验证时，才允许运行全量测试
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+codex
+先定位相关实现和测试，再补标题折叠入口。
+exec
+powershell.exe -Command 'Get-ChildItem -Recurse -Filter AGENTS.md | Select-Object -ExpandProperty FullName' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 209ms:
+codex
+我先看编辑器和块渲染器的现状，再对照测试。
+exec
+powershell.exe -Command 'rg -n "collapse|title|header|fold|folding|expand|expanded|block renderer|BlockRenderer|wenz_rich_text_editor|editor_blocks" lib test' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 144ms:
+lib\wenz_richtext.dart:44:///   callout block model ([CalloutBlockNode] with variant/title/icon metadata),
+lib\wenz_richtext.dart:46:///   rendering extension point ([BlockRendererRegistry],
+lib\wenz_richtext.dart:47:///   [BlockRendererBuilder], [BlockRenderContext], [TableToolbarActionIntent],
+lib\wenz_richtext.dart:156:export 'src/widgets/wenz_rich_text_editor.dart';
+test\widgets\wenz_rich_text_editor_test.dart:93:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:207:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:316:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:375:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:430:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:461:  testWidgets('renders heading collapse affordance and toggles by keyboard', (
+test\widgets\wenz_rich_text_editor_test.dart:471:            content: <InlineNode>[TextRun(text: 'Section title')],
+test\widgets\wenz_rich_text_editor_test.dart:482:            content: <InlineNode>[TextRun(text: 'Nested title')],
+test\widgets\wenz_rich_text_editor_test.dart:493:            content: <InlineNode>[TextRun(text: 'Leaf title')],
+test\widgets\wenz_rich_text_editor_test.dart:503:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:520:      const ValueKey<String>('wenz-richtext-heading-collapse-section'),
+test\widgets\wenz_rich_text_editor_test.dart:523:      const ValueKey<String>('wenz-richtext-heading-collapse-leaf'),
+test\widgets\wenz_rich_text_editor_test.dart:549:    expect(_richText('Nested title'), findsNothing);
+test\widgets\wenz_rich_text_editor_test.dart:551:    expect(_richText('Leaf title'), findsOneWidget);
+test\widgets\wenz_rich_text_editor_test.dart:561:    expect(_richText('Nested title'), findsOneWidget);
+test\widgets\wenz_rich_text_editor_test.dart:607:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:642:    final initialSelection = collapsedTextSelection('task1', 0, 4);
+test\widgets\wenz_rich_text_editor_test.dart:667:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:769:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:882:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:971:      selection: collapsedTextSelection('p-convert', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:976:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:1079:      selection: collapsedCodeSelection('code1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:1084:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:1139:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:1198:      selection: collapsedCodeSelection('code1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:1203:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:1276:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:1324:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:1415:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:1536:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:1615:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:1680:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:1781:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:1840:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:1895:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:1966:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:2003:    final registry = BlockRendererRegistry()
+test\widgets\wenz_rich_text_editor_test.dart:2014:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:2062:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:2122:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:2172:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:2198:        selection: collapsedCodeSelection('code1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:2286:            title: 'Watch',
+test\widgets\wenz_rich_text_editor_test.dart:2296:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:2317:    expect(callout.title, 'Watch');
+test\widgets\wenz_rich_text_editor_test.dart:2336:            title: 'Info Title',
+test\widgets\wenz_rich_text_editor_test.dart:2350:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:2459:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:2522:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:2581:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:2617:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:2667:          child: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:2713:                      id: 'header',
+test\widgets\wenz_rich_text_editor_test.dart:2719:                          id: 'header-text',
+test\widgets\wenz_rich_text_editor_test.dart:2776:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:2791:          'Table cell row 1 column 1, header, spans 2 rows, '
+test\widgets\wenz_rich_text_editor_test.dart:2820:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:2871:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:2925:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:2967:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:3006:      selection: _collapsedTableCellTextSelection(
+test\widgets\wenz_rich_text_editor_test.dart:3017:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:3089:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:3138:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:3153:    final headerBorder = _paintedTableCellBorder(tester, 'table-style', 0, 0);
+test\widgets\wenz_rich_text_editor_test.dart:3154:    expect(headerBorder.top.color, const Color(0xFFECE9F5));
+test\widgets\wenz_rich_text_editor_test.dart:3156:    final headerCellFinder = find.byKey(
+test\widgets\wenz_rich_text_editor_test.dart:3159:    final headerPaddings = tester.widgetList<Padding>(
+test\widgets\wenz_rich_text_editor_test.dart:3161:        of: headerCellFinder,
+test\widgets\wenz_rich_text_editor_test.dart:3166:      headerPaddings.map((padding) => padding.padding),
+test\widgets\wenz_rich_text_editor_test.dart:3170:    final headerRichText = tester
+test\widgets\wenz_rich_text_editor_test.dart:3173:            of: headerCellFinder,
+test\widgets\wenz_rich_text_editor_test.dart:3178:    expect(headerRichText.text.style?.fontSize, 15);
+test\widgets\wenz_rich_text_editor_test.dart:3179:    expect(headerRichText.text.style?.fontWeight, FontWeight.w700);
+test\widgets\wenz_rich_text_editor_test.dart:3181:        headerRichText.text.style?.color, theme.colorScheme.onSurfaceVariant);
+test\widgets\wenz_rich_text_editor_test.dart:3183:    final headerBackground = _tableCellBackgroundBox(
+test\widgets\wenz_rich_text_editor_test.dart:3190:      (headerBackground.decoration as BoxDecoration).color,
+test\widgets\wenz_rich_text_editor_test.dart:3227:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:3320:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:3379:            title: 'Info Title',
+test\widgets\wenz_rich_text_editor_test.dart:3452:      selection: collapsedTextSelection('mention-p', 0, 4),
+test\widgets\wenz_rich_text_editor_test.dart:3457:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:3596:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:3646:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:3800:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:3926:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:3950:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:3955:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:3983:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:3988:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:4064:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:4131:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:4207:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:4253:      selection: collapsedCodeSelection('code1', 0, 4),
+test\widgets\wenz_rich_text_editor_test.dart:4258:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:4342:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:4377:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:4382:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:4425:      selection: collapsedTextSelection('p1', 0, 5),
+test\widgets\wenz_rich_text_editor_test.dart:4430:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:4469:      selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:4474:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:4515:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:4520:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:4555:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:4596:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:4634:            title: 'Launch clip',
+test\widgets\wenz_rich_text_editor_test.dart:4647:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:4684:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:4736:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:4772:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:4812:      selection: collapsedTextSelection('p1', 0, 6),
+test\widgets\wenz_rich_text_editor_test.dart:4817:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:4874:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:4913:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:4949:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:5003:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:5086:    controller.setSelection(collapsedTextSelection('p-inline', 0, 1));
+test\widgets\wenz_rich_text_editor_test.dart:5097:    controller.setSelection(collapsedTextSelection('p-inline', 0, 3));
+test\widgets\wenz_rich_text_editor_test.dart:5108:    controller.setSelection(collapsedTextSelection('p-inline', 0, 4));
+test\widgets\wenz_rich_text_editor_test.dart:5177:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:5273:      _collapsedTableCellTextSelection(
+test\widgets\wenz_rich_text_editor_test.dart:5294:      _collapsedTableCellTextSelection(
+test\widgets\wenz_rich_text_editor_test.dart:5315:      _collapsedTableCellTextSelection(
+test\widgets\wenz_rich_text_editor_test.dart:5399:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:5478:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:5539:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:5621:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:5653:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:5689:      selection: collapsedTextSelection('p1', 0, 3),
+test\widgets\wenz_rich_text_editor_test.dart:5694:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:5723:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:5728:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:5762:      selection: collapsedTextSelection('p1', 0, 20),
+test\widgets\wenz_rich_text_editor_test.dart:5767:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:5804:      selection: collapsedTextSelection('p1', 0, 5),
+test\widgets\wenz_rich_text_editor_test.dart:5809:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:5862:      selection: collapsedTextSelection('p1', 0, 11),
+test\widgets\wenz_rich_text_editor_test.dart:5867:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:5882:    controller.setSelection(collapsedTextSelection('p1', 0, 11));
+test\widgets\wenz_rich_text_editor_test.dart:5892:  testWidgets('Backspace deletes an expanded selection', (tester) async {
+test\widgets\wenz_rich_text_editor_test.dart:5908:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:5927:  testWidgets('Delete deletes an expanded selection', (tester) async {
+test\widgets\wenz_rich_text_editor_test.dart:5943:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:5962:  testWidgets('platform delete selector deletes an expanded selection', (
+test\widgets\wenz_rich_text_editor_test.dart:5980:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6011:      selection: collapsedTextSelection('p1', 0, 3),
+test\widgets\wenz_rich_text_editor_test.dart:6016:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6043:      selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:6048:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6078:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6116:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6160:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6198:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6239:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6284:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6322:      selection: collapsedTextSelection('p1', 0, 2),
+test\widgets\wenz_rich_text_editor_test.dart:6327:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6362:      selection: collapsedTextSelection('p1', 0, 3),
+test\widgets\wenz_rich_text_editor_test.dart:6367:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6398:      selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:6403:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6434:      selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:6439:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6479:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6515:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6549:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6593:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6604:      // Place an initial collapsed caret in the content so we can detect any
+test\widgets\wenz_rich_text_editor_test.dart:6636:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6691:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6704:      controller.setSelection(collapsedTextSelection('p25', 25, 0));
+test\widgets\wenz_rich_text_editor_test.dart:6741:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6812:      selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:6817:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6863:      selection: collapsedTextSelection('p3', 2, 3),
+test\widgets\wenz_rich_text_editor_test.dart:6868:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6913:      selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:6918:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6957:      selection: collapsedTextSelection('p1', 0, 3),
+test\widgets\wenz_rich_text_editor_test.dart:6962:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:6984:  testWidgets('block renderer registry overrides block rendering', (
+test\widgets\wenz_rich_text_editor_test.dart:7002:    final registry = BlockRendererRegistry();
+test\widgets\wenz_rich_text_editor_test.dart:7014:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:7046:    'block renderer registry falls back for unregistered types',
+test\widgets\wenz_rich_text_editor_test.dart:7064:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:7067:              blockRenderers: BlockRendererRegistry(),
+test\widgets\wenz_rich_text_editor_test.dart:7093:    final registry = BlockRendererRegistry();
+test\widgets\wenz_rich_text_editor_test.dart:7108:        home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:7164:    BlockRendererRegistry measuredBlockRenderers() {
+test\widgets\wenz_rich_text_editor_test.dart:7165:      return BlockRendererRegistry()
+test\widgets\wenz_rich_text_editor_test.dart:7188:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:7207:        selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:7212:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:7244:      final start = collapsedTextSelection('p0', 0, 0).base;
+test\widgets\wenz_rich_text_editor_test.dart:7258:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:7282:        selection: collapsedTextSelection('p1', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:7287:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:7304:      controller.setSelection(collapsedTextSelection('p400', 400, 0));
+test\widgets\wenz_rich_text_editor_test.dart:7317:        selection: collapsedTextSelection('p0', 0, 0),
+test\widgets\wenz_rich_text_editor_test.dart:7322:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:7345:      controller.setSelection(collapsedTextSelection('p450', 450, 0));
+test\widgets\wenz_rich_text_editor_test.dart:7362:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:7369:                blockRenderers: measuredBlockRenderers(),
+test\widgets\wenz_rich_text_editor_test.dart:7435:          home: Scaffold(
+test\widgets\wenz_rich_text_editor_test.dart:7442:                blockRenderers: measuredBlockRenderers(),
+test\widgets\wenz_rich_text_editor_test.dart:7597:DocumentSelection _collapsedTableCellTextSelection({
+test\widgets\wenz_rich_text_editor_test.dart:7988:  final rangeRect = boxes.skip(1).fold<Rect>(
+test\widgets\wenz_rich_text_editor_test.dart:7990:        (current, box) => current.expandToInclude(box.toRect()),
+test\widgets\slash_menu_overlay_test.dart:13:      selection: collapsedTextSelection('p1', 0, 8),
+test\widgets\slash_menu_overlay_test.dart:20:        home: Scaffold(
+test\widgets\slash_menu_overlay_test.dart:47:      selection: collapsedTextSelection('p1', 0, 8),
+test\widgets\slash_menu_overlay_test.dart:56:        home: Scaffold(
+test\widgets\media_resolver_test.dart:22:          home: Scaffold(
+test\widgets\media_resolver_test.dart:50:          home: Scaffold(
+test\widgets\media_resolver_test.dart:72:              title: 'Null resolver clip',
+test\widgets\media_resolver_test.dart:79:          home: Scaffold(
+test\widgets\media_resolver_test.dart:110:          home: Scaffold(
+test\widgets\media_resolver_test.dart:140:          home: Scaffold(
+test\widgets\media_resolver_test.dart:183:          home: Scaffold(
+test\widgets\media_resolver_test.dart:213:    testWidgets('default video renderer shows title source cover and aspect',
+test\widgets\media_resolver_test.dart:223:              title: 'Launch demo',
+test\widgets\media_resolver_test.dart:232:          home: Scaffold(
+test\widgets\media_resolver_test.dart:279:          home: Scaffold(
+test\widgets\media_resolver_test.dart:310:                'title': 'Payload title',
+test\widgets\media_resolver_test.dart:325:          home: Scaffold(
+test\widgets\media_resolver_test.dart:340:      expect(find.text('title: Payload title'), findsOneWidget);
+test\widgets\media_resolver_test.dart:363:          home: Scaffold(
+test\widgets\media_resolver_test.dart:393:              title: 'Broken clip',
+test\widgets\media_resolver_test.dart:400:          home: Scaffold(
+test\widgets\media_resolver_test.dart:444:          home: Scaffold(
+lib\src\widgets\wenz_rich_text_editor.dart:273:    'heading.collapse': 'primary hover/focus control + hidden-count badge',
+lib\src\widgets\wenz_rich_text_editor.dart:284:    'heading': 'aligned: hierarchy styles plus collapse affordance states.',
+lib\src\widgets\wenz_rich_text_editor.dart:292:    'table': 'style+golden: 15px text, padding, header/even rows, shadow.',
+lib\src\widgets\wenz_rich_text_editor.dart:356:/// Public wrapper for custom atomic block renderers.
+lib\src\widgets\wenz_rich_text_editor.dart:358:/// Business [BlockRendererBuilder]s can wrap their widget with this surface so
+lib\src\widgets\wenz_rich_text_editor.dart:383:/// Heading collapse is a view concern of this surface: built-in collapse
+lib\src\widgets\wenz_rich_text_editor.dart:430:  /// Optional [BlockRendererRegistry]. When `null`, the editor builds a fresh
+lib\src\widgets\wenz_rich_text_editor.dart:436:  final BlockRendererRegistry? blockRenderers;
+lib\src\widgets\wenz_rich_text_editor.dart:467:  /// Optional outline controller whose collapsed-heading state projects the
+lib\src\widgets\wenz_rich_text_editor.dart:474:  /// Seeds [registry] with the built-in block renderers for every [BlockType].
+lib\src\widgets\wenz_rich_text_editor.dart:475:  /// Call this on a freshly constructed [BlockRendererRegistry] when you want
+lib\src\widgets\wenz_rich_text_editor.dart:479:  /// final registry = BlockRendererRegistry();
+lib\src\widgets\wenz_rich_text_editor.dart:483:  static void installDefaultRenderers(BlockRendererRegistry registry) {
+lib\src\widgets\wenz_rich_text_editor.dart:485:      ..register(BlockType.paragraph, _defaultTextBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:486:      ..register(BlockType.heading, _defaultTextBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:487:      ..register(BlockType.quote, _defaultTextBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:488:      ..register(BlockType.listItem, _defaultTextBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:489:      ..register(BlockType.code, _defaultCodeBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:490:      ..register(BlockType.image, _defaultImageBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:491:      ..register(BlockType.table, _defaultTableBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:492:      ..register(BlockType.divider, _defaultDividerBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:493:      ..register(BlockType.video, _defaultVideoBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:495:      ..register(BlockType.callout, _defaultCalloutBlockRenderer)
+lib\src\widgets\wenz_rich_text_editor.dart:496:      ..register(BlockType.file, _defaultFileBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:524:  BlockRendererRegistry? _ownedBlockRenderers;
+lib\src\widgets\wenz_rich_text_editor.dart:542:  /// The active block renderer registry. When the widget supplies one it is
+lib\src\widgets\wenz_rich_text_editor.dart:545:  BlockRendererRegistry get _blockRenderers {
+lib\src\widgets\wenz_rich_text_editor.dart:549:    return _ownedBlockRenderers ??= () {
+lib\src\widgets\wenz_rich_text_editor.dart:550:      final registry = BlockRendererRegistry();
+lib\src\widgets\wenz_rich_text_editor.dart:846:    // Heading collapse should project this original block list for rendering
+lib\src\widgets\wenz_rich_text_editor.dart:864:    // (collapsed selection) and the selection endpoints. Keeping these alive
+lib\src\widgets\wenz_rich_text_editor.dart:948:        fit: StackFit.expand,
+lib\src\widgets\wenz_rich_text_editor.dart:1668:        title: block.title,
+lib\src\widgets\wenz_rich_text_editor.dart:1717:  /// (collapsed selection) and the selection endpoints. Keeping these alive
+lib\src\widgets\wenz_rich_text_editor.dart:1880:          expandSelection: resolution.expandSelection,
+lib\src\widgets\wenz_rich_text_editor.dart:1886:          expandSelection: resolution.expandSelection,
+lib\src\widgets\wenz_rich_text_editor.dart:1890:        _handleVerticalKey(false, resolution.expandSelection);
+lib\src\widgets\wenz_rich_text_editor.dart:1893:        _handleVerticalKey(true, resolution.expandSelection);
+lib\src\widgets\wenz_rich_text_editor.dart:1898:          expandSelection: resolution.expandSelection,
+lib\src\widgets\wenz_rich_text_editor.dart:1904:          expandSelection: resolution.expandSelection,
+lib\src\widgets\wenz_rich_text_editor.dart:1910:          expandSelection: resolution.expandSelection,
+lib\src\widgets\wenz_rich_text_editor.dart:1916:          expandSelection: resolution.expandSelection,
+lib\src\widgets\wenz_rich_text_editor.dart:1922:          expandSelection: resolution.expandSelection,
+lib\src\widgets\wenz_rich_text_editor.dart:1928:          expandSelection: resolution.expandSelection,
+lib\src\widgets\wenz_rich_text_editor.dart:1934:          expandSelection: resolution.expandSelection,
+lib\src\widgets\wenz_rich_text_editor.dart:1940:          expandSelection: resolution.expandSelection,
+lib\src\widgets\wenz_rich_text_editor.dart:1972:  /// `forward` = true → PageDown, false → PageUp. When [expandSelection] is
+lib\src\widgets\wenz_rich_text_editor.dart:1991:  void _handlePageKey({required bool forward, required bool expandSelection}) {
+lib\src\widgets\wenz_rich_text_editor.dart:1997:        expandSelection: expandSelection,
+lib\src\widgets\wenz_rich_text_editor.dart:2011:        expandSelection: expandSelection,
+lib\src\widgets\wenz_rich_text_editor.dart:2053:      // page yields a collapsed caret (moveCaretToDocumentBoundary would keep
+lib\src\widgets\wenz_rich_text_editor.dart:2065:          expandSelection: expandSelection,
+lib\src\widgets\wenz_rich_text_editor.dart:2068:        final next = expandSelection
+lib\src\widgets\wenz_rich_text_editor.dart:2084:        expandSelection: expandSelection,
+lib\src\widgets\wenz_rich_text_editor.dart:2101:        expandSelection: expandSelection,
+lib\src\widgets\wenz_rich_text_editor.dart:2117:    required bool expandSelection,
+lib\src\widgets\wenz_rich_text_editor.dart:2138:        expandSelection: expandSelection,
+lib\src\widgets\wenz_rich_text_editor.dart:2141:      final next = expandSelection
+lib\src\widgets\wenz_rich_text_editor.dart:2301:      controller.moveCaretVertical(forward: forward, expandSelection: shift);
+lib\src\widgets\wenz_rich_text_editor.dart:2328:    controller.moveCaretVertical(forward: forward, expandSelection: shift);
+lib\src\widgets\wenz_rich_text_editor.dart:2360:        controller.moveCaretBackward(expandSelection: true);
+lib\src\widgets\wenz_rich_text_editor.dart:2365:        controller.moveCaretForward(expandSelection: true);
+lib\src\widgets\wenz_rich_text_editor.dart:2389:        controller.moveCaretByWord(forward: false, expandSelection: true);
+lib\src\widgets\wenz_rich_text_editor.dart:2393:        controller.moveCaretByWord(forward: true, expandSelection: true);
+lib\src\widgets\wenz_rich_text_editor.dart:2410:          expandSelection: true,
+lib\src\widgets\wenz_rich_text_editor.dart:2418:          expandSelection: true,
+lib\src\widgets\wenz_rich_text_editor.dart:2433:          expandSelection: true,
+lib\src\widgets\wenz_rich_text_editor.dart:2440:          expandSelection: true,
+lib\src\widgets\wenz_rich_text_editor.dart:2456:        _handlePageKey(forward: false, expandSelection: true);
+lib\src\widgets\wenz_rich_text_editor.dart:2459:        _handlePageKey(forward: true, expandSelection: true);
+lib\src\widgets\wenz_rich_text_editor.dart:2529:      expandSelection: true,
+lib\src\widgets\wenz_rich_text_editor.dart:2545:      expandSelection: true,
+lib\src\widgets\wenz_rich_text_editor.dart:2702:    final total = _extents.values.fold<double>(0, (sum, h) => sum + h);
+lib\src\widgets\wenz_rich_text_editor.dart:2825:  /// builder at the row shell instead of living inside [BlockRendererBuilder]
+lib\src\widgets\wenz_rich_text_editor.dart:3048:/// Wraps a [_BlockRenderer] so that the underlying block widget (and its
+lib\src\widgets\wenz_rich_text_editor.dart:3101:  final BlockRendererRegistry blockRenderers;
+lib\src\widgets\wenz_rich_text_editor.dart:3189:    final child = _BlockRenderer(
+lib\src\widgets\wenz_rich_text_editor.dart:3222:  /// (so it would be fully highlighted), or the selection is collapsed inside
+lib\src\widgets\wenz_rich_text_editor.dart:3251:class _BlockRenderer extends StatelessWidget {
+lib\src\widgets\wenz_rich_text_editor.dart:3252:  const _BlockRenderer({
+lib\src\widgets\wenz_rich_text_editor.dart:3287:  final BlockRendererRegistry blockRenderers;
+lib\src\widgets\wenz_rich_text_editor.dart:4023:/// Installs the built-in block renderers onto [registry]. Exposed so the editor
+lib\src\widgets\wenz_rich_text_editor.dart:4026:extension BlockRendererRegistryDefaults on BlockRendererRegistry {
+lib\src\widgets\wenz_rich_text_editor.dart:4028:    register(BlockType.paragraph, _defaultTextBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4029:    register(BlockType.heading, _defaultTextBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4030:    register(BlockType.quote, _defaultTextBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4031:    register(BlockType.listItem, _defaultTextBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4032:    register(BlockType.code, _defaultCodeBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4033:    register(BlockType.image, _defaultImageBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4034:    register(BlockType.table, _defaultTableBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4035:    register(BlockType.divider, _defaultDividerBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4036:    register(BlockType.video, _defaultVideoBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4038:    register(BlockType.callout, _defaultCalloutBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4039:    register(BlockType.file, _defaultFileBlockRenderer);
+lib\src\widgets\wenz_rich_text_editor.dart:4043:Widget _defaultTextBlockRenderer(
+lib\src\widgets\wenz_rich_text_editor.dart:4047:  return _TextBlockRenderer(
+lib\src\widgets\wenz_rich_text_editor.dart:4068:Widget _defaultCodeBlockRenderer(
+lib\src\widgets\wenz_rich_text_editor.dart:4072:  return _CodeBlockRenderer(
+lib\src\widgets\wenz_rich_text_editor.dart:4087:Widget _defaultImageBlockRenderer(
+lib\src\widgets\wenz_rich_text_editor.dart:4104:Widget _defaultTableBlockRenderer(
+lib\src\widgets\wenz_rich_text_editor.dart:4108:  return _TableBlockRenderer(
+lib\src\widgets\wenz_rich_text_editor.dart:4125:Widget _defaultDividerBlockRenderer(
+lib\src\widgets\wenz_rich_text_editor.dart:4144:Widget _defaultVideoBlockRenderer(
+lib\src\widgets\wenz_rich_text_editor.dart:4195:Widget _defaultCalloutBlockRenderer(
+lib\src\widgets\wenz_rich_text_editor.dart:4230:Widget _defaultFileBlockRenderer(
+lib\src\widgets\wenz_rich_text_editor.dart:4349:class _TextBlockRenderer extends StatelessWidget {
+lib\src\widgets\wenz_rich_text_editor.dart:4350:  const _TextBlockRenderer({
+lib\src\widgets\wenz_rich_text_editor.dart:4583:              'wenz-richtext-heading-collapse-${widget.blockId}',
+lib\src\widgets\wenz_rich_text_editor.dart:4807:class _CodeBlockRenderer extends StatelessWidget {
+lib\src\widgets\wenz_rich_text_editor.dart:4808:  const _CodeBlockRenderer({
+lib\src\widgets\wenz_rich_text_editor.dart:5049:class _TableBlockRenderer extends StatelessWidget {
+lib\src\widgets\wenz_rich_text_editor.dart:5050:  const _TableBlockRenderer({
+lib\src\widgets\wenz_rich_text_editor.dart:5411:                  icon: Icons.title,
+lib\src\widgets\wenz_rich_text_editor.dart:5601:    header: headingLevel != null,
+lib\src\widgets\wenz_rich_text_editor.dart:6126:    parts.add('header');
+lib\src\widgets\wenz_rich_text_editor.dart:6678:      rect = rect.expandToInclude(box.toRect());
+lib\src\widgets\wenz_rich_text_editor.dart:6844:                      child: const SizedBox.expand(),
+lib\src\widgets\wenz_rich_text_editor.dart:7308:            fit: StackFit.expand,
+lib\src\widgets\wenz_rich_text_editor.dart:7364:                      style: theme.textTheme.titleSmall?.copyWith(
+lib\src\widgets\wenz_rich_text_editor.dart:7544:    final style = (theme.textTheme.titleLarge ?? const TextStyle()).copyWith(
+lib\src\widgets\wenz_rich_text_editor.dart:7629:        title: _videoCardTitle(block),
+lib\src\widgets\wenz_rich_text_editor.dart:7630:        subtitle: _videoCardSubtitle(block),
+lib\src\widgets\wenz_rich_text_editor.dart:7974:    required this.title,
+lib\src\widgets\wenz_rich_text_editor.dart:7980:    this.subtitle,
+lib\src\widgets\wenz_rich_text_editor.dart:7986:  final String title;
+lib\src\widgets\wenz_rich_text_editor.dart:7987:  final String? subtitle;
+lib\src\widgets\wenz_rich_text_editor.dart:8023:                        title,
+lib\src\widgets\wenz_rich_text_editor.dart:8030:                      if (subtitle?.isNotEmpty == true)
+lib\src\widgets\wenz_rich_text_editor.dart:8032:                          subtitle!,
+lib\src\widgets\wenz_rich_text_editor.dart:8340:    final subtitle = _fileSubtitle(block);
+lib\src\widgets\wenz_rich_text_editor.dart:8385:                          ? 'Untitled file'
+lib\src\widgets\wenz_rich_text_editor.dart:8394:                    if (subtitle.isNotEmpty) ...<Widget>[
+lib\src\widgets\wenz_rich_text_editor.dart:8397:                        subtitle,
+lib\src\widgets\wenz_rich_text_editor.dart:8744:    final titleStyle = bodyStyle.copyWith(fontWeight: FontWeight.w700);
+lib\src\widgets\wenz_rich_text_editor.dart:8788:                              style: titleStyle),
+lib\src\widgets\wenz_rich_text_editor.dart:9027:  return (theme.textTheme.titleLarge ?? const TextStyle()).copyWith(
+lib\src\widgets\wenz_rich_text_editor.dart:9878:  final title = video.title.trim();
+lib\src\widgets\wenz_rich_text_editor.dart:9879:  return title.isNotEmpty ? title : 'Video';
+lib\src\widgets\wenz_rich_text_editor.dart:9882:String? _videoCardSubtitle(VideoBlockNode video) {
+lib\src\widgets\wenz_rich_text_editor.dart:9888:  final title = video.title.trim();
+lib\src\widgets\wenz_rich_text_editor.dart:9889:  if (title.isNotEmpty) {
+lib\src\widgets\wenz_rich_text_editor.dart:9890:    return title;
+lib\src\widgets\wenz_rich_text_editor.dart:9942:    file.displayName.isEmpty ? 'untitled file' : file.displayName,
+lib\src\widgets\wenz_rich_text_editor.dart:9956:  final subtitle = _fileSubtitle(file);
+lib\src\widgets\wenz_rich_text_editor.dart:9957:  if (subtitle.isNotEmpty) {
+lib\src\widgets\wenz_rich_text_editor.dart:9958:    parts.add(subtitle);
+lib\src\widgets\wenz_rich_text_editor.dart:9967:String _fileSubtitle(FileBlockNode file) {
+lib\src\widgets\slash_menu_overlay.dart:96:                    Text(item.title, style: theme.textTheme.bodyMedium),
+lib\src\widgets\slash_menu_overlay.dart:119:    'title' => Icons.title,
+test\benchmarks\editor_benchmarks.dart:68:    home: Scaffold(
+test\benchmarks\editor_benchmarks.dart:157:          title: 'Review note $i',
+test\collaboration\collaboration_adapter_test.dart:45:        selection: collapsedTextSelection('p1', 0, 5),
+test\collaboration\collaboration_adapter_test.dart:73:      host.setSelection(collapsedTextSelection('p1', 0, 0));
+test\collaboration\collaboration_adapter_test.dart:88:        selection: collapsedTextSelection('p1', 0, 5),
+test\collaboration\collaboration_adapter_test.dart:103:          selection: collapsedTextSelection('p1', 0, 6),
+test\collaboration\collaboration_adapter_test.dart:115:          selection: collapsedTextSelection('p1', 0, 3),
+test\controller\autosave_controller_test.dart:11:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\autosave_controller_test.dart:20:      host.setSelection(collapsedTextSelection('p1', 0, 1));
+test\controller\autosave_controller_test.dart:40:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\autosave_controller_test.dart:68:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\autosave_controller_test.dart:92:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\callout_controller_test.dart:13:              title: 'Before',
+test\controller\callout_controller_test.dart:24:        title: 'Watch out',
+test\controller\callout_controller_test.dart:31:      expect(callout.title, 'Watch out');
+test\controller\callout_controller_test.dart:37:      expect(callout.title, 'Before');
+test\controller\callout_controller_test.dart:43:      expect(callout.title, 'Watch out');
+test\controller\callout_controller_test.dart:49:    test('clears custom title and icon to restore defaults', () {
+test\controller\callout_controller_test.dart:56:              title: 'Done',
+test\controller\callout_controller_test.dart:64:      controller.updateCalloutBlock(blockIndex: 0, title: '', icon: '');
+test\controller\callout_controller_test.dart:67:      expect(callout.title, isEmpty);
+test\controller\controller_callbacks_test.dart:13:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:50:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:73:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:95:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:108:      controller.setSelection(collapsedTextSelection('p1', 0, 0));
+test\controller\controller_callbacks_test.dart:112:      controller.setSelection(collapsedTextSelection('p1', 0, 2));
+test\controller\controller_callbacks_test.dart:154:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:181:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:208:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_callbacks_test.dart:236:        selection: collapsedTextSelection('p1', 0, 0),
+lib\src\widgets\selection_gesture_overlay.dart:18:/// - tap → place collapsed caret
+test\input\shortcut_manager_test.dart:114:    expect(result.expandSelection, isTrue);
+lib\src\widgets\link_edit_dialog.dart:35:      title: const Text('Link URL'),
+test\input\editor_text_input_client_test.dart:25:        selection: collapsedTextSelection('p1', 0, 0),
+test\input\editor_text_input_client_test.dart:36:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:54:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:73:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:83:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:104:        selection: collapsedTextSelection('p1', 0, 3),
+test\input\editor_text_input_client_test.dart:114:          selection: TextSelection.collapsed(offset: 4),
+test\input\editor_text_input_client_test.dart:123:          selection: TextSelection.collapsed(offset: 5),
+test\input\editor_text_input_client_test.dart:132:          selection: TextSelection.collapsed(offset: 4),
+test\input\editor_text_input_client_test.dart:154:        selection: collapsedTextSelection('p1', 0, 3),
+test\input\editor_text_input_client_test.dart:164:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:186:        selection: collapsedTextSelection('p1', 0, 3),
+test\input\editor_text_input_client_test.dart:196:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:205:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:214:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:236:        selection: collapsedTextSelection('p1', 0, 3),
+test\input\editor_text_input_client_test.dart:244:          selection: TextSelection.collapsed(offset: 6),
+test\input\editor_text_input_client_test.dart:258:          selection: TextSelection.collapsed(offset: 4),
+test\input\editor_text_input_client_test.dart:276:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:284:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:298:      controller.setSelection(collapsedTextSelection('p1', 0, 2));
+test\input\editor_text_input_client_test.dart:318:      controller.setSelection(collapsedTextSelection('p1', 0, 5));
+test\input\editor_text_input_client_test.dart:325:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:334:    test('syncBuffer reflects same-target expanded selection', () {
+test\input\editor_text_input_client_test.dart:345:    test('syncBuffer clears cross-target expanded selection', () {
+test\input\editor_text_input_client_test.dart:391:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:422:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:445:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:460:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:474:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:493:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:514:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:536:          selection: TextSelection.collapsed(offset: 3),
+test\input\editor_text_input_client_test.dart:552:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:561:          selection: TextSelection.collapsed(offset: 2),
+test\input\editor_text_input_client_test.dart:578:        selection: _collapsedTableCellSelection(2),
+test\input\editor_text_input_client_test.dart:590:        selection: _collapsedTableCellSelection(5),
+test\input\editor_text_input_client_test.dart:599:          selection: TextSelection.collapsed(offset: 6),
+test\input\editor_text_input_client_test.dart:608:          selection: TextSelection.collapsed(offset: 1),
+test\input\editor_text_input_client_test.dart:727:DocumentSelection _collapsedTableCellSelection(int offset) {
+lib\src\widgets\inline_embed_renderer.dart:9:/// use a block renderer when an embed needs a large interactive widget.
+test\widgets\comment_sidebar_test.dart:14:        home: Scaffold(
+test\widgets\comment_sidebar_test.dart:47:        home: Scaffold(
+lib\src\widgets\find_replace_panel.dart:67:      selection: TextSelection.collapsed(offset: value.length),
+test\widgets\block_geometry_registry_test.dart:52:          home: Scaffold(
+test\widgets\block_geometry_registry_test.dart:99:          home: Scaffold(body: WenzRichTextEditor(controller: controller)),
+test\widgets\block_geometry_registry_test.dart:142:          home: Scaffold(body: WenzRichTextEditor(controller: controller)),
+test\widgets\block_geometry_registry_test.dart:203:          home: Scaffold(body: WenzRichTextEditor(controller: controller)),
+test\widgets\block_geometry_registry_test.dart:265:          home: Scaffold(body: WenzRichTextEditor(controller: controller)),
+test\widgets\block_geometry_registry_test.dart:348:          home: Scaffold(body: WenzRichTextEditor(controller: controller)),
+test\widgets\block_geometry_registry_test.dart:395:          home: Scaffold(body: WenzRichTextEditor(controller: controller)),
+test\widgets\block_geometry_registry_test.dart:519:      // length and return a valid (possibly collapsed) range, not throw.
+test\widgets\block_geometry_registry_test.dart:561:    test('an empty paragraph returns a collapsed range at 0', () {
+test\widgets\find_replace_panel_test.dart:14:        home: Scaffold(
+test\widgets\find_replace_panel_test.dart:58:        home: Scaffold(
+lib\src\widgets\comment_sidebar.dart:115:            child: Text('Comments', style: theme.textTheme.titleSmall),
+test\fixtures\legacy_basic.json:3:    "type": "title",
+test\plugins\editor_plugin_test.dart:20:      selection: collapsedTextSelection('p1', 0, 0),
+test\plugins\editor_plugin_test.dart:25:    final blockRenderers = BlockRendererRegistry();
+test\plugins\editor_plugin_test.dart:44:          blockRenderers: <BlockType, BlockRendererBuilder>{
+test\plugins\editor_plugin_test.dart:47:          blockEmbedRenderers: <String, BlockRendererBuilder>{
+test\plugins\editor_plugin_test.dart:56:              title: 'Test Item',
+test\plugins\editor_plugin_test.dart:64:              title: 'Test Toolbar',
+test\input\clipboard_service_test.dart:10:    test('returns null for a collapsed selection', () {
+test\input\clipboard_service_test.dart:12:      expect(service.copy(doc, collapsedTextSelection('p1', 0, 0)), isNull);
+test\input\clipboard_service_test.dart:31:            title: 'Info Title',
+test\input\clipboard_service_test.dart:126:            title: 'Launch clip',
+test\input\clipboard_service_test.dart:146:      expect(video.title, 'Launch clip');
+test\input\clipboard_service_test.dart:263:            title: 'Launch clip',
+test\input\clipboard_service_test.dart:499:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:511:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:523:        selection: collapsedTextSelection('p1', 0, 0),
+test\input\clipboard_service_test.dart:536:        selection: collapsedTextSelection('p1', 0, 0),
+test\input\clipboard_service_test.dart:553:        selection: collapsedTextSelection('p1', 0, 0),
+test\input\clipboard_service_test.dart:584:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:621:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:681:        selection: _collapsedTableCellSelection(2),
+test\input\clipboard_service_test.dart:696:        selection: _collapsedTableCellSelection(1),
+test\input\clipboard_service_test.dart:753:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:869:        selection: collapsedTextSelection('t1', 0, 0),
+test\input\clipboard_service_test.dart:892:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:919:            title: 'Launch clip',
+test\input\clipboard_service_test.dart:929:        selection: collapsedTextSelection('p1', 0, 1),
+test\input\clipboard_service_test.dart:941:      expect(pastedVideo.title, 'Launch clip');
+test\input\clipboard_service_test.dart:963:        selection: collapsedObjectSelection('target-img', 0),
+test\input\clipboard_service_test.dart:1152:DocumentSelection _collapsedTableCellSelection(int offset) {
+test\input\clipboard_service_test.dart:1167:DocumentSelection collapsedObjectSelection(String blockId, int blockIndex) {
+lib\src\widgets\block_renderer_registry.dart:104:/// not to [BlockRendererBuilder] output. Keeping the contract here lets custom
+lib\src\widgets\block_renderer_registry.dart:193:/// Bundles everything a block renderer needs to paint a block. Passed to every
+lib\src\widgets\block_renderer_registry.dart:194:/// [BlockRendererBuilder] so custom renderers get the same surface as the
+lib\src\widgets\block_renderer_registry.dart:267:  /// Optional callback used by code block renderers to change the block's
+lib\src\widgets\block_renderer_registry.dart:271:  /// Optional callback used by code block renderers to copy the code text.
+lib\src\widgets\block_renderer_registry.dart:289:  /// Optional callback used by object-block renderers (image/video/file/embed
+lib\src\widgets\block_renderer_registry.dart:293:  /// Optional view-state for a top-level heading's collapse affordance. `null`
+lib\src\widgets\block_renderer_registry.dart:294:  /// means the host editor is not exposing heading collapse for this block.
+lib\src\widgets\block_renderer_registry.dart:297:  /// Optional callback used by heading renderers to toggle collapse view-state.
+lib\src\widgets\block_renderer_registry.dart:300:  /// Find/replace matches currently visible for this block renderer. Built-in
+lib\src\widgets\block_renderer_registry.dart:308:  /// Whether the active (collapsed) selection sits inside [block], i.e. this
+lib\src\widgets\block_renderer_registry.dart:320:/// Presentation-only collapse state for a top-level heading block.
+lib\src\widgets\block_renderer_registry.dart:347:/// [BlockRendererRegistry]. Custom renderers receive the same
+lib\src\widgets\block_renderer_registry.dart:350:typedef BlockRendererBuilder = Widget Function(
+lib\src\widgets\block_renderer_registry.dart:356:/// [BlockRendererBuilder]s. The editor consults this registry to paint each
+lib\src\widgets\block_renderer_registry.dart:368:class BlockRendererRegistry {
+lib\src\widgets\block_renderer_registry.dart:369:  BlockRendererRegistry({
+lib\src\widgets\block_renderer_registry.dart:370:    Map<BlockType, BlockRendererBuilder> builders =
+lib\src\widgets\block_renderer_registry.dart:371:        const <BlockType, BlockRendererBuilder>{},
+lib\src\widgets\block_renderer_registry.dart:372:    Map<String, BlockRendererBuilder> embedBuilders =
+lib\src\widgets\block_renderer_registry.dart:373:        const <String, BlockRendererBuilder>{},
+lib\src\widgets\block_renderer_registry.dart:379:  final Map<BlockType, BlockRendererBuilder> _builders =
+lib\src\widgets\block_renderer_registry.dart:380:      <BlockType, BlockRendererBuilder>{};
+lib\src\widgets\block_renderer_registry.dart:381:  final Map<String, BlockRendererBuilder> _embedBuilders =
+lib\src\widgets\block_renderer_registry.dart:382:      <String, BlockRendererBuilder>{};
+lib\src\widgets\block_renderer_registry.dart:393:  BlockRendererBuilder? register(BlockType type, BlockRendererBuilder builder) {
+lib\src\widgets\block_renderer_registry.dart:408:  BlockRendererBuilder resolve(
+lib\src\widgets\block_renderer_registry.dart:410:    required BlockRendererBuilder fallback,
+lib\src\widgets\block_renderer_registry.dart:420:  BlockRendererBuilder? registerEmbed(
+lib\src\widgets\block_renderer_registry.dart:422:    BlockRendererBuilder builder,
+lib\src\widgets\block_renderer_registry.dart:441:  BlockRendererBuilder resolveForBlock(
+lib\src\widgets\block_renderer_registry.dart:443:    required BlockRendererBuilder fallback,
+test\widgets\editor_golden_test.dart:19:    final registry = BlockRendererRegistry()..installDefaultBuilders();
+test\widgets\editor_golden_test.dart:86:    expect(WenzRichTextDesignBaseline.stateTokens, contains('heading.collapse'));
+test\widgets\editor_golden_test.dart:168:            id: 'title',
+test\widgets\editor_golden_test.dart:206:      matchesGoldenFile('goldens/editor_blocks.png'),
+test\widgets\editor_golden_test.dart:216:    await tester.tap(_blockDragHandleFinder('menu-title'));
+test\widgets\editor_golden_test.dart:237:      tester.getCenter(_blockDragHandleFinder('menu-title')),
+test\widgets\editor_golden_test.dart:421:  testWidgets('golden: collapsed caret', (tester) async {
+test\widgets\editor_golden_test.dart:436:        selection: collapsedTextSelection('p1', 0, 8),
+test\widgets\editor_golden_test.dart:453:              id: 'advanced-title',
+test\widgets\editor_golden_test.dart:463:              title: 'Migration risk',
+test\widgets\editor_golden_test.dart:522:      home: Scaffold(
+test\widgets\editor_golden_test.dart:563:          home: Scaffold(
+test\widgets\editor_golden_test.dart:584:          id: 'menu-title',
+test\codecs\html_codec_test.dart:141:        'width="32" height="24" title="Inline caption" '
+test\codecs\html_codec_test.dart:159:    test('callout with variant title and icon', () {
+test\codecs\html_codec_test.dart:165:            title: 'Heads up',
+test\codecs\html_codec_test.dart:175:        '<div data-callout-title>Heads up</div>'
+test\codecs\html_codec_test.dart:297:            title: 'Launch clip',
+test\codecs\html_codec_test.dart:308:        '<video src="https://cdn.example.com/video.mp4" data-wenz-block="video" data-asset-id="video-asset" data-playback-url="https://cdn.example.com/video.mp4" data-file="video.mp4" poster="https://cdn.example.com/cover.jpg" title="Launch clip" data-title="Launch clip" data-description="Product launch overview" data-aspect-ratio="1.7777777777777777" data-upload-status="failed" data-upload-error="network timeout"></video>',
+test\codecs\html_codec_test.dart:471:    test('callout restores variant title icon and body', () {
+test\codecs\html_codec_test.dart:475:        '<div data-callout-title>Stop</div>'
+test\codecs\html_codec_test.dart:483:      expect(callout.title, 'Stop');
+test\codecs\html_codec_test.dart:490:    test('table with header row', () {
+test\codecs\html_codec_test.dart:499:      // First row cells (in thead) are headers.
+test\codecs\html_codec_test.dart:576:        'title="Launch clip" '
+test\codecs\html_codec_test.dart:589:      expect(video.title, 'Launch clip');
+test\codecs\html_codec_test.dart:667:            title: 'Launch clip',
+test\codecs\html_codec_test.dart:691:      expect(video.title, 'Launch clip');
+test\codecs\html_codec_test.dart:703:            data: <String, Object?>{'recordId': '42', 'title': 'Acme'},
+test\codecs\html_codec_test.dart:715:      expect(embed.data, containsPair('title', 'Acme'));
+test\codecs\legacy_wen_json_codec_test.dart:81:    expect(video.title, 'Launch clip');
+test\core\text_commands_test.dart:18:      selection: collapsedTextSelection('p1', 0, 5),
+test\core\text_commands_test.dart:29:  test('insert text replaces non collapsed selection', () {
+test\core\text_commands_test.dart:373:  test('delete backward removes character before collapsed selection', () {
+test\core\text_commands_test.dart:384:      selection: collapsedTextSelection('p1', 0, 5),
+test\core\text_commands_test.dart:410:      selection: collapsedTextSelection('p2', 1, 0),
+test\core\text_commands_test.dart:439:      selection: collapsedTextSelection('p2', 2, 0),
+test\core\text_commands_test.dart:486:      selection: collapsedTextSelection('p1', 1, 0),
+test\core\text_commands_test.dart:534:      selection: collapsedTextSelection('p1', 1, 0),
+test\core\text_commands_test.dart:561:      selection: collapsedTextSelection('p1', 1, 0),
+test\core\text_commands_test.dart:584:      selection: collapsedCodeSelection('c1', 0, 10),
+test\core\text_commands_test.dart:613:      selection: collapsedTextSelection('p1', 0, 6),
+test\core\text_commands_test.dart:660:      selection: collapsedTextSelection('p1', 0, 6),
+test\core\text_commands_test.dart:680:      selection: _collapsedTableCellSelection(5),
+test\core\text_commands_test.dart:988:DocumentSelection _collapsedTableCellSelection(int offset) {
+test\core\table_commands_test.dart:444:  test('set table cell header and background updates cell style', () {
+test\core\style_commands_test.dart:119:      selection: collapsedTextSelection('p1', 0, 0),
+test\core\style_commands_test.dart:143:      selection: collapsedTextSelection('p1', 0, 0),
+test\core\style_commands_test.dart:174:      selection: collapsedTextSelection('p1', 0, 0),
+test\core\style_commands_test.dart:205:      selection: collapsedTextSelection('li1', 0, 0),
+lib\src\controller\wenz_rich_text_controller.dart:760:  ChangeSet moveCaretBackward({bool expandSelection = false}) {
+lib\src\controller\wenz_rich_text_controller.dart:764:        expandSelection: expandSelection,
+lib\src\controller\wenz_rich_text_controller.dart:769:  ChangeSet moveCaretForward({bool expandSelection = false}) {
+lib\src\controller\wenz_rich_text_controller.dart:773:        expandSelection: expandSelection,
+lib\src\controller\wenz_rich_text_controller.dart:802:    bool expandSelection = false,
+lib\src\controller\wenz_rich_text_controller.dart:809:        expandSelection: expandSelection,
+lib\src\controller\wenz_rich_text_controller.dart:819:    bool expandSelection = false,
+lib\src\controller\wenz_rich_text_controller.dart:826:        expandSelection: expandSelection,
+lib\src\controller\wenz_rich_text_controller.dart:833:    bool expandSelection = false,
+lib\src\controller\wenz_rich_text_controller.dart:840:        expandSelection: expandSelection,
+lib\src\controller\wenz_rich_text_controller.dart:847:    bool expandSelection = false,
+lib\src\controller\wenz_rich_text_controller.dart:854:        expandSelection: expandSelection,
+lib\src\controller\wenz_rich_text_controller.dart:896:    String? title,
+lib\src\controller\wenz_rich_text_controller.dart:903:        title: title,
+lib\src\controller\wenz_rich_text_controller.dart:926:    String title = '',
+lib\src\controller\wenz_rich_text_controller.dart:938:          title: title,
+lib\src\controller\wenz_rich_text_controller.dart:953:    String title = '',
+lib\src\controller\wenz_rich_text_controller.dart:968:        title: title,
+lib\src\controller\wenz_rich_text_controller.dart:1245:    String? title,
+lib\src\controller\wenz_rich_text_controller.dart:1259:        title: title,
+lib\src\controller\toolbar_controller.dart:28:    required this.title,
+lib\src\controller\toolbar_controller.dart:40:  final String title;
+lib\src\controller\toolbar_controller.dart:129:  /// Whether any selection is active (collapsed caret counts).
+lib\src\controller\toolbar_controller.dart:133:  /// the selection to sit inside a [TextBlockNode] text path. A collapsed
+lib\src\controller\toolbar_controller.dart:177:  /// selection has no link or mixes different URLs. For a collapsed caret,
+lib\src\controller\toolbar_controller.dart:547:    String title = '',
+lib\src\controller\toolbar_controller.dart:564:      title: title,
+lib\src\controller\toolbar_controller.dart:677:      // FormatTextCommand applies to any TextBlockNode text range (collapsed
+lib\src\controller\toolbar_controller.dart:839:    var headerMixed = false;
+lib\src\controller\toolbar_controller.dart:859:          headerMixed = true;
+lib\src\controller\toolbar_controller.dart:871:      isHeader: headerMixed ? null : uniformHeader,
+lib\src\controller\toolbar_controller.dart:876:  /// Scans [content] over [rangeStart, rangeEnd) and folds each run's marks
+lib\src\controller\toolbar_controller.dart:1085:/// folding a content list's inline marks. Private to the attribute collectors.
+test\core\selection_commands_test.dart:20:      selection: collapsedTextSelection('p1', 0, 2),
+test\core\selection_commands_test.dart:41:  test('move caret collapses expanded selection without recording history', () {
+test\core\selection_commands_test.dart:78:  test('move caret expands selection from the extent side', () {
+test\core\selection_commands_test.dart:89:      selection: collapsedTextSelection('p1', 0, 3),
+test\core\selection_commands_test.dart:96:        expandSelection: true,
+test\core\selection_commands_test.dart:142:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\selection_commands_test.dart:171:        selection: collapsedTextSelection('p1', 0, 7),
+test\core\selection_commands_test.dart:186:    test('expandSelection extends from a fixed base', () {
+test\core\selection_commands_test.dart:197:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\selection_commands_test.dart:204:          expandSelection: true,
+test\core\selection_commands_test.dart:231:        selection: collapsedTextSelection('p2', 1, 1),
+test\core\selection_commands_test.dart:263:        selection: collapsedTextSelection('p1', 0, 1),
+test\core\selection_commands_test.dart:368:      selection: collapsedTextSelection('p1', 0, 6),
+test\core\selection_commands_test.dart:395:      selection: collapsedTextSelection('p1', 1, 0),
+test\core\selection_commands_test.dart:643:      selection: collapsedTextSelection('p1', 0, 3),
+test\core\selection_commands_test.dart:682:      selection: collapsedTextSelection('p1', 0, 2),
+test\core\selection_commands_test.dart:705:      selection: collapsedTextSelection('p1', 0, 2),
+test\core\selection_commands_test.dart:852:        selection: collapsedTextSelection('p1', 0, 2),
+test\core\selection_commands_test.dart:903:      selection: collapsedTextSelection('p1', 0, 1),
+test\core\document_schema_test.dart:139:            title: ' Launch demo ',
+test\core\document_schema_test.dart:154:      expect(block.title, 'Launch demo');
+test\core\document_schema_test.dart:188:            title: ' Missing source ',
+test\core\document_schema_test.dart:200:      expect(block.data, containsPair('title', 'Missing source'));
+test\controller\document_stats_controller_test.dart:37:        selection: collapsedTextSelection('p1', 0, 2),
+test\controller\document_stats_controller_test.dart:46:      host.setSelection(collapsedTextSelection('p1', 0, 1));
+test\controller\document_stats_controller_test.dart:94:        title: 'Note',
+lib\src\controller\slash_menu_controller.dart:15:    required this.title,
+lib\src\controller\slash_menu_controller.dart:23:  final String title;
+lib\src\controller\slash_menu_controller.dart:35:        title.toLowerCase().contains(normalized) ||
+lib\src\controller\slash_menu_controller.dart:266:      title: 'Heading',
+lib\src\controller\slash_menu_controller.dart:267:      description: 'Large section title',
+lib\src\controller\slash_menu_controller.dart:268:      icon: 'title',
+lib\src\controller\slash_menu_controller.dart:269:      keywords: const <String>['h1', 'title'],
+lib\src\controller\slash_menu_controller.dart:276:      title: 'Bulleted list',
+lib\src\controller\slash_menu_controller.dart:286:      title: 'Todo',
+lib\src\controller\slash_menu_controller.dart:296:      title: 'Quote',
+lib\src\controller\slash_menu_controller.dart:306:      title: 'Code block',
+lib\src\controller\slash_menu_controller.dart:332:      title: 'Table',
+lib\src\controller\slash_menu_controller.dart:365:      title: 'Image',
+lib\src\controller\slash_menu_controller.dart:392:      title: 'Video',
+lib\src\controller\slash_menu_controller.dart:403:            title: 'Video placeholder',
+test\core\revision_model_test.dart:61:      selection: collapsedTextSelection('p1', 0, 5),
+test\core\revision_model_test.dart:154:      selection: collapsedTextSelection('p1', 0, 5),
+lib\src\controller\document_stats_controller.dart:203:      addText(block.title.trim());
+lib\src\codecs\plain_text_codec.dart:116:    if (video.title.isNotEmpty) {
+lib\src\codecs\plain_text_codec.dart:117:      return video.title;
+lib\src\controller\outline_controller.dart:10:/// heading blocks, carrying the heading's block id, index, level, visible title,
+lib\src\controller\outline_controller.dart:13:/// Heading collapse uses the same top-level heading source but remains view
+lib\src\controller\outline_controller.dart:15:/// blocks never own a collapse entry themselves.
+lib\src\controller\outline_controller.dart:21:    required this.title,
+lib\src\controller\outline_controller.dart:23:    this.collapseRange = OutlineCollapseRange.empty,
+lib\src\controller\outline_controller.dart:30:  final String title;
+lib\src\controller\outline_controller.dart:32:  final OutlineCollapseRange collapseRange;
+lib\src\controller\outline_controller.dart:36:  bool get canCollapse => collapseRange.isNotEmpty;
+lib\src\controller\outline_controller.dart:38:  /// Top-level block ids covered when this heading is collapsed.
+lib\src\controller\outline_controller.dart:39:  List<String> get coveredBlockIds => collapseRange.blockIds;
+lib\src\controller\outline_controller.dart:41:  /// Top-level block indexes covered when this heading is collapsed.
+lib\src\controller\outline_controller.dart:42:  List<int> get coveredBlockIndexes => collapseRange.blockIndexes;
+lib\src\controller\outline_controller.dart:46:  int get collapseStartBlockIndex => collapseRange.startBlockIndex;
+lib\src\controller\outline_controller.dart:49:  int get collapseEndBlockIndexExclusive =>
+lib\src\controller\outline_controller.dart:50:      collapseRange.endBlockIndexExclusive;
+lib\src\controller\outline_controller.dart:64:        other.title == title &&
+lib\src\controller\outline_controller.dart:66:        other.collapseRange == collapseRange &&
+lib\src\controller\outline_controller.dart:75:        title,
+lib\src\controller\outline_controller.dart:77:        collapseRange,
+lib\src\controller\outline_controller.dart:82:/// The top-level block range hidden by a collapsed outline heading.
+lib\src\controller\outline_controller.dart:139:/// View-only projection of [RichTextDocument.blocks] after applying collapsed
+lib\src\controller\outline_controller.dart:183:      final start = item.collapseStartBlockIndex.clamp(0, blocks.length);
+lib\src\controller\outline_controller.dart:184:      final end = item.collapseEndBlockIndexExclusive.clamp(0, blocks.length);
+lib\src\controller\outline_controller.dart:266:/// Heading collapse interaction contract:
+lib\src\controller\outline_controller.dart:267:/// * A collapse handle is eligible only for a non-empty top-level
+lib\src\controller\outline_controller.dart:274:/// * Toggling collapse is editor view state. It must not mutate document
+lib\src\controller\outline_controller.dart:295:  Set<String> _collapsedBlockIds = const <String>{};
+lib\src\controller\outline_controller.dart:296:  Set<String> get collapsedBlockIds =>
+lib\src\controller\outline_controller.dart:297:      Set<String>.unmodifiable(_collapsedBlockIds);
+lib\src\controller\outline_controller.dart:353:        _collapsedBlockIds.contains(blockId);
+lib\src\controller\outline_controller.dart:363:  OutlineCollapseRange? collapseRangeForBlockId(String blockId) {
+lib\src\controller\outline_controller.dart:364:    return itemForBlockId(blockId)?.collapseRange;
+lib\src\controller\outline_controller.dart:367:  bool collapse(OutlineItem item) => collapseByBlockId(item.blockId);
+lib\src\controller\outline_controller.dart:369:  bool collapseByBlockId(String blockId) {
+lib\src\controller\outline_controller.dart:370:    return _setCollapsed(blockId: blockId, collapsed: true);
+lib\src\controller\outline_controller.dart:373:  bool collapseByAnchor(String anchor) {
+lib\src\controller\outline_controller.dart:375:    return item != null && collapse(item);
+lib\src\controller\outline_controller.dart:378:  bool expand(OutlineItem item) => expandByBlockId(item.blockId);
+lib\src\controller\outline_controller.dart:380:  bool expandByBlockId(String blockId) {
+lib\src\controller\outline_controller.dart:381:    return _setCollapsed(blockId: blockId, collapsed: false);
+lib\src\controller\outline_controller.dart:384:  bool expandByAnchor(String anchor) {
+lib\src\controller\outline_controller.dart:386:    return item != null && expand(item);
+lib\src\controller\outline_controller.dart:398:      collapsed: !_collapsedBlockIds.contains(blockId),
+lib\src\controller\outline_controller.dart:407:  bool expandAll() {
+lib\src\controller\outline_controller.dart:408:    if (_collapsedBlockIds.isEmpty) {
+lib\src\controller\outline_controller.dart:411:    _collapsedBlockIds = const <String>{};
+lib\src\controller\outline_controller.dart:479:      final title = _normalizeTitle(block.plainText);
+lib\src\controller\outline_controller.dart:480:      if (title.isEmpty) {
+lib\src\controller\outline_controller.dart:485:      final collapseRange = _collapseRangeForHeading(
+lib\src\controller\outline_controller.dart:490:      if (collapseRange.isNotEmpty) {
+lib\src\controller\outline_controller.dart:498:          title: title,
+lib\src\controller\outline_controller.dart:500:          collapseRange: collapseRange,
+lib\src\controller\outline_controller.dart:506:      _collapsedBlockIds.where(collapsibleIds.contains),
+lib\src\controller\outline_controller.dart:517:    final collapseStateChanged =
+lib\src\controller\outline_controller.dart:518:        !setEquals(_collapsedBlockIds, nextCollapsedBlockIds);
+lib\src\controller\outline_controller.dart:519:    if (!itemsChanged && !collapseStateChanged) {
+lib\src\controller\outline_controller.dart:523:    _collapsedBlockIds = nextCollapsedBlockIds;
+lib\src\controller\outline_controller.dart:529:    required bool collapsed,
+lib\src\controller\outline_controller.dart:535:    final next = Set<String>.of(_collapsedBlockIds);
+lib\src\controller\outline_controller.dart:536:    final changed = collapsed ? next.add(blockId) : next.remove(blockId);
+lib\src\controller\outline_controller.dart:540:    _collapsedBlockIds = Set<String>.unmodifiable(next);
+lib\src\controller\outline_controller.dart:551:    required this.title,
+lib\src\controller\outline_controller.dart:553:    required this.collapseRange,
+lib\src\controller\outline_controller.dart:559:  final String title;
+lib\src\controller\outline_controller.dart:561:  final OutlineCollapseRange collapseRange;
+lib\src\controller\outline_controller.dart:568:      title: title,
+lib\src\controller\outline_controller.dart:570:      collapseRange: collapseRange,
+lib\src\controller\outline_controller.dart:576:OutlineCollapseRange _collapseRangeForHeading({
+lib\src\controller\outline_controller.dart:602:String _normalizeTitle(String title) {
+lib\src\controller\outline_controller.dart:603:  return title.replaceAll(RegExp(r'\s+'), ' ').trim();
+test\controller\controller_try_load_test.dart:93:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\controller_try_load_test.dart:116:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\model_test.dart:85:      title: 'Launch demo',
+test\core\model_test.dart:98:    expect(decoded.title, 'Launch demo');
+test\core\model_test.dart:117:      'caption': 'Legacy title',
+test\core\model_test.dart:128:    expect(legacy.title, 'Legacy title');
+test\core\model_test.dart:143:    expect(missing.title, isEmpty);
+test\core\model_test.dart:156:      data: <String, Object?>{'recordId': '42', 'title': 'Acme'},
+lib\src\codecs\markdown_codec.dart:76:        final title = image.caption.isEmpty
+lib\src\codecs\markdown_codec.dart:79:        return '![${_escapeImageAlt(alt)}]($src$title)';
+lib\src\codecs\markdown_codec.dart:83:        final title = _videoMarkdownTitle(video, src);
+lib\src\codecs\markdown_codec.dart:84:        if (title.isEmpty) {
+lib\src\codecs\markdown_codec.dart:87:        return '![video]($src "${_escapeImageTitle(title)}")';
+lib\src\codecs\markdown_codec.dart:99:        // title and body are preserved, but the structured variant is not.
+lib\src\codecs\markdown_codec.dart:101:        final title = '${callout.effectiveIcon} ${callout.effectiveTitle}';
+lib\src\codecs\markdown_codec.dart:102:        final lines = <String>['**${_escapeInline(title)}**'];
+lib\src\codecs\markdown_codec.dart:155:    final header = table.rows.first;
+lib\src\codecs\markdown_codec.dart:157:      final cell = c < header.length ? header[c] : null;
+lib\src\codecs\markdown_codec.dart:214:      final title = caption.isEmpty ? '' : ' "${_escapeImageTitle(caption)}"';
+lib\src\codecs\markdown_codec.dart:215:      return '![${_escapeImageAlt(alt)}]($url$title)';
+lib\src\codecs\markdown_codec.dart:304:    add('title', video.title);
+lib\src\codecs\markdown_codec.dart:505:            title: caption,
+lib\src\codecs\markdown_codec.dart:825:    required String title,
+lib\src\codecs\markdown_codec.dart:827:    final metadata = _parseVideoMetadata(title);
+lib\src\codecs\markdown_codec.dart:828:    final plainTitle = metadata == null ? title.trim() : '';
+lib\src\codecs\markdown_codec.dart:831:        metadata?['title'] ?? (plainTitle.isNotEmpty ? plainTitle : altTitle);
+lib\src\codecs\markdown_codec.dart:851:      title: resolvedTitle,
+lib\src\codecs\markdown_codec.dart:859:  Map<String, String>? _parseVideoMetadata(String title) {
+lib\src\codecs\markdown_codec.dart:860:    final trimmed = title.trim();
+test\controller\video_block_controller_test.dart:9:      final initialSelection = _collapsedTextSelection('p1', 0, 6);
+test\controller\video_block_controller_test.dart:33:        title: 'Intro',
+test\controller\video_block_controller_test.dart:49:      expect(video.title, 'Intro');
+test\controller\video_block_controller_test.dart:79:              title: 'Draft',
+test\controller\video_block_controller_test.dart:95:        title: 'Final',
+test\controller\video_block_controller_test.dart:108:      expect(updated.title, 'Final');
+test\controller\video_block_controller_test.dart:138:              title: 'Source',
+test\controller\video_block_controller_test.dart:160:        selection: _collapsedTextSelection('p1', 0, 0),
+test\controller\video_block_controller_test.dart:169:      expect(pasted.title, 'Source');
+test\controller\video_block_controller_test.dart:235:          controller.updateVideoBlock(blockIndex: 0, title: 'ignored');
+test\controller\video_block_controller_test.dart:248:DocumentSelection _collapsedTextSelection(
+test\helpers\selection_test_helpers.dart:3:/// Shared selection builders for tests, replacing the per-file `_collapsed` /
+test\helpers\selection_test_helpers.dart:8:DocumentSelection collapsedTextSelection(
+test\helpers\selection_test_helpers.dart:23:DocumentSelection collapsedCodeSelection(
+lib\src\codecs\legacy_wen_json_codec.dart:74:      case 'title':
+lib\src\codecs\legacy_wen_json_codec.dart:158:      title: _firstString(json, const <String>['title', 'caption', 'name']),
+test\core\controller_test.dart:18:      selection: collapsedTextSelection('p1', 0, 2),
+test\core\controller_test.dart:42:      selection: collapsedTextSelection('p1', 0, 2),
+test\core\controller_test.dart:76:      selection: collapsedTextSelection('p1', 0, 0),
+test\core\controller_test.dart:98:    expect(controller.selection, collapsedTextSelection('p1', 2, 3));
+test\core\controller_test.dart:250:        selection: collapsedTextSelection('p2', 1, 3),
+test\core\controller_test.dart:260:        selection: collapsedTextSelection('p2', 1, 1),
+test\core\controller_test.dart:271:        selection: collapsedTextSelection('p1', 0, 3),
+test\core\controller_test.dart:285:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\controller_test.dart:287:      controller.setSelection(collapsedTextSelection('p3', 2, 5));
+test\core\controller_test.dart:295:        selection: collapsedTextSelection('p2', 1, 3),
+test\codecs\markdown_codec_test.dart:23:            content: <InlineNode>[TextRun(text: 'Subtitle')],
+test\codecs\markdown_codec_test.dart:27:      expect(codec.encode(document), '# Title\n\n### Subtitle');
+test\codecs\markdown_codec_test.dart:148:            title: 'Heads up',
+test\codecs\markdown_codec_test.dart:287:    test('image uses altText and caption title when present', () {
+test\codecs\markdown_codec_test.dart:327:      const source = '# Title\n\n### Subtitle';
+test\codecs\markdown_codec_test.dart:407:      // First row cells are marked as headers.
+test\codecs\markdown_codec_test.dart:429:    test('standalone image title becomes caption', () {
+test\codecs\markdown_codec_test.dart:456:          'title=Launch clip; '
+test\codecs\markdown_codec_test.dart:468:      expect(video.title, 'Launch clip');
+test\codecs\markdown_codec_test.dart:536:            title: 'Launch clip',
+test\codecs\markdown_codec_test.dart:555:        'title=Launch clip; '
+test\codecs\markdown_codec_test.dart:572:      expect(video.title, 'Launch clip');
+test\core\markdown_shortcut_commands_test.dart:172:    selection: collapsedTextSelection('p1', 0, 0),
+lib\src\input\shortcut_manager.dart:42:    this.expandSelection = false,
+lib\src\input\shortcut_manager.dart:48:    bool expandSelection = false,
+lib\src\input\shortcut_manager.dart:53:          expandSelection: expandSelection,
+lib\src\input\shortcut_manager.dart:65:  final bool expandSelection;
+lib\src\input\shortcut_manager.dart:115:        expandSelection: shiftPressed,
+lib\src\input\shortcut_manager.dart:121:        expandSelection: shiftPressed,
+lib\src\input\shortcut_manager.dart:127:        expandSelection: shiftPressed,
+lib\src\input\shortcut_manager.dart:133:        expandSelection: shiftPressed,
+lib\src\input\shortcut_manager.dart:139:        expandSelection: shiftPressed,
+lib\src\input\shortcut_manager.dart:145:        expandSelection: shiftPressed,
+lib\src\input\shortcut_manager.dart:151:        expandSelection: shiftPressed,
+lib\src\input\shortcut_manager.dart:157:        expandSelection: shiftPressed,
+lib\src\input\shortcut_manager.dart:223:        expandSelection: shiftPressed,
+lib\src\input\shortcut_manager.dart:229:        expandSelection: shiftPressed,
+lib\src\input\shortcut_manager.dart:235:        expandSelection: shiftPressed,
+lib\src\input\shortcut_manager.dart:241:        expandSelection: shiftPressed,
+lib\src\codecs\html_codec.dart:202:        attrs.write(' title="$escapedCaption" data-caption="$escapedCaption"');
+lib\src\codecs\html_codec.dart:325:    if (video.title.isNotEmpty) {
+lib\src\codecs\html_codec.dart:326:      attrs.write(' title="${_escapeHtml(video.title)}"');
+lib\src\codecs\html_codec.dart:327:      attrs.write(' data-title="${_escapeHtml(video.title)}"');
+lib\src\codecs\html_codec.dart:381:    final title = callout.effectiveTitle;
+lib\src\codecs\html_codec.dart:385:        '<div data-callout-title>${_escapeHtml(title)}</div>'
+lib\src\codecs\html_codec.dart:535:              title: node.querySelector('figcaption')?.text.trim() ?? '',
+lib\src\codecs\html_codec.dart:592:        : (node.attributes['data-caption'] ?? node.attributes['title'] ?? '')
+lib\src\codecs\html_codec.dart:613:    String title = '',
+lib\src\codecs\html_codec.dart:663:    final fallbackTitle = title.isNotEmpty ? title : node.text.trim();
+lib\src\codecs\html_codec.dart:664:    final resolvedTitle = (node.attributes['data-title'] ??
+lib\src\codecs\html_codec.dart:665:            node.attributes['title'] ??
+lib\src\codecs\html_codec.dart:674:      title: resolvedTitle,
+lib\src\codecs\html_codec.dart:765:    final titleElement = node.querySelector('[data-callout-title]');
+lib\src\codecs\html_codec.dart:766:    var title = titleElement?.text.trim() ?? '';
+lib\src\codecs\html_codec.dart:767:    if (title == CalloutBlockNode.defaultTitleFor(variant)) {
+lib\src\codecs\html_codec.dart:768:      title = '';
+lib\src\codecs\html_codec.dart:776:        ? _parseCalloutInlineWithoutTitle(node, titleElement)
+lib\src\codecs\html_codec.dart:781:      title: title,
+lib\src\codecs\html_codec.dart:789:    dom.Element? titleElement,
+lib\src\codecs\html_codec.dart:793:      if (titleElement != null && identical(child, titleElement)) {
+lib\src\codecs\html_codec.dart:888:    // If a <thead> exists, its rows are headers.
+lib\src\codecs\html_codec.dart:1008:                  node.attributes['title'] ??
+test\codecs\plain_text_codec_test.dart:123:    test('video sentinel prefers title then playable source', () {
+test\codecs\plain_text_codec_test.dart:134:                title: 'Launch clip',
+test\core\block_structure_commands_test.dart:25:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:34:      // block 2 untouched (not in the collapsed selection); normaliser clamps
+test\core\block_structure_commands_test.dart:53:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:78:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:102:        selection: collapsedTextSelection('t1', 0, 0),
+test\core\block_structure_commands_test.dart:137:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:151:      expect(session.selection, collapsedTextSelection('p1', 2, 3));
+test\core\block_structure_commands_test.dart:160:      expect(session.selection, collapsedTextSelection('p1', 0, 0));
+test\core\block_structure_commands_test.dart:168:      expect(session.selection, collapsedTextSelection('p1', 2, 3));
+test\core\block_structure_commands_test.dart:282:              title: 'Watch',
+test\core\block_structure_commands_test.dart:328:      expect(callout.title, 'Watch');
+test\core\block_structure_commands_test.dart:380:        selection: collapsedCodeSelection('c1', 0, 0),
+test\core\block_structure_commands_test.dart:399:        selection: collapsedCodeSelection('c1', 0, 0),
+test\core\block_structure_commands_test.dart:422:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:438:        selection: collapsedCodeSelection('c1', 0, 4),
+test\core\block_structure_commands_test.dart:488:        selection: collapsedTextSelection('p1', 0, 1),
+test\core\block_structure_commands_test.dart:511:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:534:        title: 'Heads up',
+test\core\block_structure_commands_test.dart:544:      expect(callout.title, 'Heads up');
+test\core\block_structure_commands_test.dart:549:    test('updates callout variant title and icon through command', () {
+test\core\block_structure_commands_test.dart:556:              title: 'Before',
+test\core\block_structure_commands_test.dart:562:        selection: collapsedTextSelection('co1', 0, 0),
+test\core\block_structure_commands_test.dart:569:          title: ' Stop ',
+test\core\block_structure_commands_test.dart:577:      expect(callout.title, 'Stop');
+test\core\block_structure_commands_test.dart:586:      expect(callout.title, 'Before');
+test\core\block_structure_commands_test.dart:592:      expect(callout.title, 'Stop');
+test\core\block_structure_commands_test.dart:607:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_structure_commands_test.dart:612:        const UpdateCalloutBlockCommand(title: 'ignored'),
+test\core\inline_commands_test.dart:51:      selection: collapsedTextSelection('p1', 0, 45),
+test\core\inline_commands_test.dart:83:      selection: collapsedTextSelection('p1', 0, 6),
+test\core\inline_commands_test.dart:177:    controller.setSelection(collapsedTextSelection('p1', 0, 5));
+lib\src\core\schema\document_schema.dart:89:    final title = block.title.trim();
+lib\src\core\schema\document_schema.dart:100:      title: title,
+lib\src\core\schema\document_schema.dart:125:        title == block.title &&
+lib\src\core\schema\document_schema.dart:155:    final title = block.title.trim();
+lib\src\core\schema\document_schema.dart:159:        title == block.title &&
+lib\src\core\schema\document_schema.dart:167:      title: title,
+lib\src\core\schema\document_schema.dart:306:    if (block.title.isNotEmpty) 'title': block.title,
+test\core\block_commands_test.dart:54:      selection: collapsedTextSelection('p1', 0, 0),
+test\core\block_commands_test.dart:86:      selection: collapsedTextSelection('p1', 0, 4),
+test\core\block_commands_test.dart:115:      selection: collapsedTextSelection('p1', 0, 5),
+test\core\block_commands_test.dart:150:      selection: collapsedTextSelection('p1', 0, 5),
+test\core\block_commands_test.dart:265:      selection: collapsedTextSelection('p1', 0, 5),
+test\core\block_commands_test.dart:289:      selection: collapsedTextSelection('li1', 0, 5),
+test\core\block_commands_test.dart:319:      selection: collapsedTextSelection('task1', 0, 4),
+test\core\block_commands_test.dart:350:      selection: collapsedTextSelection('li1', 0, 0),
+test\core\block_commands_test.dart:374:      selection: collapsedCodeSelection('c1', 0, 1),
+test\core\block_commands_test.dart:387:      selection: _collapsedTableCellSelection(5),
+test\core\block_commands_test.dart:427:DocumentSelection _collapsedTableCellSelection(int offset) {
+lib\src\plugins\editor_plugin.dart:51:  final BlockRendererRegistry? blockRenderers;
+lib\src\plugins\editor_plugin.dart:73:  BlockRendererBuilder? registerBlockRenderer(
+lib\src\plugins\editor_plugin.dart:75:    BlockRendererBuilder builder,
+lib\src\plugins\editor_plugin.dart:79:      throw StateError('No BlockRendererRegistry was provided for plugins.');
+lib\src\plugins\editor_plugin.dart:84:  BlockRendererBuilder? registerBlockEmbedRenderer(
+lib\src\plugins\editor_plugin.dart:86:    BlockRendererBuilder builder,
+lib\src\plugins\editor_plugin.dart:90:      throw StateError('No BlockRendererRegistry was provided for plugins.');
+lib\src\plugins\editor_plugin.dart:144:    this.blockRenderers = const <BlockType, BlockRendererBuilder>{},
+lib\src\plugins\editor_plugin.dart:145:    this.blockEmbedRenderers = const <String, BlockRendererBuilder>{},
+lib\src\plugins\editor_plugin.dart:160:  final Map<BlockType, BlockRendererBuilder> blockRenderers;
+lib\src\plugins\editor_plugin.dart:161:  final Map<String, BlockRendererBuilder> blockEmbedRenderers;
+lib\src\plugins\editor_plugin.dart:176:      context.registerBlockRenderer(entry.key, entry.value);
+lib\src\input\editor_text_input_client.dart:208:        selection: TextSelection.collapsed(offset: offset),
+lib\src\input\editor_text_input_client.dart:489:    // Only TextRange.empty (start == -1) means "no composition". A collapsed
+test\core\command_merging_test.dart:19:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_merging_test.dart:46:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_merging_test.dart:77:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_merging_test.dart:109:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_merging_test.dart:116:      session.selection = collapsedTextSelection('p1', 0, 4);
+test\core\command_merging_test.dart:139:        selection: collapsedTextSelection('p1', 0, 3),
+test\core\command_merging_test.dart:164:        selection: collapsedTextSelection('p1', 0, 1),
+test\core\command_merging_test.dart:169:      session.selection = collapsedTextSelection('p1', 0, 0);
+test\core\command_merging_test.dart:192:        selection: collapsedTextSelection('p1', 0, 1),
+test\core\command_merging_test.dart:273:        selection: collapsedTextSelection('p1', 0, 0),
+test\controller\outline_controller_test.dart:14:      expect(outline.items[0].title, 'Intro');
+test\controller\outline_controller_test.dart:25:    test('computes collapse ranges from heading levels', () {
+test\controller\outline_controller_test.dart:26:      final host = WenzRichTextController(document: _foldingDoc());
+test\controller\outline_controller_test.dart:32:      expect(chapter.collapseStartBlockIndex, 1);
+test\controller\outline_controller_test.dart:33:      expect(chapter.collapseEndBlockIndexExclusive, 7);
+test\controller\outline_controller_test.dart:43:      expect(section.collapseRange.endBlockIndex, 5);
+test\controller\outline_controller_test.dart:48:      expect(leaf.collapseRange.endBlockIndex, isNull);
+test\controller\outline_controller_test.dart:54:    test('collapses expands toggles and keeps document unchanged', () {
+test\controller\outline_controller_test.dart:55:      final host = WenzRichTextController(document: _foldingDoc());
+test\controller\outline_controller_test.dart:61:      expect(outline.collapseByBlockId('h1'), isTrue);
+test\controller\outline_controller_test.dart:64:      expect(outline.collapsedBlockIds, <String>{'h1'});
+test\controller\outline_controller_test.dart:66:      expect(outline.collapseByBlockId('h1'), isFalse);
+test\controller\outline_controller_test.dart:67:      expect(outline.expandByAnchor('chapter'), isTrue);
+test\controller\outline_controller_test.dart:73:      expect(outline.expandAll(), isTrue);
+test\controller\outline_controller_test.dart:74:      expect(outline.collapsedBlockIds, isEmpty);
+test\controller\outline_controller_test.dart:85:      final host = WenzRichTextController(document: _foldingDoc());
+test\controller\outline_controller_test.dart:89:      expect(outline.collapseByBlockId('h2'), isTrue);
+test\controller\outline_controller_test.dart:112:    test('keeps nested child collapse after parent expands', () {
+test\controller\outline_controller_test.dart:113:      final host = WenzRichTextController(document: _foldingDoc());
+test\controller\outline_controller_test.dart:116:      expect(outline.collapseByBlockId('h2'), isTrue);
+test\controller\outline_controller_test.dart:117:      expect(outline.collapseByBlockId('h1'), isTrue);
+test\controller\outline_controller_test.dart:130:      expect(outline.expandByBlockId('h1'), isTrue);
+test\controller\outline_controller_test.dart:144:    test('collapse API safely no-ops for invalid targets', () {
+test\controller\outline_controller_test.dart:145:      final host = WenzRichTextController(document: _foldingDoc());
+test\controller\outline_controller_test.dart:148:      expect(outline.collapseByBlockId('missing'), isFalse);
+test\controller\outline_controller_test.dart:149:      expect(outline.collapseByBlockId('p1'), isFalse);
+test\controller\outline_controller_test.dart:151:      expect(outline.collapseByAnchor('missing'), isFalse);
+test\controller\outline_controller_test.dart:152:      expect(outline.expandAll(), isFalse);
+test\controller\outline_controller_test.dart:153:      expect(outline.collapsedBlockIds, isEmpty);
+test\controller\outline_controller_test.dart:159:    test('cleans invalid collapse state after document changes', () {
+test\controller\outline_controller_test.dart:160:      final host = WenzRichTextController(document: _foldingDoc());
+test\controller\outline_controller_test.dart:163:      expect(outline.collapseByBlockId('h2'), isTrue);
+test\controller\outline_controller_test.dart:181:      expect(outline.collapsedBlockIds, isEmpty);
+test\controller\outline_controller_test.dart:263:RichTextDocument _foldingDoc() {
+test\core\command_pipeline_test.dart:19:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_pipeline_test.dart:44:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_pipeline_test.dart:77:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_pipeline_test.dart:100:        selection: collapsedTextSelection('p1', 0, 4),
+test\core\command_pipeline_test.dart:132:        selection: collapsedTextSelection('p1', 0, 0),
+test\core\command_pipeline_test.dart:170:        selection: collapsedTextSelection('p1', 0, 2),
+test\core\command_pipeline_test.dart:208:        selection: collapsedTextSelection('p1', 0, 2),
+test\core\command_pipeline_test.dart:252:        selection: collapsedTextSelection('p1', 0, 2),
+test\controller\slash_menu_controller_test.dart:10:      selection: collapsedTextSelection('p1', 0, 4),
+test\controller\slash_menu_controller_test.dart:24:      selection: collapsedTextSelection('p1', 0, 1),
+test\controller\slash_menu_controller_test.dart:39:      selection: collapsedTextSelection('p1', 0, 8),
+test\controller\slash_menu_controller_test.dart:56:      selection: collapsedTextSelection('p1', 0, 6),
+test\controller\slash_menu_controller_test.dart:75:      selection: collapsedTextSelection('p1', 0, 6),
+test\controller\slash_menu_controller_test.dart:80:        title: 'Alert',
+lib\src\core\model\block_node.dart:404:    this.title = '',
+lib\src\core\model\block_node.dart:416:  final String title;
+lib\src\core\model\block_node.dart:440:    final heading = title.trim();
+lib\src\core\model\block_node.dart:465:      title: title,
+lib\src\core\model\block_node.dart:480:    String? title,
+lib\src\core\model\block_node.dart:494:      title: title ?? this.title,
+lib\src\core\model\block_node.dart:512:        if (title.isNotEmpty) 'title': title,
+lib\src\core\model\block_node.dart:532:      title: _firstString(json, const <String>['title', 'caption']),
+lib\src\core\model\block_node.dart:573:    for (final key in const <String>['title', 'label', 'name', 'url']) {
+lib\src\core\model\block_node.dart:643:    this.title = '',
+lib\src\core\model\block_node.dart:662:  final String title;
+lib\src\core\model\block_node.dart:704:    final trimmed = title.trim();
+lib\src\core\model\block_node.dart:716:    final heading = title.trim();
+lib\src\core\model\block_node.dart:732:      title: title,
+lib\src\core\model\block_node.dart:742:    String? title,
+lib\src\core\model\block_node.dart:750:      title: title ?? this.title,
+lib\src\core\model\block_node.dart:762:        if (title.trim().isNotEmpty) 'title': title.trim(),
+lib\src\core\model\block_node.dart:772:      title: (json['title'] as String? ?? '').trim(),
+lib\src\input\clipboard_service.dart:95:  /// Returns `null` when the selection is collapsed or points at nothing
+lib\src\core\commands\block_structure_commands.dart:385:/// Empty [title] or [icon] values clear the custom value, allowing the block to
+lib\src\core\commands\block_structure_commands.dart:386:/// fall back to the default title/icon for its current variant.
+lib\src\core\commands\block_structure_commands.dart:391:    this.title,
+lib\src\core\commands\block_structure_commands.dart:397:  final String? title;
+lib\src\core\commands\block_structure_commands.dart:417:    final nextTitle = title == null ? block.title : title!.trim();
+lib\src\core\commands\block_structure_commands.dart:420:        block.title == nextTitle &&
+lib\src\core\commands\block_structure_commands.dart:428:      title: nextTitle,
+lib\src\core\commands\block_commands.dart:657:      title: block.title,
+lib\src\core\commands\block_commands.dart:833:    this.title = '',
+lib\src\core\commands\block_commands.dart:847:  final String title;
+lib\src\core\commands\block_commands.dart:865:      title: title,
+lib\src\core\commands\block_commands.dart:1051:    this.title,
+lib\src\core\commands\block_commands.dart:1064:  final String? title;
+lib\src\core\commands\block_commands.dart:1086:      title: title,
+lib\src\core\commands\block_commands.dart:1171:      a.title == b.title &&
+lib\src\core\commands\block_commands.dart:1385:      title: block.title,
+test\codecs\rich_text_json_codec_test.dart:45:          title: 'Launch clip',
+test\codecs\rich_text_json_codec_test.dart:105:    expect(video.title, 'Launch clip');
+lib\src\core\commands\command_executor.dart:86:    // The new command must start with a collapsed caret at the exact position
+lib\src\core\commands\command_executor.dart:87:    // the previous command ended. A non-collapsed selection (e.g. after a
+lib\src\core\commands\inline_commands.dart:245:/// selection is non-collapsed the range is deleted first. The caret moves past
+test\controller\toolbar_controller_test.dart:27:    test('collapsed caret inherits typing attributes from left run', () {
+test\controller\toolbar_controller_test.dart:31:        selection: collapsedTextSelection('mixed', 0, 2),
+test\controller\toolbar_controller_test.dart:42:    test('collapsed caret after the bold run drops the mark', () {
+test\controller\toolbar_controller_test.dart:46:        selection: collapsedTextSelection('mixed', 0, 5),
+test\controller\toolbar_controller_test.dart:126:    test('link URL for collapsed caret is the left run url', () {
+test\controller\toolbar_controller_test.dart:129:        selection: collapsedTextSelection('linked', 2, 1),
+test\controller\toolbar_controller_test.dart:143:          selection: collapsedTextSelection('h1', 3, 0),
+test\controller\toolbar_controller_test.dart:160:          selection: collapsedTextSelection('para', 4, 0),
+test\controller\toolbar_controller_test.dart:174:          selection: collapsedTextSelection('quote', 5, 0),
+test\controller\toolbar_controller_test.dart:187:          selection: collapsedTextSelection('task', 6, 0),
+test\controller\toolbar_controller_test.dart:202:          selection: collapsedTextSelection('ol', 7, 0),
+test\controller\toolbar_controller_test.dart:216:          selection: collapsedTextSelection('ul', 8, 0),
+test\controller\toolbar_controller_test.dart:233:          selection: collapsedCodeSelection('code', 9, 0),
+test\controller\toolbar_controller_test.dart:353:          selection: collapsedTextSelection('para', 4, 0),
+test\controller\toolbar_controller_test.dart:369:          selection: collapsedTextSelection('h1', 3, 0),
+test\controller\toolbar_controller_test.dart:402:          selection: collapsedCodeSelection('code', 9, 0),
+test\controller\toolbar_controller_test.dart:422:          selection: collapsedTextSelection('para', 4, 0),
+test\controller\toolbar_controller_test.dart:616:        selection: collapsedTextSelection('mixed', 0, 2),
+test\controller\toolbar_controller_test.dart:640:/// labels the tests reference via [collapsedTextSelection]/[textSelection];
+lib\src\core\commands\selection_commands.dart:15:  const MoveCaretCommand(this.direction, {this.expandSelection = false});
+lib\src\core\commands\selection_commands.dart:18:  final bool expandSelection;
+lib\src\core\commands\selection_commands.dart:22:    if (expandSelection) {
+lib\src\core\commands\selection_commands.dart:60:    if (expandSelection) {
+lib\src\core\commands\selection_commands.dart:124:      {this.expandSelection = false});
+lib\src\core\commands\selection_commands.dart:127:  final bool expandSelection;
+lib\src\core\commands\selection_commands.dart:173:          if (expandSelection) {
+lib\src\core\commands\selection_commands.dart:184:    if (expandSelection) {
+lib\src\core\commands\selection_commands.dart:306:  const MoveCaretByWordCommand(this.direction, {this.expandSelection = false});
+lib\src\core\commands\selection_commands.dart:309:  final bool expandSelection;
+lib\src\core\commands\selection_commands.dart:312:  String get description => expandSelection
+lib\src\core\commands\selection_commands.dart:341:        expandSelection ? selection.base : _collapseTo(selection, direction);
+lib\src\core\commands\selection_commands.dart:358:    if (!expandSelection && next.path.isBlockObject) {
+lib\src\core\commands\selection_commands.dart:375:      {this.expandSelection = false});
+lib\src\core\commands\selection_commands.dart:378:  final bool expandSelection;
+lib\src\core\commands\selection_commands.dart:381:  String get description => expandSelection
+lib\src\core\commands\selection_commands.dart:402:        expandSelection ? selection.base : _collapseTo(selection, direction);
+lib\src\core\commands\selection_commands.dart:433:      {this.expandSelection = false});
+lib\src\core\commands\selection_commands.dart:436:  final bool expandSelection;
+lib\src\core\commands\selection_commands.dart:439:  String get description => expandSelection
+lib\src\core\commands\selection_commands.dart:469:        expandSelection ? selection.base : _collapseTo(selection, direction);
+lib\src\core\commands\selection_commands.dart:470:    if (!expandSelection) {
+lib\src\core\commands\selection_commands.dart:510:DocumentPosition _collapseTo(
+lib\src\core\commands\selection_commands.dart:1078:/// Appends an empty paragraph after [afterBlockIndex] and returns a collapsed
+lib\src\core\commands\text_commands.dart:336:    nextSelection = _collapsedAfterLeading(start, leading!, before.length);
+lib\src\core\commands\text_commands.dart:340:      nextSelection = _collapsedAfterLeading(start, leading, before.length);
+lib\src\core\commands\text_commands.dart:344:      nextSelection ??= _collapsedAtTrailingStart(
+lib\src\core\commands\text_commands.dart:372:  nextSelection ??= _collapsedNearDeletion(blocks, before.length);
+lib\src\core\commands\text_commands.dart:392:DocumentSelection? _collapsedNearDeletion(
+lib\src\core\commands\text_commands.dart:530:DocumentSelection? _collapsedAfterLeading(
+lib\src\core\commands\text_commands.dart:567:DocumentSelection? _collapsedAtTrailingStart(
+
+**Exploring file implementation**
+
+Searching results seem too broad, so I need to inspect relevant lines in the files. Using `codegraph_explore` could be easier, but I'll likely stick with local shell commands and `rg`. I need to determine how the title collapse is currently implemented, so let’s open the relevant tests regarding heading collapse and the editor/block renderer files. I might also use `Get-Content` with specific line ranges to look closely at the content. It’s important to analyze file lengths and patterns related to heading collapse.
+codex
+我找到现有的折叠相关测试，接着看实现和渲染入口。
+exec
+powershell.exe -Command '$path='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content $path; for($i=0;$i -lt [Math]::Min($lines.Length,420);$i++){ if($i -ge 0){ '"'{0,5}: {1}' -f ("'$i+1), $lines[$i] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 222ms:
+    1: import 'dart:async';
+    2: import 'dart:math' as math;
+    3: 
+    4: import 'package:flutter/gestures.dart';
+    5: import 'package:flutter/material.dart';
+    6: import 'package:flutter_math_fork/flutter_math.dart';
+    7: import 'package:flutter/rendering.dart';
+    8: import 'package:flutter/services.dart';
+    9: 
+   10: import '../controller/find_replace_controller.dart';
+   11: import '../controller/outline_controller.dart';
+   12: import '../controller/slash_menu_controller.dart';
+   13: import '../controller/wenz_rich_text_controller.dart';
+   14: import '../core/commands/inline_editing.dart';
+   15: import '../core/model/attributes.dart';
+   16: import '../core/model/block_node.dart';
+   17: import '../core/model/inline_node.dart';
+   18: import '../core/model/table_model.dart';
+   19: import '../core/position/document_position.dart';
+   20: import '../input/composition_state.dart';
+   21: import '../input/editor_text_input_client.dart';
+   22: import '../input/shortcut_manager.dart';
+   23: import '../rendering/text_layout_service.dart';
+   24: import 'block_geometry_registry.dart';
+   25: import 'block_renderer_registry.dart';
+   26: import 'code_syntax_highlighter.dart';
+   27: import 'inline_embed_renderer.dart';
+   28: import 'media_resolver.dart';
+   29: import 'selection_gesture_overlay.dart';
+   30: import 'shared_text_layout_cache.dart';
+   31: import 'slash_menu_overlay.dart';
+   32: 
+   33: const _caretKey = ValueKey<String>('wenz-richtext-caret');
+   34: const _selectionHighlightKey = ValueKey<String>(
+   35:   'wenz-richtext-selection-highlight',
+   36: );
+   37: const _findHighlightKey = ValueKey<String>('wenz-richtext-find-highlight');
+   38: const _inlineFormulaKey = ValueKey<String>('wenz-richtext-inline-formula');
+   39: const _accessibilityFocusHighlightKey = ValueKey<String>(
+   40:   'wenz-richtext-accessibility-focus-highlight',
+   41: );
+   42: const _blockReorderDropIndicatorKey = ValueKey<String>(
+   43:   'wenz-richtext-block-reorder-drop-indicator',
+   44: );
+   45: 
+   46: /// Caret geometry constants 鈥?kept in one place so the painted caret, the caret
+   47: /// rect reported to the IME, and any future theming all share the same source.
+   48: const double _kCaretStrokeWidth = 1.5;
+   49: const Duration _kBlinkHalfPeriod = Duration(milliseconds: 530);
+   50: const double _kRichTextBodyFontSize = 16.0;
+   51: const double _kRichTextBodyLineHeight = 1.75;
+   52: const double _kParagraphMarginEm = 0.55;
+   53: const double _kHeadingMarginTopEm = 0.6;
+   54: const double _kHeadingMarginBottomEm = 0.35;
+   55: const double _kDefaultBlockSpacing =
+   56:     _kRichTextBodyFontSize * _kParagraphMarginEm;
+   57: const int _kInlineLinkColor = 0xFF1976D2;
+   58: const int _kInlineRemarkColor = 0xFFC97B00;
+   59: const int _kInlineRevisionBackgroundAlpha = 72;
+   60: const double _kDefaultBlockExtent = 48.0;
+   61: const double _kVirtualListOverscan = 600.0;
+   62: const double _kBlockReorderIndicatorHeight = 3.0;
+   63: const double _kTableResizeHandleWidth = 12.0;
+   64: const double _kMinTableColumnWidth = 48.0;
+   65: const double _kMaxTableColumnWidth = 640.0;
+   66: const double _kTableToolbarMinWidth = 620.0;
+   67: const double _kTableFloatingToolbarGap = 4.0;
+   68: const double _kTableFloatingToolbarEstimatedHeight = 56.0;
+   69: const int _kTableToolbarBackgroundColor = 0xFFFFF3CD;
+   70: const double _kTableSurfaceRadius = 8.0;
+   71: const double _kTableCellFontSize = 15.0;
+   72: const EdgeInsets _kTableCellPadding = EdgeInsets.symmetric(
+   73:   horizontal: 14,
+   74:   vertical: 10,
+   75: );
+   76: const Color _kTableBorderColor = Color(0xFFECE9F5);
+   77: const Color _kTableEvenRowBackgroundColor = Color(0xFFFAFAFF);
+   78: const double _kImageFloatingToolbarGap = 6.0;
+   79: 
+   80: /// Minimum block height multiplier applied to the block's font size, ensuring
+   81: /// a tap target even for empty paragraphs. A single constant so the text,
+   82: /// code, and table-cell renderers stay in sync.
+   83: const double _kBlockMinHeightFactor = 1.35;
+   84: const double _kTodoCheckboxWidth = 32.0;
+   85: const double _kTodoCheckboxHeight = 28.0;
+   86: const double _kTodoTextGap = 10.0;
+   87: const double _kTaskListPaddingLeft = 8.0;
+   88: const double _kListTextInset = 26.0;
+   89: const double _kListMarkerWidth = 18.0;
+   90: const double _kListMarkerGap = _kListTextInset - _kListMarkerWidth;
+   91: const double _kListItemSpacing = _kRichTextBodyFontSize * 0.25;
+   92: const double _kNestedListItemSpacing = _kRichTextBodyFontSize * 0.15;
+   93: const double _kHeadingCollapseSlotWidth = 30.0;
+   94: const double _kHeadingCollapseButtonSize = 26.0;
+   95: const double _kHeadingCollapseIconSize = 20.0;
+   96: const double _kCodeBlockFontSize = 13.5;
+   97: const double _kCodeBlockLineHeight = 1.6;
+   98: const double _kCodeBlockPaddingVertical = 18.0;
+   99: const double _kCodeBlockPaddingHorizontal = 20.0;
+  100: const int _kCodeBlockBackgroundColor = 0xFF1E1E2E;
+  101: const int _kCodeBlockTextColor = 0xFFE6E6F0;
+  102: const int _kCodeLanguageTagColor = 0xB38A8AFF;
+  103: const int _kCodeKeywordColor = 0xFFC792EA;
+  104: const int _kCodeStringColor = 0xFFC3E88D;
+  105: const int _kCodeTypeColor = 0xFF82AAFF;
+  106: const int _kCodeNumberColor = 0xFFF78C6C;
+  107: const int _kCodeCommentColor = 0xFF6B7394;
+  108: const double _kDividerMarginVertical = _kRichTextBodyFontSize * 1.6;
+  109: const int _kDividerLineColor = 0xFFE4E1EE;
+  110: const double _kDividerDotSize = 6.0;
+  111: const double _kCalloutIconFontSize = 20.0;
+  112: const int _kCalloutInfoBackgroundColor = 0xFFF2F0F7;
+  113: const int _kCalloutInfoForegroundColor = 0xFF46464F;
+  114: const int _kCalloutSuccessForegroundColor = 0xFF0E1F1B;
+  115: const int _kCalloutWarningBackgroundColor = 0xFFFFF8E1;
+  116: const int _kCalloutWarningForegroundColor = 0xFFC97B00;
+  117: const int _kCalloutDangerForegroundColor = 0xFF410002;
+  118: const int _kCalloutInfoBorderColor = 0xFFD8D5E2;
+  119: const int _kCalloutSuccessBorderColor = 0xFFBCD8D0;
+  120: const int _kCalloutWarningBorderColor = 0xFFFFE082;
+  121: const int _kCalloutDangerBorderColor = 0xFFF5B8B0;
+  122: const int _kCalloutSuccessBackgroundColor = 0x99D6E4E0;
+  123: const int _kCalloutDangerBackgroundColor = 0xB3FFDAD6;
+  124: const double _kMediaBlockMarginVertical = _kRichTextBodyFontSize * 1.2;
+  125: const double _kMediaCornerRadius = 12.0;
+  126: const double _kMediaCaptionFontSize = 13.0;
+  127: const double _kVideoPlayButtonSize = 64.0;
+  128: const double _kVideoPlayIconSize = 24.0;
+  129: const int _kFileCardBorderColor = 0xFFECE9F5;
+  130: const double _kFileIconSize = 40.0;
+  131: const double _kFileCardGap = 14.0;
+  132: const int _kEmbedBlockBorderColor = 0xFFCFCBE0;
+  133: const int _kEmbedBlockBackgroundColor = 0xFFFAFAFF;
+  134: const int _kFormulaBlockBackgroundColor = 0xFFE8E0FF;
+  135: const int _kFormulaBlockForegroundColor = 0xFF241946;
+  136: const List<BoxShadow> _kSurfaceBoxShadow = <BoxShadow>[
+  137:   BoxShadow(
+  138:     color: Color(0x14141428),
+  139:     blurRadius: 3,
+  140:     offset: Offset(0, 1),
+  141:   ),
+  142:   BoxShadow(
+  143:     color: Color(0x0F141428),
+  144:     blurRadius: 2,
+  145:     offset: Offset(0, 1),
+  146:   ),
+  147: ];
+  148: 
+  149: /// Atomic block-level objects (images, videos, files, dividers) occupy one
+  150: /// selectable document slot, mirroring inline embeds' object-replacement slot.
+  151: const int _kAtomicBlockSelectionLength = 1;
+  152: 
+  153: /// Pixels of horizontal indent per indent level.
+  154: const double _kIndentPixelsPerLevel = 24;
+  155: 
+  156: /// Implementation-side baseline extracted from `ui/richtext_design.html`.
+  157: ///
+  158: /// This is intentionally data-only: P001 records the target design tokens,
+  159: /// default renderer coverage, and the known gap categories without changing the
+  160: /// editor model, codecs, command protocol, or renderer extension points.
+  161: final class WenzRichTextDesignBaseline {
+  162:   const WenzRichTextDesignBaseline._();
+  163: 
+  164:   static const String source = 'ui/richtext_design.html';
+  165: 
+  166:   static const List<BlockType> defaultRendererBlockTypes = <BlockType>[
+  167:     BlockType.paragraph,
+  168:     BlockType.heading,
+  169:     BlockType.quote,
+  170:     BlockType.listItem,
+  171:     BlockType.code,
+  172:     BlockType.image,
+  173:     BlockType.table,
+  174:     BlockType.divider,
+  175:     BlockType.video,
+  176:     BlockType.embed,
+  177:     BlockType.callout,
+  178:     BlockType.file,
+  179:   ];
+  180: 
+  181:   static const Map<String, int> colorTokens = <String, int>{
+  182:     'primary': 0xFF4F6DF5,
+  183:     'onPrimary': 0xFFFFFFFF,
+  184:     'primaryContainer': 0xFFDDE0FF,
+  185:     'secondaryContainer': 0xFFE8E0FF,
+  186:     'onSecondaryContainer': 0xFF241946,
+  187:     'tertiaryContainer': 0xFFD6E4E0,
+  188:     'onTertiaryContainer': 0xFF0E1F1B,
+  189:     'errorContainer': 0xFFFFDAD6,
+  190:     'onErrorContainer': 0xFF410002,
+  191:     'surface': 0xFFFBFAFF,
+  192:     'surfaceContainer': 0xFFF2F0F7,
+  193:     'onSurface': 0xFF1B1B21,
+  194:     'onSurfaceVariant': 0xFF46464F,
+  195:     'outline': 0xFF777680,
+  196:     'amberStrong': 0xFFC97B00,
+  197:     'amberBackground': 0xFFFFF8E1,
+  198:     'blueLink': 0xFF1976D2,
+  199:     'codeBackground': 0xFF1E1E2E,
+  200:     'codeText': 0xFFE6E6F0,
+  201:     'dividerLine': 0xFFE4E1EE,
+  202:     'tableBorder': 0xFFECE9F5,
+  203:     'tableEvenRow': 0xFFFAFAFF,
+  204:     'embedBorder': 0xFFCFCBE0,
+  205:   };
+  206: 
+  207:   static const Map<String, Object> typographyTokens = <String, Object>{
+  208:     'bodyFontSize': 16.0,
+  209:     'bodyLineHeight': 1.75,
+  210:     'headingFontSizes': <int, double>{1: 24.0, 2: 21.0, 3: 18.0, 4: 16.0},
+  211:     'headingStrongWeight': 700,
+  212:     'headingWeakWeight': 600,
+  213:     'codeFontSize': 13.5,
+  214:     'codeLineHeight': 1.6,
+  215:     'tableFontSize': 15.0,
+  216:     'captionFontSize': 13.0,
+  217:     'languageTagFontSize': 11.0,
+  218:     'calloutIconFontSize': 20.0,
+  219:     'videoPlayIconSize': 24.0,
+  220:     'inlineSmallFontSize': 12.0,
+  221:     'inlineLargeFontSize': 22.0,
+  222:   };
+  223: 
+  224:   static const Map<String, Object> layoutTokens = <String, Object>{
+  225:     'radius': 12.0,
+  226:     'radiusSmall': 8.0,
+  227:     'chipRadius': 6.0,
+  228:     'highlightRadius': 3.0,
+  229:     'paragraphMarginEm': 0.55,
+  230:     'headingMarginEm': <String, double>{'top': 0.6, 'bottom': 0.35},
+  231:     'blockMarginEm': 1.0,
+  232:     'mediaMarginEm': 1.2,
+  233:     'dividerMarginEm': 1.6,
+  234:     'quotePadding': <double>[8.0, 18.0],
+  235:     'quoteBorderLeftWidth': 4.0,
+  236:     'listPaddingLeft': 26.0,
+  237:     'headingCollapse': <String, double>{
+  238:       'slotWidth': 30.0,
+  239:       'buttonSize': 26.0,
+  240:       'iconSize': 20.0,
+  241:     },
+  242:     'listItemMarginEm': 0.25,
+  243:     'nestedListMarginEm': 0.15,
+  244:     'taskPaddingLeft': 8.0,
+  245:     'taskGap': 10.0,
+  246:     'codePadding': <double>[18.0, 20.0],
+  247:     'imageCaptionGap': 8.0,
+  248:     'tableCellPadding': <double>[10.0, 14.0],
+  249:     'fileIconSize': 40.0,
+  250:     'fileGap': 14.0,
+  251:     'filePadding': <double>[14.0, 16.0],
+  252:     'calloutGap': 12.0,
+  253:     'calloutPadding': <double>[14.0, 16.0],
+  254:     'embedGap': 12.0,
+  255:     'embedPadding': 16.0,
+  256:     'videoPlayButtonSize': 64.0,
+  257:   };
+  258: 
+  259:   static const Map<String, String> shadowTokens = <String, String>{
+  260:     'surface': '0 1px 3px rgba(20,20,40,.08), '
+  261:         '0 1px 2px rgba(20,20,40,.06)',
+  262:     'videoPlayButton': '0 6px 20px rgba(0,0,0,.3)',
+  263:   };
+  264: 
+  265:   static const Map<String, String> stateTokens = <String, String>{
+  266:     'todo.done': 'onSurfaceVariant + line-through',
+  267:     'file.hover': 'surface shadow + primary border',
+  268:     'callout.info': 'surfaceContainer / #d8d5e2 / onSurfaceVariant',
+  269:     'callout.success': 'tertiaryContainer 60% / #bcd8d0',
+  270:     'callout.warning': 'amberBackground / #ffe082 / amberStrong',
+  271:     'callout.danger': 'errorContainer 70% / #f5b8b0',
+  272:     'embed.formula': 'secondaryContainer math chip',
+  273:     'heading.collapse': 'primary hover/focus control + hidden-count badge',
+  274:     'inline.mention': 'primaryContainer 70% pill',
+  275:     'inline.formula': 'secondaryContainer math pill',
+  276:     'inline.highlight': '#fff59d background with 2px horizontal padding',
+  277:   };
+  278: 
+  279:   static const Map<String, String> currentRendererGaps = <String, String>{
+  280:     'paragraph': 'aligned: 16px body, 1.75 line height, and 0.55em spacing.',
+  281:     'inlineText':
+  282:         'aligned: TextStyle equivalents for link, highlight, remark, and anchors.',
+  283:     'inlineEmbed': 'structure: mention/formula/image need pill/image parity.',
+  284:     'heading': 'aligned: hierarchy styles plus collapse affordance states.',
+  285:     'quote': 'aligned: 4px primary left border and surface-container quote.',
+  286:     'listItem': 'aligned: 26px list inset, compact nesting, and task states.',
+  287:     'code': 'aligned: dark surface, monospace scale, language tag, and scroll.',
+  288:     'divider': 'aligned: light rule, 1.6em spacing, and centered primary dot.',
+  289:     'image': 'style+golden: figure radius, shadow, max width, and caption.',
+  290:     'video': 'structure+golden: black preview, cover fallback, play button.',
+  291:     'file': 'style+state: 40px icon card, hover/focus, metadata zones.',
+  292:     'table': 'style+golden: 15px text, padding, header/even rows, shadow.',
+  293:     'callout':
+  294:         'aligned: info/success/warning/danger tint, border, and fallback.',
+  295:     'embed':
+  296:         'structure+golden: dashed fallback chip and formula block surface.',
+  297:   };
+  298: }
+  299: 
+  300: /// Exposes the editor's [SharedTextLayoutCache] down the subtree so each
+  301: /// [_TextSelectionSurface] can fetch (and reuse) its [TextLayoutService] across
+  302: /// remount, without threading the cache through every renderer widget.
+  303: class _SharedLayoutCacheScope extends InheritedWidget {
+  304:   const _SharedLayoutCacheScope({required this.cache, required super.child});
+  305: 
+  306:   final SharedTextLayoutCache cache;
+  307: 
+  308:   static SharedTextLayoutCache? of(BuildContext context) {
+  309:     final scope =
+  310:         context.dependOnInheritedWidgetOfExactType<_SharedLayoutCacheScope>();
+  311:     return scope?.cache;
+  312:   }
+  313: 
+  314:   @override
+  315:   bool updateShouldNotify(_SharedLayoutCacheScope oldWidget) =>
+  316:       cache != oldWidget.cache;
+  317: }
+  318: 
+  319: @immutable
+  320: class WenzRichTextEditorAccessibility {
+  321:   const WenzRichTextEditorAccessibility({
+  322:     this.label = 'Rich text editor',
+  323:     this.readOnlyLabel = 'Rich text document',
+  324:     this.hint =
+  325:         'Edit rich text content with text input and keyboard shortcuts.',
+  326:     this.readOnlyHint = 'Read-only rich text document.',
+  327:     this.highContrastFocusColor,
+  328:     this.highContrastFocusWidth = 3,
+  329:   }) : assert(highContrastFocusWidth >= 0);
+  330: 
+  331:   /// Screen-reader label announced for an editable editor.
+  332:   final String label;
+  333: 
+  334:   /// Screen-reader label announced when [WenzRichTextEditor.readOnly] is true.
+  335:   final String readOnlyLabel;
+  336: 
+  337:   /// Screen-reader hint announced for an editable editor.
+  338:   final String hint;
+  339: 
+  340:   /// Screen-reader hint announced when [WenzRichTextEditor.readOnly] is true.
+  341:   final String readOnlyHint;
+  342: 
+  343:   /// Optional border color for the focused editor when high contrast is active.
+  344:   final Color? highContrastFocusColor;
+  345: 
+  346:   /// Border width for the focused editor when high contrast is active.
+  347:   final double highContrastFocusWidth;
+  348: 
+  349:   String effectiveLabel({required bool readOnly}) =>
+  350:       readOnly ? readOnlyLabel : label;
+  351: 
+  352:   String effectiveHint({required bool readOnly}) =>
+  353:       readOnly ? readOnlyHint : hint;
+  354: }
+  355: 
+  356: /// Public wrapper for custom atomic block renderers.
+  357: ///
+  358: /// Business [BlockRendererBuilder]s can wrap their widget with this surface so
+  359: /// object-block selection, geometry registration, caret anchoring, and debug
+  360: /// overlays behave like the built-in image/video/file/embed renderers.
+  361: class WenzObjectBlockSurface extends StatelessWidget {
+  362:   const WenzObjectBlockSurface({
+  363:     super.key,
+  364:     required this.renderContext,
+  365:     required this.child,
+  366:   });
+  367: 
+  368:   final BlockRenderContext renderContext;
+  369:   final Widget child;
+  370: 
+  371:   @override
+  372:   Widget build(BuildContext context) {
+  373:     return _withSelectableObjectBlock(
+  374:       renderContext.block,
+  375:       renderContext,
+  376:       child,
+  377:     );
+  378:   }
+  379: }
+  380: 
+  381: /// Rich text editor surface backed by a [WenzRichTextController].
+  382: ///
+  383: /// Heading collapse is a view concern of this surface: built-in collapse
+  384: /// affordances belong only to top-level heading blocks, can be toggled in
+  385: /// read-only mode, and must not call document-mutating commands or enqueue
+  386: /// undo/redo entries.
+  387: class WenzRichTextEditor extends StatefulWidget {
+  388:   const WenzRichTextEditor({
+  389:     super.key,
+  390:     required this.controller,
+  391:     this.padding = const EdgeInsets.all(16),
+  392:     this.blockSpacing = _kDefaultBlockSpacing,
+  393:     this.textStyle,
+  394:     this.physics,
+  395:     this.focusNode,
+  396:     this.autofocus = false,
+  397:     this.readOnly = false,
+  398:     this.showDebugOverlay = false,
+  399:     this.enableIme = true,
+  400:     this.blockRenderers,
+  401:     this.mediaResolver,
+  402:     this.inlineEmbedRenderer,
+  403:     this.findController,
+  404:     this.onFindRequested,
+  405:     this.onReplaceRequested,
+  406:     this.slashMenuController,
+  407:     this.outlineController,
+  408:     this.accessibility = const WenzRichTextEditorAccessibility(),
+  409:   });
+  410: 
+  411:   final WenzRichTextController controller;
+  412:   final EdgeInsetsGeometry padding;
+  413:   final double blockSpacing;
+  414:   final TextStyle? textStyle;
+  415:   final ScrollPhysics? physics;
+  416:   final FocusNode? focusNode;
+  417:   final bool autofocus;
+  418:   final bool readOnly;
+  419: 
+  420:   /// When true, overlays the active block's id, index, path, and caret offset
+
+exec
+powershell.exe -Command 'rg -n "HeadingCollapse|collapse affordance|collapsed|expand|toggle.*heading|heading.*collapse|top-level heading|Title" lib/src/widgets/wenz_rich_text_editor.dart lib/src/widgets/block_renderer_registry.dart test/widgets/wenz_rich_text_editor_test.dart test/widgets/editor_golden_test.dart' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 148ms:
+lib/src/widgets/block_renderer_registry.dart:228:    this.onHeadingCollapseToggled,
+lib/src/widgets/block_renderer_registry.dart:293:  /// Optional view-state for a top-level heading's collapse affordance. `null`
+lib/src/widgets/block_renderer_registry.dart:294:  /// means the host editor is not exposing heading collapse for this block.
+lib/src/widgets/block_renderer_registry.dart:295:  final HeadingCollapseState? headingCollapseState;
+lib/src/widgets/block_renderer_registry.dart:297:  /// Optional callback used by heading renderers to toggle collapse view-state.
+lib/src/widgets/block_renderer_registry.dart:298:  final ValueChanged<String>? onHeadingCollapseToggled;
+lib/src/widgets/block_renderer_registry.dart:308:  /// Whether the active (collapsed) selection sits inside [block], i.e. this
+lib/src/widgets/block_renderer_registry.dart:320:/// Presentation-only collapse state for a top-level heading block.
+lib/src/widgets/block_renderer_registry.dart:321:class HeadingCollapseState {
+lib/src/widgets/block_renderer_registry.dart:322:  const HeadingCollapseState({
+lib/src/widgets/block_renderer_registry.dart:336:    return other is HeadingCollapseState &&
+test/widgets/editor_golden_test.dart:86:    expect(WenzRichTextDesignBaseline.stateTokens, contains('heading.collapse'));
+test/widgets/editor_golden_test.dart:421:  testWidgets('golden: collapsed caret', (tester) async {
+test/widgets/editor_golden_test.dart:436:        selection: collapsedTextSelection('p1', 0, 8),
+test/widgets/wenz_rich_text_editor_test.dart:461:  testWidgets('renders heading collapse affordance and toggles by keyboard', (
+test/widgets/wenz_rich_text_editor_test.dart:520:      const ValueKey<String>('wenz-richtext-heading-collapse-section'),
+test/widgets/wenz_rich_text_editor_test.dart:523:      const ValueKey<String>('wenz-richtext-heading-collapse-leaf'),
+test/widgets/wenz_rich_text_editor_test.dart:642:    final initialSelection = collapsedTextSelection('task1', 0, 4);
+test/widgets/wenz_rich_text_editor_test.dart:971:      selection: collapsedTextSelection('p-convert', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:1079:      selection: collapsedCodeSelection('code1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:1115:      const markdownCode = '# Title\n- item with `code`';
+test/widgets/wenz_rich_text_editor_test.dart:1198:      selection: collapsedCodeSelection('code1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:2198:        selection: collapsedCodeSelection('code1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:2336:            title: 'Info Title',
+test/widgets/wenz_rich_text_editor_test.dart:3006:      selection: _collapsedTableCellTextSelection(
+test/widgets/wenz_rich_text_editor_test.dart:3379:            title: 'Info Title',
+test/widgets/wenz_rich_text_editor_test.dart:3452:      selection: collapsedTextSelection('mention-p', 0, 4),
+test/widgets/wenz_rich_text_editor_test.dart:3950:      selection: collapsedTextSelection('p1', 0, 2),
+test/widgets/wenz_rich_text_editor_test.dart:3983:      selection: collapsedTextSelection('p1', 0, 2),
+test/widgets/wenz_rich_text_editor_test.dart:4253:      selection: collapsedCodeSelection('code1', 0, 4),
+test/widgets/wenz_rich_text_editor_test.dart:4377:      selection: collapsedTextSelection('p1', 0, 2),
+test/widgets/wenz_rich_text_editor_test.dart:4425:      selection: collapsedTextSelection('p1', 0, 5),
+test/widgets/wenz_rich_text_editor_test.dart:4469:      selection: collapsedTextSelection('p1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:4515:      selection: collapsedTextSelection('p1', 0, 2),
+test/widgets/wenz_rich_text_editor_test.dart:4812:      selection: collapsedTextSelection('p1', 0, 6),
+test/widgets/wenz_rich_text_editor_test.dart:5086:    controller.setSelection(collapsedTextSelection('p-inline', 0, 1));
+test/widgets/wenz_rich_text_editor_test.dart:5097:    controller.setSelection(collapsedTextSelection('p-inline', 0, 3));
+test/widgets/wenz_rich_text_editor_test.dart:5108:    controller.setSelection(collapsedTextSelection('p-inline', 0, 4));
+test/widgets/wenz_rich_text_editor_test.dart:5273:      _collapsedTableCellTextSelection(
+test/widgets/wenz_rich_text_editor_test.dart:5294:      _collapsedTableCellTextSelection(
+test/widgets/wenz_rich_text_editor_test.dart:5315:      _collapsedTableCellTextSelection(
+test/widgets/wenz_rich_text_editor_test.dart:5689:      selection: collapsedTextSelection('p1', 0, 3),
+test/widgets/wenz_rich_text_editor_test.dart:5723:      selection: collapsedTextSelection('p1', 0, 2),
+test/widgets/wenz_rich_text_editor_test.dart:5762:      selection: collapsedTextSelection('p1', 0, 20),
+test/widgets/wenz_rich_text_editor_test.dart:5804:      selection: collapsedTextSelection('p1', 0, 5),
+test/widgets/wenz_rich_text_editor_test.dart:5862:      selection: collapsedTextSelection('p1', 0, 11),
+test/widgets/wenz_rich_text_editor_test.dart:5882:    controller.setSelection(collapsedTextSelection('p1', 0, 11));
+test/widgets/wenz_rich_text_editor_test.dart:5892:  testWidgets('Backspace deletes an expanded selection', (tester) async {
+test/widgets/wenz_rich_text_editor_test.dart:5927:  testWidgets('Delete deletes an expanded selection', (tester) async {
+test/widgets/wenz_rich_text_editor_test.dart:5962:  testWidgets('platform delete selector deletes an expanded selection', (
+test/widgets/wenz_rich_text_editor_test.dart:6011:      selection: collapsedTextSelection('p1', 0, 3),
+test/widgets/wenz_rich_text_editor_test.dart:6043:      selection: collapsedTextSelection('p1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:6322:      selection: collapsedTextSelection('p1', 0, 2),
+test/widgets/wenz_rich_text_editor_test.dart:6362:      selection: collapsedTextSelection('p1', 0, 3),
+test/widgets/wenz_rich_text_editor_test.dart:6398:      selection: collapsedTextSelection('p1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:6434:      selection: collapsedTextSelection('p1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:6604:      // Place an initial collapsed caret in the content so we can detect any
+test/widgets/wenz_rich_text_editor_test.dart:6704:      controller.setSelection(collapsedTextSelection('p25', 25, 0));
+test/widgets/wenz_rich_text_editor_test.dart:6812:      selection: collapsedTextSelection('p1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:6863:      selection: collapsedTextSelection('p3', 2, 3),
+test/widgets/wenz_rich_text_editor_test.dart:6913:      selection: collapsedTextSelection('p1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:6957:      selection: collapsedTextSelection('p1', 0, 3),
+test/widgets/wenz_rich_text_editor_test.dart:7207:        selection: collapsedTextSelection('p1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:7244:      final start = collapsedTextSelection('p0', 0, 0).base;
+test/widgets/wenz_rich_text_editor_test.dart:7282:        selection: collapsedTextSelection('p1', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:7304:      controller.setSelection(collapsedTextSelection('p400', 400, 0));
+test/widgets/wenz_rich_text_editor_test.dart:7317:        selection: collapsedTextSelection('p0', 0, 0),
+test/widgets/wenz_rich_text_editor_test.dart:7345:      controller.setSelection(collapsedTextSelection('p450', 450, 0));
+test/widgets/wenz_rich_text_editor_test.dart:7597:DocumentSelection _collapsedTableCellTextSelection({
+test/widgets/wenz_rich_text_editor_test.dart:7990:        (current, box) => current.expandToInclude(box.toRect()),
+lib/src/widgets/wenz_rich_text_editor.dart:93:const double _kHeadingCollapseSlotWidth = 30.0;
+lib/src/widgets/wenz_rich_text_editor.dart:94:const double _kHeadingCollapseButtonSize = 26.0;
+lib/src/widgets/wenz_rich_text_editor.dart:95:const double _kHeadingCollapseIconSize = 20.0;
+lib/src/widgets/wenz_rich_text_editor.dart:273:    'heading.collapse': 'primary hover/focus control + hidden-count badge',
+lib/src/widgets/wenz_rich_text_editor.dart:284:    'heading': 'aligned: hierarchy styles plus collapse affordance states.',
+lib/src/widgets/wenz_rich_text_editor.dart:384:/// affordances belong only to top-level heading blocks, can be toggled in
+lib/src/widgets/wenz_rich_text_editor.dart:467:  /// Optional outline controller whose collapsed-heading state projects the
+lib/src/widgets/wenz_rich_text_editor.dart:817:  HeadingCollapseState? _headingCollapseStateFor(BlockNode block) {
+lib/src/widgets/wenz_rich_text_editor.dart:826:    return HeadingCollapseState(
+lib/src/widgets/wenz_rich_text_editor.dart:833:  void _handleHeadingCollapseToggled(String blockId) {
+lib/src/widgets/wenz_rich_text_editor.dart:864:    // (collapsed selection) and the selection endpoints. Keeping these alive
+lib/src/widgets/wenz_rich_text_editor.dart:913:          onHeadingCollapseToggled: _handleHeadingCollapseToggled,
+lib/src/widgets/wenz_rich_text_editor.dart:948:        fit: StackFit.expand,
+lib/src/widgets/wenz_rich_text_editor.dart:1717:  /// (collapsed selection) and the selection endpoints. Keeping these alive
+lib/src/widgets/wenz_rich_text_editor.dart:1880:          expandSelection: resolution.expandSelection,
+lib/src/widgets/wenz_rich_text_editor.dart:1886:          expandSelection: resolution.expandSelection,
+lib/src/widgets/wenz_rich_text_editor.dart:1890:        _handleVerticalKey(false, resolution.expandSelection);
+lib/src/widgets/wenz_rich_text_editor.dart:1893:        _handleVerticalKey(true, resolution.expandSelection);
+lib/src/widgets/wenz_rich_text_editor.dart:1898:          expandSelection: resolution.expandSelection,
+lib/src/widgets/wenz_rich_text_editor.dart:1904:          expandSelection: resolution.expandSelection,
+lib/src/widgets/wenz_rich_text_editor.dart:1910:          expandSelection: resolution.expandSelection,
+lib/src/widgets/wenz_rich_text_editor.dart:1916:          expandSelection: resolution.expandSelection,
+lib/src/widgets/wenz_rich_text_editor.dart:1922:          expandSelection: resolution.expandSelection,
+lib/src/widgets/wenz_rich_text_editor.dart:1928:          expandSelection: resolution.expandSelection,
+lib/src/widgets/wenz_rich_text_editor.dart:1934:          expandSelection: resolution.expandSelection,
+lib/src/widgets/wenz_rich_text_editor.dart:1940:          expandSelection: resolution.expandSelection,
+lib/src/widgets/wenz_rich_text_editor.dart:1972:  /// `forward` = true → PageDown, false → PageUp. When [expandSelection] is
+lib/src/widgets/wenz_rich_text_editor.dart:1991:  void _handlePageKey({required bool forward, required bool expandSelection}) {
+lib/src/widgets/wenz_rich_text_editor.dart:1997:        expandSelection: expandSelection,
+lib/src/widgets/wenz_rich_text_editor.dart:2011:        expandSelection: expandSelection,
+lib/src/widgets/wenz_rich_text_editor.dart:2053:      // page yields a collapsed caret (moveCaretToDocumentBoundary would keep
+lib/src/widgets/wenz_rich_text_editor.dart:2065:          expandSelection: expandSelection,
+lib/src/widgets/wenz_rich_text_editor.dart:2068:        final next = expandSelection
+lib/src/widgets/wenz_rich_text_editor.dart:2084:        expandSelection: expandSelection,
+lib/src/widgets/wenz_rich_text_editor.dart:2101:        expandSelection: expandSelection,
+lib/src/widgets/wenz_rich_text_editor.dart:2117:    required bool expandSelection,
+lib/src/widgets/wenz_rich_text_editor.dart:2138:        expandSelection: expandSelection,
+lib/src/widgets/wenz_rich_text_editor.dart:2141:      final next = expandSelection
+lib/src/widgets/wenz_rich_text_editor.dart:2301:      controller.moveCaretVertical(forward: forward, expandSelection: shift);
+lib/src/widgets/wenz_rich_text_editor.dart:2328:    controller.moveCaretVertical(forward: forward, expandSelection: shift);
+lib/src/widgets/wenz_rich_text_editor.dart:2360:        controller.moveCaretBackward(expandSelection: true);
+lib/src/widgets/wenz_rich_text_editor.dart:2365:        controller.moveCaretForward(expandSelection: true);
+lib/src/widgets/wenz_rich_text_editor.dart:2389:        controller.moveCaretByWord(forward: false, expandSelection: true);
+lib/src/widgets/wenz_rich_text_editor.dart:2393:        controller.moveCaretByWord(forward: true, expandSelection: true);
+lib/src/widgets/wenz_rich_text_editor.dart:2410:          expandSelection: true,
+lib/src/widgets/wenz_rich_text_editor.dart:2418:          expandSelection: true,
+lib/src/widgets/wenz_rich_text_editor.dart:2433:          expandSelection: true,
+lib/src/widgets/wenz_rich_text_editor.dart:2440:          expandSelection: true,
+lib/src/widgets/wenz_rich_text_editor.dart:2456:        _handlePageKey(forward: false, expandSelection: true);
+lib/src/widgets/wenz_rich_text_editor.dart:2459:        _handlePageKey(forward: true, expandSelection: true);
+lib/src/widgets/wenz_rich_text_editor.dart:2529:      expandSelection: true,
+lib/src/widgets/wenz_rich_text_editor.dart:2545:      expandSelection: true,
+lib/src/widgets/wenz_rich_text_editor.dart:3080:    this.onHeadingCollapseToggled,
+lib/src/widgets/wenz_rich_text_editor.dart:3108:  final HeadingCollapseState? headingCollapseState;
+lib/src/widgets/wenz_rich_text_editor.dart:3109:  final ValueChanged<String>? onHeadingCollapseToggled;
+lib/src/widgets/wenz_rich_text_editor.dart:3164:        oldWidget.onHeadingCollapseToggled !=
+lib/src/widgets/wenz_rich_text_editor.dart:3165:            widget.onHeadingCollapseToggled ||
+lib/src/widgets/wenz_rich_text_editor.dart:3205:      onHeadingCollapseToggled: widget.onHeadingCollapseToggled,
+lib/src/widgets/wenz_rich_text_editor.dart:3222:  /// (so it would be fully highlighted), or the selection is collapsed inside
+lib/src/widgets/wenz_rich_text_editor.dart:3268:    this.onHeadingCollapseToggled,
+lib/src/widgets/wenz_rich_text_editor.dart:3294:  final HeadingCollapseState? headingCollapseState;
+lib/src/widgets/wenz_rich_text_editor.dart:3295:  final ValueChanged<String>? onHeadingCollapseToggled;
+lib/src/widgets/wenz_rich_text_editor.dart:3323:      onHeadingCollapseToggled: onHeadingCollapseToggled,
+lib/src/widgets/wenz_rich_text_editor.dart:4059:    onHeadingCollapseToggled: rc.onHeadingCollapseToggled,
+lib/src/widgets/wenz_rich_text_editor.dart:4362:    this.onHeadingCollapseToggled,
+lib/src/widgets/wenz_rich_text_editor.dart:4380:  final HeadingCollapseState? headingCollapseState;
+lib/src/widgets/wenz_rich_text_editor.dart:4381:  final ValueChanged<String>? onHeadingCollapseToggled;
+lib/src/widgets/wenz_rich_text_editor.dart:4491:            _HeadingCollapseButton(
+lib/src/widgets/wenz_rich_text_editor.dart:4495:              onToggled: onHeadingCollapseToggled,
+lib/src/widgets/wenz_rich_text_editor.dart:4526:class _HeadingCollapseButton extends StatefulWidget {
+lib/src/widgets/wenz_rich_text_editor.dart:4527:  const _HeadingCollapseButton({
+lib/src/widgets/wenz_rich_text_editor.dart:4535:  final HeadingCollapseState state;
+lib/src/widgets/wenz_rich_text_editor.dart:4540:  State<_HeadingCollapseButton> createState() => _HeadingCollapseButtonState();
+lib/src/widgets/wenz_rich_text_editor.dart:4543:class _HeadingCollapseButtonState extends State<_HeadingCollapseButton> {
+lib/src/widgets/wenz_rich_text_editor.dart:4553:  void didUpdateWidget(covariant _HeadingCollapseButton oldWidget) {
+lib/src/widgets/wenz_rich_text_editor.dart:4577:        width: _kHeadingCollapseSlotWidth,
+lib/src/widgets/wenz_rich_text_editor.dart:4578:        height: _kHeadingCollapseButtonSize,
+lib/src/widgets/wenz_rich_text_editor.dart:4583:              'wenz-richtext-heading-collapse-${widget.blockId}',
+lib/src/widgets/wenz_rich_text_editor.dart:4587:            iconSize: _kHeadingCollapseIconSize,
+lib/src/widgets/wenz_rich_text_editor.dart:4590:              width: _kHeadingCollapseButtonSize,
+lib/src/widgets/wenz_rich_text_editor.dart:4591:              height: _kHeadingCollapseButtonSize,
+lib/src/widgets/wenz_rich_text_editor.dart:4594:            splashRadius: _kHeadingCollapseButtonSize / 2,
+lib/src/widgets/wenz_rich_text_editor.dart:4600:            icon: _HeadingCollapseGlyph(
+lib/src/widgets/wenz_rich_text_editor.dart:4611:class _HeadingCollapseGlyph extends StatelessWidget {
+lib/src/widgets/wenz_rich_text_editor.dart:4612:  const _HeadingCollapseGlyph({
+lib/src/widgets/wenz_rich_text_editor.dart:4617:  final HeadingCollapseState state;
+lib/src/widgets/wenz_rich_text_editor.dart:4626:      dimension: _kHeadingCollapseIconSize,
+lib/src/widgets/wenz_rich_text_editor.dart:4636:              child: _HeadingCollapseCountBadge(
+lib/src/widgets/wenz_rich_text_editor.dart:4646:class _HeadingCollapseCountBadge extends StatelessWidget {
+lib/src/widgets/wenz_rich_text_editor.dart:4647:  const _HeadingCollapseCountBadge({required this.count});
+lib/src/widgets/wenz_rich_text_editor.dart:4677:String _headingCollapseTooltip(HeadingCollapseState state) {
+lib/src/widgets/wenz_rich_text_editor.dart:5625:      'Callout block ${block.normalizedVariant}: ${block.effectiveTitle}',
+lib/src/widgets/wenz_rich_text_editor.dart:6678:      rect = rect.expandToInclude(box.toRect());
+lib/src/widgets/wenz_rich_text_editor.dart:6844:                      child: const SizedBox.expand(),
+lib/src/widgets/wenz_rich_text_editor.dart:7308:            fit: StackFit.expand,
+lib/src/widgets/wenz_rich_text_editor.dart:7361:                      _videoPreviewTitle(block),
+lib/src/widgets/wenz_rich_text_editor.dart:7629:        title: _videoCardTitle(block),
+lib/src/widgets/wenz_rich_text_editor.dart:8787:                          child: Text(widget.block.effectiveTitle,
+lib/src/widgets/wenz_rich_text_editor.dart:8983:  return CalloutBlockNode.defaultTitleFor(variant);
+lib/src/widgets/wenz_rich_text_editor.dart:9877:String _videoCardTitle(VideoBlockNode video) {
+lib/src/widgets/wenz_rich_text_editor.dart:9887:String _videoPreviewTitle(VideoBlockNode video) {
+lib/src/widgets/wenz_rich_text_editor.dart:9914:  final parts = <String>[_videoCardTitle(video)];
+
+codex
+我再看任务描述和当前标题折叠组件，确认缺口在哪。
+exec
+powershell.exe -Command '$path='"'docs/plan/plan_requirement_10_20260625-034349.md'; "'$lines=Get-Content $path; for($i=0;$i -lt $lines.Length;$i++){ if($lines[$i] -match '"'P004' -or ("'$i -ge 0 -and $i -le 260)){ '"'{0,5}: {1}' -f ("'$i+1), $lines[$i] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 169ms:
+    1: # 闇€姹傚紑鍙戣鍒掞細澶х翰鎶樺彔鍔熻兘
+    2: 
+    3: ## 鏉ユ簮
+    4: - 绫诲瀷锛氶渶姹?- 缂栧彿锛?0
+    5: - 鐢熸垚鏃堕棿锛?026-06-25 03:43:49
+    6: 
+    7: ## 鍘熷鍐呭
+    8: 澧炲姞澶х翰鎶樺彔鍔熻兘锛屽鏋滆鍐呭鏄ぇ绾叉爣棰橈紝鍒欐敮鎸佹姌鍙犲唴瀹癸紱
+    9: 
+   10: ## 闇€姹傜悊瑙?- 褰撻《灞?block 鏄ぇ绾叉爣棰橈紙`BlockType.heading`锛夋椂锛岃琛屽簲灞曠ず鍙姌鍙犲叆鍙ｏ紝骞舵敮鎸佹姌鍙?灞曞紑鍏朵笅灞炲唴瀹广€?- 鎶樺彔鑼冨洿鎸夋爣棰樺眰绾ц绠楋細浠庡綋鍓嶆爣棰樹箣鍚庡紑濮嬶紝鐩村埌閬囧埌涓嬩竴涓悓绾ф垨鏇撮珮绾ф爣棰樹负姝紱浣庣骇鏍囬鍙婃櫘閫?block 鍧囧睘浜庡綋鍓嶆爣棰樼殑鍙姌鍙犲唴瀹广€?- 鎶樺彔鏄紪杈戝櫒瑙嗗浘鐘舵€侊紝涓嶅簲鍒犻櫎鎴栨敼鍐欐枃妗ｅ唴瀹癸紱瀵煎叆瀵煎嚭銆佸巻鍙茶褰曘€佸崗浣滄暟鎹拰澶х翰鏉＄洰鐢熸垚搴斾繚鎸佸師鏂囨。缁撴瀯銆?- 鎶樺彔鍚庨殣钘忕殑 block 涓嶅弬涓庡睆骞曟覆鏌撳拰鏅€氶紶鏍囧懡涓紝浣嗕粛闇€淇濊瘉閫夊尯銆佹悳绱€佹挙閿€/閲嶅仛銆佹粴鍔ㄥ畾浣嶅拰绋嬪簭鍖栬烦杞湁鏄庣‘琛屼负銆?
+   11: ## 浠诲姟璁″垝
+   12: - [x] P001: 鏄庣‘鏍囬鎶樺彔浜や簰瑙勫垯 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,docs/acceptance_manual_checklist.md -->
+   13:   - 楠屾敹瑕佺偣锛氭槑纭彧鏈夐《灞?`heading` block 鏄剧ず鎶樺彔鍏ュ彛锛屾钀姐€佸紩鐢ㄣ€佸垪琛ㄣ€佷唬鐮併€佽〃鏍笺€佸獟浣撳拰瀵硅薄鍧椾笉鏄剧ず鍏ュ彛銆?  - 楠屾敹瑕佺偣锛氭槑纭姌鍙犺寖鍥存寜鏍囬 level 璁＄畻锛宍H2` 鎶樺彔鍒颁笅涓€涓?`H1/H2` 鍓嶏紝`H3` 鎶樺彔鍒颁笅涓€涓?`H1/H2/H3` 鍓嶏紝绌烘爣棰樻垨鏃犲瓙鍐呭鏍囬涓嶅彲鎶樺彔鎴栨樉绀虹鐢ㄦ€併€?  - 楠屾敹瑕佺偣锛氭槑纭彧璇绘ā寮忎笅鍙睍寮€/鎶樺彔浣嗕笉鍙敼鍙樻枃妗ｅ唴瀹癸紝缂栬緫妯″紡涓嬫姌鍙犵姸鎬佷笉杩涘叆鎾ら攢/閲嶅仛鍘嗗彶銆?
+   14: - [x] P002: 鎵╁睍澶х翰鎶樺彔鐘舵€佹ā鍨?<!-- scope: lib/src/controller/outline_controller.dart,lib/src/controller/wenz_rich_text_controller.dart,test/controller/outline_controller_test.dart,test/core/controller_test.dart -->
+   15:   - 楠屾敹瑕佺偣锛氫负鏍囬鏉＄洰鎻愪緵鏄惁鍙姌鍙犮€佹槸鍚﹀凡鎶樺彔銆佹姌鍙犺鐩栫殑 block id/index 鑼冨洿绛夊彧璇讳俊鎭紝骞跺湪鏂囨。鍙樺寲鍚庤嚜鍔ㄩ噸绠椼€?  - 楠屾敹瑕佺偣锛氭彁渚涙寜 blockId/anchor/OutlineItem 鎶樺彔銆佸睍寮€銆佸垏鎹€佸叏閮ㄥ睍寮€鍜屾煡璇㈡姌鍙犵姸鎬佺殑 API锛涙棤鏁?block銆侀潪鏍囬 block 鍜屾棤瀛愬唴瀹规爣棰樿繑鍥炲畨鍏?no-op銆?  - 楠屾敹瑕佺偣锛氭姌鍙犵姸鎬佷互鏍囬 block id 涓轰富閿淮鎶わ紱鏍囬鍒犻櫎銆佺被鍨嬪彉鏇淬€佸眰绾у彉鏇淬€乥lock 绉诲姩鎴栨枃妗ｆ浛鎹㈠悗浼氭竻鐞嗘棤鏁堢姸鎬佸苟閫氱煡鐩戝惉鑰呫€?
+   16: - [x] P003: 鏋勫缓鍙 block 鎶曞奖瑙嗗浘 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,test/controller/outline_controller_test.dart,test/widgets/block_geometry_registry_test.dart -->
+   17:   - 楠屾敹瑕佺偣锛氱紪杈戝櫒娓叉煋鍙牴鎹姌鍙犵姸鎬佽繃婊よ闅愯棌鐨勯《灞?block锛屽悓鏃朵繚鐣欏師濮?document.blocks 椤哄簭銆乥lockIndex 璇箟鍜屾枃妗?JSON 涓嶅彉銆?  - 楠屾敹瑕佺偣锛氶殣钘?block 鐨勫嚑浣曠紦瀛樸€佸懡涓祴璇曘€佹粴鍔ㄥ畾浣嶅拰閫夋嫨瑕嗙洊灞備笉浼氭畫鐣欐棫浣嶇疆锛涘睍寮€鍚庡嚑浣曚俊鎭兘閲嶆柊娉ㄥ唽骞剁敤浜庨€夊尯/婊氬姩銆?  - 楠屾敹瑕佺偣锛氬祵濂楁姌鍙犳椂鐖舵爣棰樻姌鍙犱紭鍏堥殣钘忔墍鏈夊悗浠ｅ唴瀹癸紝灞曞紑鐖舵爣棰樺悗瀛愭爣棰樿嚜韬殑鎶樺彔鐘舵€佷粛鍙户缁敓鏁堛€?
+   18: - [ ] P004: 娓叉煋鏍囬鎶樺彔鍏ュ彛涓庣姸鎬佸弽棣?<!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png -->
+   19:   - 楠屾敹瑕佺偣锛氬彲鎶樺彔鏍囬宸︿晶鎴栨爣棰樺唴瀹硅捣濮嬪鏄剧ず绋冲畾鐨勫睍寮€/鏀惰捣鍥炬爣锛宧over/focus/pressed/disabled 鐘舵€佹竻鏅帮紝涓斾笉鎸ゅ帇鏍囬鏂囨湰甯冨眬銆?  - 楠屾敹瑕佺偣锛氱偣鍑绘垨閿洏婵€娲诲浘鏍囧彲鍒囨崲鎶樺彔鐘舵€侊紱鍥炬爣鍛戒腑鍖哄煙涓嶈Е鍙戞枃鏈€夊尯銆佽緭鍏ユ硶缁勫悎銆侀摼鎺ョ偣鍑绘垨 block 鎷栨嫿鑿滃崟銆?  - 楠屾敹瑕佺偣锛氭姌鍙犳爣棰樺彲鏄剧ず瀛愬唴瀹规暟閲忋€佽交閲忔彁绀烘垨瑙嗚鏍囪瘑锛屼究浜庣敤鎴峰垽鏂爣棰樹笅瀛樺湪琚殣钘忓唴瀹广€?
+   20: - [ ] P005: 澶勭悊鎶樺彔鐘舵€佷笅鐨勭紪杈戜笌瀵艰埅 <!-- scope: lib/src/controller/wenz_rich_text_controller.dart,lib/src/controller/find_replace_controller.dart,lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/controller_test.dart,test/controller/find_replace_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+   21:   - 楠屾敹瑕佺偣锛氬綋褰撳墠閫夊尯鎴栫▼搴忓寲璺宠浆鐩爣浣嶄簬闅愯棌 block 鍐呮椂锛岀紪杈戝櫒浼氬厛灞曞紑鐩稿叧鏍囬鎴栧皢鍏夋爣瀹夊叏绉诲姩鍒版姌鍙犳爣棰樺锛岄伩鍏嶄笉鍙鍏夋爣銆?  - 楠屾敹瑕佺偣锛氭煡鎵炬浛鎹€佸ぇ绾茶烦杞€侀敋鐐硅烦杞拰婊氬姩鍒伴€夊尯鍦ㄥ懡涓殣钘忓唴瀹规椂鏈変竴鑷寸瓥鐣ワ紝骞惰兘璁╃洰鏍囧唴瀹归噸鏂板彲瑙併€?  - 楠屾敹瑕佺偣锛氬湪鎶樺彔鐘舵€佷笅鎻掑叆銆佸垹闄ゃ€佺矘璐淬€佹挙閿€/閲嶅仛銆佷慨鏀规爣棰樺眰绾у拰绉诲姩 block 鍚庯紝闅愯棌鑼冨洿銆侀€夊尯鍜屾粴鍔ㄤ綅缃繚鎸佸彲鎭㈠涓斾笉涓㈠唴瀹广€?
+   22: - [ ] P006: 鍏煎瀵煎叆瀵煎嚭涓庡閮ㄦ墿灞?<!-- scope: lib/src/codecs/rich_text_json_codec.dart,lib/src/codecs/html_codec.dart,lib/src/codecs/markdown_codec.dart,lib/src/widgets/block_renderer_registry.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/html_codec_test.dart,test/codecs/markdown_codec_test.dart,test/plugins/editor_plugin_test.dart -->
+   23:   - 楠屾敹瑕佺偣锛氭姌鍙犵姸鎬侀粯璁や笉鍐欏叆鏂囨。 JSON銆丠TML銆丮arkdown 鎴栫函鏂囨湰瀵煎嚭锛屽鍏ュ凡鏈夋枃妗ｅ悗榛樿鍏ㄩ儴灞曞紑涓斿唴瀹瑰畬鏁淬€?  - 楠屾敹瑕佺偣锛氳嚜瀹氫箟 block renderer銆佹彃浠跺拰濯掍綋 resolver 鍦ㄩ殣钘?block 涓嶆覆鏌撴椂涓嶆敹鍒板浣欐瀯寤?鍑犱綍浜嬩欢锛屽睍寮€鍚庤涓轰笌鏅€?block 涓€鑷淬€?  - 楠屾敹瑕佺偣锛氬鏋滃悗缁渶瑕佷笟鍔′晶鎸佷箙鍖栨姌鍙犵姸鎬侊紝搴旈€氳繃鐙珛 UI 鐘舵€佹垨 metadata 鎵╁睍鐐瑰疄鐜帮紝涓嶆薄鏌撶幇鏈夊唴瀹规ā鍨嬨€?
+   24: - [ ] P007: 琛ュ厖鑷姩鍖栦笌瑙嗚鍥炲綊娴嬭瘯 <!-- scope: test/controller/outline_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png,test/widgets/goldens/editor_advanced_blocks.png,docs/plan/plan_requirement_10_20260625-034349.md -->
+   25:   - 楠屾敹瑕佺偣锛氳鐩?H1-H6銆佸绾у祵濂椼€佽繛缁爣棰樸€佺┖鏍囬銆佹棤瀛愬唴瀹规爣棰樸€佺埗瀛愬悓鏃舵姌鍙犮€佹爣棰樺垹闄?鏀圭骇/绉诲姩鍚庣殑鑼冨洿閲嶇畻銆?  - 楠屾敹瑕佺偣锛氳鐩栨姌鍙犲浘鏍囩偣鍑汇€侀敭鐩樿闂€侀殣钘?block 涓嶅懡涓€佸睍寮€鍚庨€夊尯鎭㈠銆佹煡鎵惧懡涓殣钘忓唴瀹瑰拰澶х翰璺宠浆闅愯棌鏍囬绛?widget 琛屼负銆?  - 楠屾敹瑕佺偣锛氭洿鏂版垨鏂板 golden 灞曠ず灞曞紑鎬併€佹姌鍙犳€併€佺鐢ㄦ€佸拰宓屽鏍囬鍦烘櫙锛涜褰?`flutter analyze` 涓庣浉鍏虫祴璇曟墽琛岀粨鏋溿€?
+   26: ## 鎬讳綋楠屾敹鏍囧噯
+   27: - 鎵€鏈変换鍔?checkbox 鍧囧畬鎴愶紝涓旀瘡涓换鍔＄殑楠屾敹瑕佺偣閮芥湁鏄庣‘缁撹鎴栭獙璇佽褰曘€?- 鏍囬鎶樺彔浠呮敼鍙樼紪杈戝櫒瑙嗗浘鐘舵€侊紝涓嶅垹闄ゃ€佷笉绉诲姩銆佷笉鏀瑰啓浠讳綍 block 鍐呭鎴栧鍏ュ鍑烘暟鎹粨鏋勩€?- 鎶樺彔鑼冨洿鎸夋爣棰樺眰绾хǔ瀹氳绠楋紝瑕嗙洊澶氱骇鏍囬宓屽銆佽繛缁爣棰樸€佺┖鍐呭銆佹枃妗ｉ灏惧拰鍔ㄦ€佺紪杈戝悗鐨勮竟鐣屽満鏅€?- 鎶樺彔/灞曞紑浜や簰鍙榧犳爣銆佽Е鎺у拰閿洏鍙潬瑙﹀彂锛屽苟涓嶅奖鍝嶆枃鏈紪杈戙€侀€夊尯銆両ME銆侀摼鎺ャ€佽〃鏍笺€佸獟浣撳潡鍜屽璞″潡鏃㈡湁浜や簰銆?- 闅愯棌鍐呭鍦ㄦ煡鎵俱€佸ぇ绾茶烦杞€侀敋鐐硅烦杞€侀€夊尯鎭㈠鍜屾粴鍔ㄥ畾浣嶆椂鏈変竴鑷村彲瑙佹€х瓥鐣ワ紝涓嶅嚭鐜颁笉鍙鍏夋爣鎴栨棤娉曞畾浣嶇洰鏍囥€?- 鐩稿叧 controller銆亀idget銆乧odec銆乸lugin 鍜?golden 娴嬭瘯閫氳繃锛涜嫢瀛樺湪鏃㈡湁澶辫触锛岄渶鍦ㄨ繘搴﹀尯璁板綍鍛戒护銆佸け璐ュ師鍥犲垽鏂拰鍚庣画寤鸿銆?
+   28: ## 杩涘害鍖?- 褰撳墠鐘舵€侊細璁″垝宸插垱寤猴紝P001-P007 寰呭紑鍙戞墽琛屻€?- 褰撳墠璐熻矗浜猴細寰呭垎閰嶃€?- 涓嬩竴姝ワ細浠?P001 寮€濮嬬‘璁ゆ姌鍙犺寖鍥淬€佸叆鍙ｄ綅缃€佸彧璇绘ā寮忓拰闅愯棌鍐呭瀵艰埅绛栫暐銆?- 楠岃瘉璁板綍锛氭湰娆′粎鐢熸垚璁″垝鏂囦欢锛屾湭淇敼涓氬姟浠ｇ爜锛屾湭鎵ц鑷姩鍖栨祴璇曟垨鎵嬪伐楠屾敹銆?- 椋庨櫓璁板綍锛氱紪杈戝櫒褰撳墠娓叉煋銆侀€夊尯鍜屽嚑浣曞懡涓泦涓湪澶у瀷 widget 涓紝杩囨护闅愯棌 block 鍙兘褰卞搷 blockIndex銆佹粴鍔ㄥ畾浣嶅拰 selection overlay锛涢渶瑕佷紭鍏堥€氳繃娴嬭瘯绾︽潫琛屼负鍐嶅疄鐜般€?- P001 AutoPlan 瀹屾垚锛?026-06-24T19:50:35.751Z锛涙棩蹇楋細docs/progress/logs/20260625-034550_execute-P001.log
+   29: - P002 AutoPlan 瀹屾垚锛?026-06-25T02:57:51.543Z锛涙棩蹇楋細docs/progress/logs/20260625-104955_execute-P002.log
+   30: - P003 AutoPlan 瀹屾垚锛?026-06-25T03:33:19.947Z锛涙棩蹇楋細docs/progress/logs/20260625-112518_execute-P003.log
+
+ERROR: Selected model is at capacity. Please try a different model.
+ERROR: Selected model is at capacity. Please try a different model.
+tokens used
+43,424

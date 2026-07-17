@@ -1,0 +1,13 @@
+已完成 P002，未修改 plan 文件、未勾选 checkbox。
+
+**变更**
+- `lib/src/widgets/block_geometry_registry.dart:50` 给 `unregister` 增加 surface owner key 校验，避免旧文本选择面延迟 dispose 时删掉新引用块的注册项。
+- `lib/src/widgets/wenz_rich_text_editor.dart:4913`、`lib/src/widgets/wenz_rich_text_editor.dart:5157` 文本/对象选择面注销时传入自己的 `_surfaceKey`。
+- `test/widgets/wenz_rich_text_editor_test.dart:261` 新增回归测试，覆盖段落转引用后立即点击定位、拖拽选择、Shift+方向键扩展选择、复制，以及 undo/redo 后稳定性。
+
+**验证**
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "paragraph converted to quote remains immediately selectable"`
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "renders quote blocks with themed background"`
+- `flutter test test/widgets/block_geometry_registry_test.dart`
+
+以上均通过。

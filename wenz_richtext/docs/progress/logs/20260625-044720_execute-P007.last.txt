@@ -1,0 +1,13 @@
+**完成情况**
+- 已补充附件简化展示与操作菜单回归：`test/widgets/wenz_rich_text_editor_test.dart:652`
+- 已补充反馈 #3 主要操作 tooltip 中文化回归：`test/widgets/wenz_rich_text_editor_test.dart:714`
+- 已新增 tooltip 中文断言 helper：`test/widgets/wenz_rich_text_editor_test.dart:5479`
+- 已新增反馈 #3 回归验证记录与手工清单：`docs/issues/feedback_3_regression_report.md:1`
+
+**验证**
+- `flutter test test\widgets\wenz_rich_text_editor_test.dart --name "file block stays compact|feedback 3 primary operation tooltips|paragraph converted to quote|code block syntax highlights|image object toolbar" --reporter expanded`：通过，5 项。
+- `flutter analyze`：通过，`No issues found!`。
+
+**说明**
+- 未修改 plan 文件、checkbox 或进度区。
+- 未运行全量测试；真实 Win/Web/Android 三端手工点击未在本 CLI 环境执行，已在 `docs/issues/feedback_3_regression_report.md:34` 记录为未覆盖风险与后续建议。

@@ -1,0 +1,6 @@
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+Analyzing wenz_richtext...                                      
+
+warning - The declaration '_kBlockFloatingToolbarGap' isn't referenced - lib\src\widgets\wenz_rich_text_editor.dart:122:14 - unused_element
+
+1 issue found. (ran in 45.9s)

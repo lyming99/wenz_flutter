@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wenz RichText 斜杆命令 Popup · Electron 桌面端风格设计稿</title>
+  <style>
+    /* =========================================================
+       Electron 桌面端风格 token
+       —— 复用既有 colorScheme token，仅收敛阴影/圆角/节奏
+       映射：surface → surfaceContainerLow；border → outlineVariant；
+       primary → primary；selected/hover → primary/onSurface 低透明度
+       ========================================================= */
+    :root {
+      color-scheme: light;
+      /* chrome */
+      --popup-bg: #fffdfb;            /* colorScheme.surfaceContainerLow */
+      --popup-border: rgba(91, 97, 115, 0.14);  /* outlineVariant ~14% */
+      --popup-radius: 10px;           /* 由 12 收敛至 10，更桌面克制 */
+      --popup-pad: 6px;               /* 容器内边距：紧凑节奏 */
+      --popup-width: 288px;           /* 命中区间 minWidth 184 ~ maxWidth 320 */
+      /* Electron 风格关键：弱化高程/阴影，等价 elevation ≈ 3（原 6） */
+      --popup-shadow: 0 6px 18px rgba(22, 27, 45, 0.12), 0 1px 4px rgba(22, 27, 45, 0.08);
+      --popup-shadow-flat: 0 2px 8px rgba(22, 27, 45, 0.08);
+
+      /* tile */
+      --item-radius: 8px;
+      --item-h: 36px;                 /* 34–38 区间，紧凑 */
+      --item-x: 10px;
+      --item-y: 7px;
+      --icon: 20px;
+      --gap: 10px;
+
+      /* 状态：低透明度叠加，不改变尺寸/圆角 */
+      --hover: rgba(28, 31, 38, 0.05);        /* onSurface 5% */
+      --selected: rgba(67, 99, 235, 0.12);    /* primary 12% */
+      --selected-strong: rgba(67, 99, 235, 0.16); /* primary 16%，用于暗色态 */
+      --pressed: rgba(67, 99, 235, 0.18);     /* primary 18% */
+
+      /* 配色 token */
+      --text: #1d2430;                /* onSurface */
+      --muted: #697386;               /* onSurfaceVariant */
+      --disabled: rgba(105, 115, 134, 0.46);
+      --primary: #4363eb;             /* primary */
+      --primary-soft: #edf1ff;        /* primaryContainer */
+
+      /* 动效：桌面更利落，120ms ease */
+      --ease: 120ms ease;
+
+      /* 页面框架（与 ui/menu_toolbar_minimal_design.html 协调） */
+      --page: #f6f7fb;
+      --canvas: #ffffff;
+      --panel-bg: rgba(255, 255, 255, 0.72);
+      --border-soft: rgba(91, 97, 115, 0.14);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 1160px;
+      background:
+        radial-gradient(circle at 8% 0%, rgba(67, 99, 235, 0.10), transparent 30%),
+        linear-gradient(180deg, #fbfcff 0%, var(--page) 100%);
+      color: var(--text);
+    }
+
+    .page { width: 1120px; margin: 0 auto; padding: 40px 0 56px; }
+
+    header { display: flex; justify-content: space-between; gap: 32px; margin-bottom: 28px; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 28px; line-height: 1.25; letter-spacing: -0.02em; }
+    h2 { font-size: 18px; line-height: 1.35; margin-bottom: 14px; }
+    h3 { font-size: 13px; line-height: 1.4; color: var(--muted); font-weight: 650; margin-bottom: 10px; }
+
+    .subtitle { max-width: 700px; margin-top: 10px; color: var(--muted); line-height: 1.7; font-size: 14px; }
+
+    .badge-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; max-width: 360px; }
+    .badge {
+      padding: 6px 10px; border: 1px solid var(--border-soft); border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72); color: var(--muted); font-size: 12px;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+
+    .panel {
+      position: relative; min-height: 360px; padding: 22px;
+      border: 1px solid var(--border-soft); border-radius: 22px;
+      background: var(--panel-bg); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.88) inset;
+      overflow: hidden;
+    }
+    .panel.large { min-height: 432px; }
+
+    .editor-canvas {
+      position: relative; min-height: 300px; padding: 24px;
+      border: 1px solid #eceff6; border-radius: 16px; background: var(--canvas);
+    }
+    .doc-line { height: 12px; border-radius: 999px; background: #eef1f7; margin-bottom: 14px; }
+    .doc-line.short { width: 62%; }
+    .doc-line.mid { width: 78%; }
+    .doc-line.tiny { width: 34%; }
+
+    /* 触发上下文：行内的「/」与查询，弱化呈现 */
+    .trigger-line { display: flex; align-items: center; gap: 4px; margin-bottom: 14px; }
+    .trigger-line .glyph { color: var(--primary); font-weight: 700; font-size: 15px; }
+    .trigger-line .query { color: var(--muted); font-size: 13px; }
+    .caret-anchor { width: 2px; height: 20px; border-radius: 2px; background: var(--primary); }
+
+    /* ===== Popup chrome（Electron 风格核心） ===== */
+    .popup {
+      border: 1px solid var(--popup-border);
+      border-radius: var(--popup-radius);
+      background: var(--popup-bg);
+      box-shadow: var(--popup-shadow);
+      padding: var(--popup-pad);
+      width: var(--popup-width);
+      overflow: hidden;
+    }
+    .popup.scroll { max-height: 264px; overflow-y: auto; }
+    .popup.fluid { width: 100%; }
+    .popup.anchor { position: absolute; left: 64px; top: 96px; }
+
+    .section-label {
+      padding: 6px 10px 4px; color: var(--muted);
+      font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+    }
+
+    /* ===== Tile ===== */
+    .tile {
+      display: flex; align-items: center; gap: var(--gap);
+      min-height: var(--item-h);
+      padding: var(--item-y) var(--item-x);
+      border-radius: var(--item-radius);
+      color: var(--text);
+      transition: background var(--ease), color var(--ease), transform var(--ease);
+    }
+    .tile.hover { background: var(--hover); }
+    .tile.selected { background: var(--selected); }
+    .tile.pressed { background: var(--pressed); transform: translateY(1px); }
+    .tile.disabled { color: var(--disabled); }
+    /* 选中/按下态：标题与图标走主色 */
+    .tile.selected .icon-slot,
+    .tile.selected .title,
+    .tile.pressed .icon-slot,
+    .tile.pressed .title { color: var(--primary); }
+
+    .icon-slot {
+      flex: 0 0 var(--icon); width: var(--icon); height: var(--icon);
+      display: grid; place-items: center; color: var(--muted);
+    }
+    .icon-slot svg { width: var(--icon); height: var(--icon); display: block; }
+
+    .copy { min-width: 0; flex: 1; }
+    .title {
+      display: block; font-size: 13px; line-height: 1.25; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .desc {
+      display: block; margin-top: 2px; color: var(--muted);
+      font-size: 11.5px; line-height: 1.3; font-weight: 400;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tile.disabled .desc { color: var(--disabled); }
+
+    .divider { height: 1px; margin: 5px 4px; background: var(--border-soft); }
+
+    /* ===== 空状态 ===== */
+    .empty {
+      display: grid; place-items: center; min-height: 132px;
+      padding: 22px 18px; text-align: center; color: var(--muted);
+    }
+    .empty .icon-empty { width: 30px; height: 30px; margin-bottom: 10px; opacity: 0.5; }
+    .empty strong { display: block; color: var(--text); font-size: 13px; margin-bottom: 6px; }
+    .empty span { font-size: 12px; line-height: 1.6; }
+
+    /* ===== 状态对照条 ===== */
+    .state-list { display: grid; gap: 10px; }
+    .state-row {
+      padding: 12px; border: 1px solid var(--border-soft); border-radius: 14px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+    .state-row h3 { margin-bottom: 8px; }
+    .state-row .tile { margin-top: 2px; }
+    .state-row .micro {
+      margin-top: 8px; color: var(--muted); font-size: 11.5px; line-height: 1.55;
+    }
+    .state-row .micro code {
+      font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
+      background: var(--primary-soft); color: var(--primary); padding: 1px 5px; border-radius: 5px;
+    }
+
+    /* ===== Token 参数面板 ===== */
+    .params { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .param { padding: 12px; border: 1px solid var(--border-soft); border-radius: 14px; background: rgba(255, 255, 255, 0.72); }
+    .param b { display: block; font-size: 12px; margin-bottom: 5px; }
+    .param span { color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .param code { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--primary); }
+
+    .swatches { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .swatch {
+      width: 44px; height: 30px; border-radius: 10px;
+      border: 1px solid var(--border-soft); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+      position: relative;
+    }
+    .swatch::after {
+      content: attr(data-name); position: absolute; left: 0; right: 0; top: 100%;
+      text-align: center; font-size: 9.5px; color: var(--muted); margin-top: 4px;
+    }
+    .swatch-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 18px; padding-bottom: 18px; }
+
+    .motion-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+    .motion-bar { flex: 1; height: 6px; border-radius: 999px; background: var(--hover); overflow: hidden; }
+    .motion-bar i { display: block; height: 100%; width: 30%; background: var(--primary); border-radius: 999px; }
+    .motion-row span { color: var(--muted); font-size: 12px; white-space: nowrap; }
+
+    .note { margin-top: 14px; color: var(--muted); font-size: 12px; line-height: 1.65; }
+
+    .legend {
+      display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px;
+      font-size: 12px; color: var(--muted);
+    }
+    .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 4px; margin-right: 6px; vertical-align: -1px; }
+
+    .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+  </style>
+</head>
+<body>
+  <!-- 可复用线框图标（currentColor 自动跟随 icon-slot 文字色） -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="i-heading" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 5v14" /><path d="M15 5v14" /><path d="M6 12h9" />
+        </g>
+      </symbol>
+      <symbol id="i-list" viewBox="0 0 24 24">
+        <circle cx="4.5" cy="6.5" r="1.4" fill="currentColor" />
+        <circle cx="4.5" cy="12" r="1.4" fill="currentColor" />
+        <circle cx="4.5" cy="17.5" r="1.4" fill="currentColor" />
+        <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+          <path d="M9 6.5h11" /><path d="M9 12h11" /><path d="M9 17.5h11" />
+        </g>
+      </symbol>
+      <symbol id="i-todo" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="4" width="16" height="16" rx="3.5" />
+          <path d="M8.6 12.4l2.5 2.6 4.4-4.8" />
+        </g>
+      </symbol>
+      <symbol id="i-quote" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z" />
+      </symbol>
+      <symbol id="i-code" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 7l-5 5 5 5" /><path d="M16 7l5 5-5 5" /><path d="M13.5 5l-3 14" />
+        </g>
+      </symbol>
+      <symbol id="i-table" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="4" width="16" height="16" rx="2.5" />
+          <path d="M4 10h16" /><path d="M4 15h16" />
+          <path d="M10 4v16" /><path d="M15 4v16" />
+        </g>
+      </symbol>
+      <symbol id="i-image" viewBox="0 0 24 24">
+        <rect x="3.5" y="5" width="17" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+        <circle cx="8.5" cy="10" r="1.6" fill="currentColor" />
+        <path d="M4.5 18l4.5-4.5 3 3 3.5-4 4.5 5.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+      </symbol>
+      <symbol id="i-video" viewBox="0 0 24 24">
+        <rect x="3" y="6" width="18" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+        <path d="M10.5 9.3l4.8 2.7-4.8 2.7z" fill="currentColor" />
+      </symbol>
+      <symbol id="i-empty" viewBox="0 0 24 24">
+        <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="6.5" /><path d="M16 16l4 4" />
+        </g>
+      </symbol>
+    </defs>
+  </svg>
+
+  <main class="page">
+    <header>
+      <div>
+        <h1>斜杆命令 Popup · Electron 桌面端风格设计稿</h1>
+        <p class="subtitle">
+          对齐 VSCode / Cursor / Notion 桌面版命令面板观感：扁平克制（弱化高程与阴影）、清晰层级（图标位 + 标题 + 描述）、紧凑节奏。
+          复用既有 colorScheme token，仅收敛 chrome；全部文案为简体中文。本稿为静态 HTML/CSS，无外部依赖，可直接浏览器打开。
+        </p>
+      </div>
+      <div class="badge-row" aria-label="设计范围标签">
+        <span class="badge">Electron 风格</span>
+        <span class="badge">扁平 / 克制阴影</span>
+        <span class="badge">清晰层级</span>
+        <span class="badge">紧凑节奏</span>
+        <span class="badge">全中文文案</span>
+        <span class="badge">浅色 + 暗色 token</span>
+      </div>
+    </header>
+
+    <!-- ① Hero：编辑器内联触发态 -->
+    <section class="panel large" style="margin-bottom:22px">
+      <h2>① 编辑器内联触发：扁平列表 + 键盘高亮 + 悬停</h2>
+      <div class="editor-canvas">
+        <div class="doc-line mid"></div>
+        <div class="doc-line short"></div>
+        <div class="trigger-line">
+          <span class="glyph">/</span>
+          <span class="query">表</span>
+          <span class="caret-anchor" aria-hidden="true"></span>
+        </div>
+        <div class="doc-line tiny"></div>
+
+        <div class="popup anchor" role="menu" aria-label="斜杆命令示例">
+          <div class="tile selected" role="menuitem">
+            <span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-heading" /></svg></span>
+            <span class="copy"><span class="title">标题</span><span class="desc">大号章节标题</span></span>
+          </div>
+          <div class="tile hover" role="menuitem">
+            <span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-list" /></svg></span>
+            <span class="copy"><span class="title">无序列表</span><span class="desc">项目符号列表</span></span>
+          </div>
+          <div class="tile" role="menuitem">
+            <span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-todo" /></svg></span>
+            <span class="copy"><span class="title">待办</span><span class="desc">可勾选任务</span></span>
+          </div>
+          <div class="tile" role="menuitem">
+            <span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-quote" /></svg></span>
+            <span class="copy"><span class="title">引用</span><span class="desc">引用内容块</span></span>
+          </div>
+          <div class="tile" role="menuitem">
+            <span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-table" /></svg></span>
+            <span class="copy"><span class="title">表格</span><span class="desc">3 × 3 表格</span></span>
+          </div>
+          <div class="tile" role="menuitem">
+            <span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-image" /></svg></span>
+            <span class="copy"><span class="title">图片</span><span class="desc">图片占位</span></span>
+          </div>
+        </div>
+      </div>
+      <p class="note">
+        键盘高亮态（首项）采用 <code>primary</code> 约 12% 低透明度背景，并令图标与标题回退到主色；悬停态使用 <code>onSurface</code> 约 5% 的中性反馈。
+        阴影收敛为两层、更贴近桌面，等价 elevation ≈ 3（原 6）。
+      </p>
+    </section>
+
+    <section class="grid">
+      <!-- ② 完整菜单项（13 项，全中文） -->
+      <article class="panel large">
+        <h2>② 完整默认菜单项（13 项 · 全中文）</h2>
+        <div class="popup" role="menu" aria-label="完整默认菜单项">
+          <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-heading" /></svg></span><span class="copy"><span class="title">标题</span><span class="desc">大号章节标题</span></span></div>
+          <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-heading" /></svg></span><span class="copy"><span class="title">标题 2</span><span class="desc">中号章节标题</span></span></div>
+          <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-heading" /></svg></span><span class="copy"><span class="title">标题 3</span><span class="desc">小号章节标题</span></span></div>
+          <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-heading" /></svg></span><span class="copy"><span class="title">标题 4</span><span class="desc">次级章节标题</span></span></div>
+          <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-heading" /></svg></span><span class="copy"><span class="title">标题 5</span><span class="desc">细分章节标题</span></span></div>
+          <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-heading" /></svg></span><span class="copy"><span class="title">标题 6</span><span class="desc">最小章节标题</span></span></div>
+          <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-list" /></svg></span><span class="copy"><span class="title">无序列表</span><span class="desc">项目符号列表</span></span></div>
+          <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-todo" /></svg></span><span class="copy"><span class="title">待办</span><span class="desc">可勾选任务</span></span></div>
+          <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-quote" /></svg></span><span class="copy"><span class="title">引用</span><span class="desc">引用内容块</span></span></div>
+          <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-code" /></svg></span><span class="copy"><span class="title">代码块</span><span class="desc">预格式化代码</span></span></div>
+          <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-table" /></svg></span><span class="copy"><span class="title">表格</span><span class="desc">3 × 3 表格</span></span></div>
+          <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-image" /></svg></span><span class="copy"><span class="title">图片</span><span class="desc">图片占位</span></span></div>
+          <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-video" /></svg></span><span class="copy"><span class="title">视频</span><span class="desc">视频占位</span></span></div>
+        </div>
+        <p class="note">
+          <code>id</code> / <code>keywords</code> 不变；仅 <code>title</code> / <code>description</code> 改中文。标题项共享同一「标题」图标，级别由文案「标题 2~6」区分，与既有实现一致。
+        </p>
+      </article>
+
+      <!-- ③ 状态对照 -->
+      <article class="panel">
+        <h2>③ 单项状态对照</h2>
+        <div class="state-list">
+          <div class="state-row">
+            <h3>默认 Default</h3>
+            <div class="tile" role="menuitem">
+              <span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-quote" /></svg></span>
+              <span class="copy"><span class="title">引用</span><span class="desc">引用内容块</span></span>
+            </div>
+            <p class="micro">透明背景；图标位用 <code>onSurfaceVariant</code>。</p>
+          </div>
+          <div class="state-row">
+            <h3>悬停 Hover</h3>
+            <div class="tile hover" role="menuitem">
+              <span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-quote" /></svg></span>
+              <span class="copy"><span class="title">引用</span><span class="desc">引用内容块</span></span>
+            </div>
+            <p class="micro"><code>onSurface</code> 5% 中性底；与键盘 focus 同强度。</p>
+          </div>
+          <div class="state-row">
+            <h3>键盘高亮 Selected</h3>
+            <div class="tile selected" role="menuitem">
+              <span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-quote" /></svg></span>
+              <span class="copy"><span class="title">引用</span><span class="desc">引用内容块</span></span>
+            </div>
+            <p class="micro"><code>primary</code> 12% 底（暗色 16%）；标题与图标回退主色。</p>
+          </div>
+          <div class="state-row">
+            <h3>按下 Pressed</h3>
+            <div class="tile pressed" role="menuitem">
+              <span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-quote" /></svg></span>
+              <span class="copy"><span class="title">引用</span><span class="desc">引用内容块</span></span>
+            </div>
+            <p class="micro"><code>primary</code> 18% + 向下位移 1px；不改变尺寸/圆角。</p>
+          </div>
+        </div>
+      </article>
+
+      <!-- ④ 长列表滚动 + 空状态 -->
+      <article class="panel large">
+        <h2>④ 长列表滚动 + 搜索为空</h2>
+        <div class="pair">
+          <div>
+            <h3>长列表（maxHeight 内滚动）</h3>
+            <div class="popup fluid scroll" role="menu" aria-label="长列表滚动示例">
+              <div class="tile selected" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-heading" /></svg></span><span class="copy"><span class="title">标题</span><span class="desc">大号章节标题</span></span></div>
+              <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-heading" /></svg></span><span class="copy"><span class="title">标题 2</span><span class="desc">中号章节标题</span></span></div>
+              <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-heading" /></svg></span><span class="copy"><span class="title">标题 3</span><span class="desc">小号章节标题</span></span></div>
+              <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-heading" /></svg></span><span class="copy"><span class="title">标题 4</span><span class="desc">次级章节标题</span></span></div>
+              <div class="tile hover" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-list" /></svg></span><span class="copy"><span class="title">无序列表</span><span class="desc">项目符号列表</span></span></div>
+              <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-todo" /></svg></span><span class="copy"><span class="title">待办</span><span class="desc">可勾选任务</span></span></div>
+              <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-quote" /></svg></span><span class="copy"><span class="title">引用</span><span class="desc">引用内容块</span></span></div>
+              <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-code" /></svg></span><span class="copy"><span class="title">代码块</span><span class="desc">预格式化代码</span></span></div>
+              <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-table" /></svg></span><span class="copy"><span class="title">表格</span><span class="desc">3 × 3 表格</span></span></div>
+              <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-image" /></svg></span><span class="copy"><span class="title">图片</span><span class="desc">图片占位</span></span></div>
+              <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-video" /></svg></span><span class="copy"><span class="title">视频</span><span class="desc">视频占位</span></span></div>
+            </div>
+          </div>
+          <div>
+            <h3>空状态（未找到命令）</h3>
+            <div class="popup fluid" role="status" aria-label="搜索为空示例">
+              <div class="empty">
+                <svg class="icon-empty" viewBox="0 0 24 24"><use href="#i-empty" /></svg>
+                <strong>未找到命令</strong>
+                <span>试试输入「表格」「图片」或「代码」。</span>
+              </div>
+            </div>
+            <p class="micro" style="margin-top:12px;color:var(--muted);font-size:12px;line-height:1.65">
+              语义标签（<code>Semantics</code> label）同步中文化，便于读屏朗读为「未找到斜杆命令」。
+            </p>
+          </div>
+        </div>
+      </article>
+
+      <!-- ⑤ 分组态（可选增强） -->
+      <article class="panel">
+        <h2>⑤ 分组态（可选增强）</h2>
+        <div class="popup" role="menu" aria-label="分组态示例">
+          <div class="section-label">文本与标题</div>
+          <div class="tile selected" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-heading" /></svg></span><span class="copy"><span class="title">标题</span><span class="desc">大号章节标题</span></span></div>
+          <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-heading" /></svg></span><span class="copy"><span class="title">标题 2</span><span class="desc">中号章节标题</span></span></div>
+          <div class="divider"></div>
+          <div class="section-label">列表与引用</div>
+          <div class="tile hover" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-list" /></svg></span><span class="copy"><span class="title">无序列表</span><span class="desc">项目符号列表</span></span></div>
+          <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-quote" /></svg></span><span class="copy"><span class="title">引用</span><span class="desc">引用内容块</span></span></div>
+          <div class="divider"></div>
+          <div class="section-label">媒体</div>
+          <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-image" /></svg></span><span class="copy"><span class="title">图片</span><span class="desc">图片占位</span></span></div>
+          <div class="tile" role="menuitem"><span class="icon-slot"><svg viewBox="0 0 24 24"><use href="#i-video" /></svg></span><span class="copy"><span class="title">视频</span><span class="desc">视频占位</span></span></div>
+        </div>
+        <p class="note">
+          默认方案为「精修扁平列表」以避免 schema 改动；若采用分组，需在数据层补充分组字段，分组标题沿用 <code>onSurfaceVariant</code> 小号大写字样，分隔线只表达分组、不承担强调。
+        </p>
+      </article>
+
+      <!-- ⑥ Electron 设计 Token -->
+      <article class="panel large">
+        <h2>⑥ Electron 设计 Token（Flutter 落地对齐）</h2>
+        <div class="params">
+          <div class="param"><b>容器 Chrome</b><span>圆角 <code>10px</code>（由 12 收敛）；内边距 <code>6px</code>；描边 <code>outlineVariant</code> 14%；背景 <code>surfaceContainerLow</code>。</span></div>
+          <div class="param"><b>阴影 Shadow</b><span>两层、收敛贴近：<code>0 6px 18px / .12</code> + <code>0 1px 4px / .08</code>；等价 elevation ≈ <b>3</b>（原 6），shadow alpha ≈ 24。</span></div>
+          <div class="param"><b>条目 Tile</b><span>圆角 <code>8px</code>；高 <code>34–38px</code>；内边距 <code>10px × 7px</code>；图标位 <code>20px</code>；图文间距 <code>10px</code>。</span></div>
+          <div class="param"><b>层级 Typography</b><span>标题 <code>13px / 600</code>；描述 <code>11.5px / 400</code>，色用 <code>onSurfaceVariant</code>；按下位移 1px。</span></div>
+          <div class="param"><b>选中色 Selection</b><span>键盘高亮背景 <code>primary</code> <b>12%</b>（暗色 16%）；标题与图标回退 <code>primary</code>。</span></div>
+          <div class="param"><b>悬停 / 按下 Hover</b><span>悬停 <code>onSurface</code> <b>5%</b> 中性；按下 <code>primary</code> <b>18%</b>；均不改变尺寸/圆角。</span></div>
+          <div class="param"><b>动效 Motion</b><span>背景/前景/位移 <code>120ms ease</code>；仅轻量反馈，不改 overlay 定位与尺寸。</span></div>
+          <div class="param"><b>约束 Constraints</b><span>宽度 <code>184–320px</code>；长列表 <code>maxHeight ≈ 320</code> 滚动，保留容器圆角与内边距。</span></div>
+        </div>
+
+        <div class="swatch-row" aria-label="颜色样本">
+          <div>
+            <div class="swatches">
+              <span class="swatch" data-name="surface" style="background:#fffdfb"></span>
+              <span class="swatch" data-name="surface-2" style="background:#f7f8fc"></span>
+              <span class="swatch" data-name="border" style="background:rgba(91,97,115,0.14)"></span>
+              <span class="swatch" data-name="hover" style="background:rgba(28,31,38,0.05)"></span>
+              <span class="swatch" data-name="selected" style="background:rgba(67,99,235,0.12)"></span>
+              <span class="swatch" data-name="primary-soft" style="background:#edf1ff"></span>
+              <span class="swatch" data-name="primary" style="background:#4363eb"></span>
+              <span class="swatch" data-name="on-surface" style="background:#1d2430"></span>
+              <span class="swatch" data-name="muted" style="background:#697386"></span>
+            </div>
+          </div>
+          <div style="flex:1;min-width:240px">
+            <div class="motion-row"><span>120ms</span><div class="motion-bar"><i></i></div><span>ease</span></div>
+            <div class="legend">
+              <span><i style="background:rgba(67,99,235,0.12)"></i>键盘高亮 primary 12%</span>
+              <span><i style="background:rgba(28,31,38,0.05)"></i>悬停 onSurface 5%</span>
+              <span><i style="background:rgba(67,99,235,0.18)"></i>按下 primary 18%</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="note">
+          与 <code>docs/design/menu_toolbar_minimal_spec.md</code> 的「Electron 风格斜杆 popup 规范」小节一一对应；
+          <code>slash_menu_overlay.dart</code> 顶部 chrome 常量据此更新（圆角 12→10、elevation 6→3、shadow alpha 48→24、选中/hover 透明度收敛）。
+        </p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,51 @@
+{
+  "title": "折线箭头配置支持",
+  "summary": "基于现有 PolylineElement 的 endArrow 与 headSize 能力，补齐编辑器中普通折线的箭头设置入口，并保证状态更新、保存加载与导出链路保持一致。",
+  "tasks": [
+    {
+      "title": "补齐折线箭头属性的控制器更新入口",
+      "scope": [
+        "lib/src/canvas/canvas_controller.dart"
+      ],
+      "acceptance": [
+        "选中已有 PolylineElement 时，可以在不替换元素类型的前提下切换末端箭头开关。",
+        "调整箭头尺寸时只改变折线末端箭头表现，不破坏 points、startBinding、endBinding、图层和标签等现有数据。",
+        "折线箭头属性变更会进入现有历史记录，撤销和重做后状态一致。"
+      ]
+    },
+    {
+      "title": "在右侧检查器暴露折线箭头设置",
+      "scope": [
+        "lib/src/ui/panels/right_inspector_panel.dart",
+        "lib/src/ui/panels/inspector_utils.dart",
+        "lib/src/ui/panels/inspector_fields.dart"
+      ],
+      "acceptance": [
+        "选中普通折线时，右侧检查器能够显示箭头开关，并正确回显已有折线的箭头状态。",
+        "启用箭头后可以调节箭头尺寸，禁用箭头时尺寸控件不会误导用户继续编辑无效值。",
+        "非折线元素的现有检查器行为保持不变，直线和现有 ArrowElement 的编辑入口不回退。"
+      ]
+    },
+    {
+      "title": "补充折线箭头的序列化与导出回归覆盖",
+      "scope": [
+        "test/polyline_element_test.dart",
+        "test/serialization_test.dart",
+        "test/svg_exporter_test.dart"
+      ],
+      "acceptance": [
+        "带箭头的折线在 JSON round-trip 后保留 endArrow、headSize 以及既有标签和绑定信息。",
+        "SVG 导出能够正确输出带箭头折线的末端箭头图形，无箭头折线导出结果保持兼容。",
+        "折线启用箭头后，正交路由、端点拖拽和命中选择等现有连接线交互场景仍然成立。"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter test",
+    "criteria": [
+      "Flutter 测试命令通过，覆盖折线箭头属性切换、序列化恢复和 SVG 导出场景。",
+      "普通折线在编辑器中可开启或关闭箭头，并可在启用后调整箭头尺寸且撤销重做一致。",
+      "带箭头折线保存后重新加载仍保留箭头状态，连接绑定、正交路由和标签能力不回退。"
+    ]
+  }
+}

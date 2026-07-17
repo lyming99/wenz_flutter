@@ -1,0 +1,15 @@
+已完成 P006，仅修改指定 scope 内的测试文件，未修改 plan 文件。
+
+**变更**
+- `test/widgets/slash_menu_overlay_test.dart:44`：补充 slash popup 视觉样式、圆角/阴影/约束、选中态验证。
+- `test/widgets/wenz_rich_text_editor_test.dart:1856`：补充代码块选区可见且复制行为稳定的交互验证。
+- `test/widgets/wenz_rich_text_editor_test.dart:1905`：补充小屏下对象块更多菜单不溢出且操作有效的验证。
+- `test/widgets/editor_golden_test.dart:490`：为 selection golden 增加高亮节点存在性前置断言，不改变 golden 画面基线。
+
+**验证**
+- 通过：`flutter test test\widgets\slash_menu_overlay_test.dart --plain-name "overlay keeps compact styled surface and selected item state" -r expanded`
+- 通过：`flutter test test\widgets\wenz_rich_text_editor_test.dart --plain-name "code block selection remains copyable with highlight visible" -r expanded`
+- 通过：`flutter test test\widgets\wenz_rich_text_editor_test.dart --plain-name "object block more menu stays inside compact editor viewport" -r expanded`
+- 通过：`flutter test test\widgets\editor_golden_test.dart --plain-name "golden: selection highlight" -r expanded`
+
+说明：曾尝试运行三个 scope 测试文件组合命令，但超时；随后改为 P006 直接相关的最小精准用例并全部通过。

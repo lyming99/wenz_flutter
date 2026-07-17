@@ -1,0 +1,12 @@
+已完成 P001，未修改 plan 文件、未勾选 checkbox，也未处理其它任务。
+
+**完成内容**
+- 明确 `TextAttributes.color/background` 使用 `0xAARRGGBB` 整数、`null` 为空/不序列化语义：`lib/src/core/model/attributes.dart:3`
+- 明确控制器字体颜色格式化边界：折叠光标、无效/对象块选区、表格单元格、权限等：`lib/src/controller/wenz_rich_text_controller.dart:1338`
+- 明确默认字体色与内联色、链接色、remark/revision、背景色优先级：`lib/src/widgets/wenz_rich_text_editor.dart:432`、`lib/src/widgets/wenz_rich_text_editor.dart:10496`
+- 增加 P001 最小测试覆盖颜色格式、跨 block、表格单元格、只读权限、对象/无效/折叠选区：`test/core/style_commands_test.dart:11`
+
+**验证**
+- 已运行：`flutter test test/core/style_commands_test.dart`，全部通过。
+- 已运行 scoped `git diff --check`，未发现空白错误。
+- `git status` 显示仓库已有其它未提交/未跟踪文件；我未处理这些非 P001 scope 改动。

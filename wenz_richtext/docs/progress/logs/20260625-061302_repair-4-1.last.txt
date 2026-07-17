@@ -1,0 +1,9 @@
+已只修复验证错误，未修改 plan 文件。
+
+**变更**
+- `lib/src/widgets/wenz_rich_text_editor.dart:4` 移除了仅用于 `@internal` 的 `foundation.dart` 导入。
+- `lib/src/widgets/wenz_rich_text_editor.dart:72` 移除了 `WenzRichTextDesignBaseline` 上的 `@internal`，避免公共导出触发 analyzer 警告。
+
+**验证**
+- 已运行 `flutter analyze`
+- 结果：`No issues found!`

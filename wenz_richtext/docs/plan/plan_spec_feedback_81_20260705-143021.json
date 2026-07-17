@@ -1,0 +1,60 @@
+{
+  "title": "表格工具栏滚动不可视时隐藏",
+  "summary": "根据反馈 #81，表格浮动工具栏需要参考视频工具栏的对象块 overlay 行为：当表格块滚动到编辑器可视区域之外时自动隐藏，返回可视区域且仍有有效表格选择时再按现有逻辑显示与定位。",
+  "tasks": [
+    {
+      "title": "补齐表格工具栏 overlay 的可视区域数据契约",
+      "scope": [
+        "lib/src/widgets/table_floating_toolbar_overlay.dart",
+        "lib/src/widgets/wenz_rich_text_editor.dart"
+      ],
+      "acceptance": [
+        "TableFloatingToolbarOverlayRequestBuilder、TableFloatingToolbarOverlayRequest 和 TableFloatingToolbarAnchorSnapshot 能表达表格锚点所在滚动视口的 visibleTop 与 visibleBottom。",
+        "表格块调用 requestBuilder 创建 TableFloatingToolbarOverlayRequest 时传递完整可视边界，现有 tableBlockId、blockIndex、selectionRange、toolbarBuilder 等字段保持兼容。",
+        "表格工具栏在表格仍处于可视或部分可视状态时，继续按现有 visibleTop 规则贴近表格上方并避免越过可视顶部。"
+      ]
+    },
+    {
+      "title": "按视频工具栏逻辑同步表格锚点可见性",
+      "scope": [
+        "lib/src/widgets/table_floating_toolbar_overlay.dart"
+      ],
+      "acceptance": [
+        "TableFloatingToolbarOverlayAnchor 能像 ObjectBlockToolbarOverlayAnchor 一样从当前 Scrollable viewport 计算可视 top/bottom，缺少 Scrollable 时使用 MediaQuery 与 overlay 尺寸作为兜底。",
+        "滚动、窗口尺寸变化或依赖变化触发同步后，若表格 anchorRect 完全位于可视区域上方或下方，当前 owner 的表格工具栏请求会被 hide，且不会继续 show 新请求。",
+        "表格 anchorRect 与可视区域有交集时，锚点快照与工具栏请求会继续更新，保证部分可见表格仍可显示工具栏。"
+      ]
+    },
+    {
+      "title": "为表格 overlay entry 增加离屏请求保护",
+      "scope": [
+        "lib/src/widgets/table_floating_toolbar_overlay.dart"
+      ],
+      "acceptance": [
+        "_TableFloatingToolbarOverlayEntry 渲染前会判断请求中的 anchorRect 是否仍与 visibleTop/visibleBottom 相交，不相交时返回空内容，避免过期请求残留在屏幕上。",
+        "表格工具栏的横向 clamping、最小宽度、测量高度、hit-test blocker 与 toolbarBuilder 调用保持现有行为。",
+        "当表格重新进入可视区域且存在有效单元格选择时，工具栏可以通过新的锚点同步结果恢复显示。"
+      ]
+    },
+    {
+      "title": "补充表格工具栏滚动隐藏场景覆盖",
+      "scope": [
+        "test/widgets/wenz_rich_text_editor_test.dart",
+        "example/integration_test/editor_table_test.dart"
+      ],
+      "acceptance": [
+        "覆盖选中表格单元格后工具栏出现，再将表格滚动到编辑器可视区域之外时工具栏隐藏的场景。",
+        "覆盖表格滚回可视区域且选择仍有效时，工具栏可重新出现或按当前 selection 状态正确更新的场景。",
+        "覆盖表格部分可见时工具栏不被误隐藏，行为与视频/对象块工具栏的可视性判断一致。"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter analyze",
+    "criteria": [
+      "命令退出码为 0。",
+      "Analyzer 不产生与表格工具栏 overlay、表格块调用侧或新增测试覆盖相关的新错误或警告。",
+      "最终实现满足反馈 #81：表格工具栏参考视频工具栏，在表格滚动到不可视位置时隐藏，在可视或部分可视时不被误隐藏。"
+    ]
+  }
+}

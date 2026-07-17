@@ -1,0 +1,9 @@
+P003 已完成并验证。
+
+- 实现点：可见内容投影在 `lib/src/controller/outline_controller.dart:225` 和 `lib/src/controller/outline_controller.dart:383`
+- 渲染接入：编辑器按投影渲染且保持原始 `blockIndex` 语义，见 `lib/src/widgets/wenz_rich_text_editor.dart:949` 和 `lib/src/widgets/wenz_rich_text_editor.dart:1048`
+- 几何清理：隐藏块几何通过 `retainBlocks` 移除，见 `lib/src/widgets/block_geometry_registry.dart:112`
+- 覆盖测试：投影/嵌套折叠见 `test/controller/outline_controller_test.dart:224`，几何清理见 `test/widgets/block_geometry_registry_test.dart:9`
+- 验证通过：`flutter test test/controller/outline_controller_test.dart test/widgets/block_geometry_registry_test.dart`，共 32 个测试通过
+
+未修改 plan 文件、未勾选 checkbox、未运行全量测试。当前 plan 文件仍显示已有 modified 状态，但本次没有写入它。

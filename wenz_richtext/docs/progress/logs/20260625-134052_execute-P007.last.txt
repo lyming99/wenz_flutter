@@ -1,0 +1,15 @@
+已完成 P007，只改了 scope 内的测试和金图，没有动 `docs/plan/plan_requirement_10_20260625-034349.md`。
+
+**变更**
+- `test/controller/outline_controller_test.dart:54`、`test/controller/outline_controller_test.dart:108`：补了 H1-H6、连续标题、空标题、无子标题，以及删除/改级/移动后的重算覆盖。
+- `test/widgets/wenz_rich_text_editor_test.dart:697`、`test/widgets/wenz_rich_text_editor_test.dart:757`、`test/widgets/wenz_rich_text_editor_test.dart:822`：补了隐藏 block 命中测试、隐藏内容查找自动展开、以及大纲跳转隐藏标题的回归。
+- `test/widgets/editor_golden_test.dart:164`、`test/widgets/editor_golden_test.dart:459`：调整两张 golden 场景，覆盖展开态、禁用态和嵌套折叠态。
+- `test/widgets/goldens/editor_blocks.png`、`test/widgets/goldens/editor_advanced_blocks.png`：已更新基线图。
+
+**验证**
+- `flutter test test\controller\outline_controller_test.dart test\widgets\wenz_rich_text_editor_test.dart`
+- `flutter test --update-goldens test\widgets\editor_golden_test.dart`
+- `flutter test test\widgets\editor_golden_test.dart`
+- `flutter analyze test\controller\outline_controller_test.dart test\widgets\wenz_rich_text_editor_test.dart test\widgets\editor_golden_test.dart`
+
+都通过了。

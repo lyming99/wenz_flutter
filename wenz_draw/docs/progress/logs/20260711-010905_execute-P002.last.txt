@@ -1,0 +1,6 @@
+P002 已完成，仅修改指定测试文件：
+
+- [text_element_test.dart](/D:/project/GitHub/wenz_flutter/wenz_draw/test/text_element_test.dart)：覆盖四角缩放、四边改框、旋转与非 1.0 视口、最小尺寸、单次撤销重做。
+- [infinite_canvas_text_editing_test.dart](/D:/project/GitHub/wenz_flutter/wenz_draw/test/infinite_canvas_text_editing_test.dart)：覆盖编辑态放大、缩小、边缘调整、焦点/工具栏保持及会话历史归并。
+- 未修改 plan；`git diff --check` 通过。
+- 按要求未运行测试、构建、lint 或 analyze。

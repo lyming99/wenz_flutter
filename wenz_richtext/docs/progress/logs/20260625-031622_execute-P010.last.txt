@@ -1,0 +1,10 @@
+**P010 已完成**
+- 新增独立回归记录：`docs/issues/feedback_2_regression_report.md:1`，未修改 plan 文件、checkbox 或进度区。
+- 修复验证阻断：`MeasuredWidgetSpan` 在无 placeholder dimensions 的 `TextPainter` 路径提供 fallback 尺寸，避免公式 `WidgetSpan` 布局断言：`lib/src/rendering/text_layout_service.dart:8`、`lib/src/rendering/text_layout_service.dart:20`。
+- 清理 analyze 项：插件测试按 `InlineSpan?` 返回类型显式转换：`test/plugins/editor_plugin_test.dart:103`；quote 回归移除未使用变量：`test/widgets/wenz_rich_text_editor_test.dart:171`。
+
+**验证结果**
+- `flutter analyze`：通过，`No issues found!`
+- `flutter test test\widgets\wenz_rich_text_editor_test.dart test\core\selection_commands_test.dart --reporter expanded`：通过，113 项。
+- `flutter test test\plugins\editor_plugin_test.dart --reporter expanded`：通过，2 项。
+- `git diff --check -- <本次相关文件>`：通过；未运行全量测试，符合 P010 最小相关验证范围。

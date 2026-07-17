@@ -1,0 +1,7 @@
+已完成 P007。
+
+- 已将 `docs/plan/plan_feedback_1_20260624-220759.md:42` 的 P007 checkbox 改为 `[x]`
+- 已更新进度区当前状态与下一步：`docs/plan/plan_feedback_1_20260624-220759.md:54`、`docs/plan/plan_feedback_1_20260624-220759.md:56`
+- 已补充 P007 修复范围、验证命令、验证结果和遗留风险记录：`docs/plan/plan_feedback_1_20260624-220759.md:78`
+- 未执行额外 Flutter 测试；P007 仅更新记录，验证依据沿用 P006 已记录结果
+- 注意：该 plan 文件当前在 Git 中显示为未跟踪文件 `??`

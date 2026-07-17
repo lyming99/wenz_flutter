@@ -1,0 +1,8 @@
+已完成 P001（仅执行该项）。
+
+- 已勾选 `docs/plan/plan_feedback_2_20260625-004108.md:23`
+- 已更新进度区状态与下一步：`docs/plan/plan_feedback_2_20260625-004108.md:92`
+- 已记录最小富文本文档、三类场景覆盖与问题边界：`docs/plan/plan_feedback_2_20260625-004108.md:95`
+- 验证命令：`flutter test test\p001_feedback_2_repro_tmp_test.dart --reporter expanded`，2 项诊断通过
+- 临时诊断测试文件已删除，未保留到测试集；结果记录在 `docs/plan/plan_feedback_2_20260625-004108.md:100`
+- 注意：工作区已有其它未提交/未跟踪改动，本次未处理。

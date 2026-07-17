@@ -1,0 +1,92 @@
+{
+  "title": "视频块尺寸与对齐能力补齐",
+  "summary": "根据反馈“视频块也要像图片块一样调节尺寸、对齐方式”，在现有图片块能力基础上补齐视频块显示尺寸字段、命令/控制器入口、渲染尺寸约束、拖拽 resize、对象菜单/工具栏对齐联动，并补充模型、控制器和 widget 场景测试。",
+  "tasks": [
+    {
+      "title": "扩展视频块显示尺寸数据模型与命令",
+      "scope": [
+        "lib/src/core/model/block_node.dart",
+        "lib/src/core/commands/block_commands.dart",
+        "lib/src/controller/wenz_rich_text_controller.dart",
+        "lib/src/controller/toolbar_controller.dart"
+      ],
+      "acceptance": [
+        "VideoBlockNode 支持 showWidth/showHeight，与 ImageBlockNode 一样可 copy/copyWith、JSON 序列化和反序列化，并兼容旧数据缺省为 null。",
+        "InsertVideoBlockCommand、UpdateVideoBlockCommand、WenzRichTextController.insertVideo/updateVideoBlock 可写入、更新和清除视频显示尺寸。",
+        "视频尺寸变化参与 no-op 判断和 undo/redo 历史，且不影响 playbackUrl、coverUrl、title、description、aspectRatio、uploadStatus 等既有字段。"
+      ]
+    },
+    {
+      "title": "让视频块渲染支持显示尺寸和对齐",
+      "scope": [
+        "lib/src/widgets/wenz_rich_text_editor.dart"
+      ],
+      "acceptance": [
+        "视频块 frame 使用 showWidth/showHeight 计算显示宽高，并按可用宽度、最小/最大视频尺寸和视频 aspectRatio 做安全约束。",
+        "视频块读取 block.attributes.alignment，支持 left、center、right 和无显式对齐，默认行为与图片块一致。",
+        "内置视频占位、封面层和 resolver 返回的自定义播放器都被约束在调整后的 frame 内，不出现溢出或无限尺寸。"
+      ]
+    },
+    {
+      "title": "为选中视频块接入拖拽调节尺寸",
+      "scope": [
+        "lib/src/widgets/wenz_rich_text_editor.dart"
+      ],
+      "acceptance": [
+        "选中且可编辑的视频块显示左右 resize hit zone，交互方式、鼠标光标和 selection exclusion 与图片块保持一致。",
+        "拖拽视频块 resize 时保持视频宽高比，预览尺寸即时更新，拖拽结束后通过 updateVideoBlock 一次性提交 showWidth/showHeight。",
+        "非选中、只读或无编辑权限的视频块不显示 resize hit zone，拖拽过程不改变对象选择状态且不造成工具栏/正文布局跳动。"
+      ]
+    },
+    {
+      "title": "统一视频块对象菜单与对齐入口",
+      "scope": [
+        "lib/src/widgets/wenz_rich_text_editor.dart",
+        "lib/src/controller/toolbar_controller.dart",
+        "lib/src/widgets/default_desktop_toolbar.dart",
+        "lib/src/widgets/default_mobile_toolbar.dart"
+      ],
+      "acceptance": [
+        "视频块对象菜单提供左对齐、居中、右对齐、清除对齐，以及小/中/大尺寸预设和重置尺寸入口，行为与图片块对应能力一致。",
+        "选中视频块时桌面和移动工具栏可读取并设置视频块对齐状态，混合选择、清除对齐和只读权限表现正确。",
+        "对象菜单对齐/尺寸操作保留视频块既有元数据、选择状态和 undo/redo 行为。"
+      ]
+    },
+    {
+      "title": "补齐视频尺寸与对齐的模型和控制器测试",
+      "scope": [
+        "test/core/model_test.dart",
+        "test/controller/video_block_controller_test.dart",
+        "test/controller/toolbar_controller_test.dart",
+        "test/codecs/rich_text_json_codec_test.dart"
+      ],
+      "acceptance": [
+        "VideoBlockNode 的 showWidth/showHeight 能正确 round trip，旧 JSON 无尺寸字段时保持兼容。",
+        "insertVideo/updateVideoBlock 覆盖设置、清除、no-op、undo/redo 和非视频目标 no-op 场景。",
+        "ToolbarController 覆盖视频对象选择下的 alignment 读取、set/clear、混合对齐和无编辑权限 no-op 场景。"
+      ]
+    },
+    {
+      "title": "补齐视频块渲染和交互测试",
+      "scope": [
+        "test/widgets/wenz_rich_text_editor_test.dart",
+        "test/widgets/media_resolver_test.dart",
+        "test/widgets/editor_golden_test.dart"
+      ],
+      "acceptance": [
+        "widget 测试覆盖视频块按 showWidth/showHeight 渲染、left/center/right 对齐定位、占位内容和自定义 resolver 内容不会越界。",
+        "widget 测试覆盖选中视频块 resize 手柄展示、拖拽提交尺寸、只读状态隐藏手柄，以及拖拽不破坏选择和工具栏 overlay 锚点。",
+        "对象菜单测试覆盖视频块尺寸预设、重置尺寸、对齐设置和清除对齐，并验证视频 metadata 不丢失。"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter test",
+    "criteria": [
+      "全量 Flutter 测试通过，无新增失败、超时或 golden 断言失败。",
+      "视频块尺寸字段在模型、命令、控制器、codec/clipboard 路径中保持一致，旧文档数据兼容。",
+      "视频块在选中可编辑时可像图片块一样通过拖拽和菜单调节显示尺寸，且只读/无权限状态不会修改文档。",
+      "视频块 left、center、right、清除对齐在工具栏、对象菜单和最终渲染中一致，placeholder 与自定义 resolver 内容均保持在视频 frame 内。"
+    ]
+  }
+}

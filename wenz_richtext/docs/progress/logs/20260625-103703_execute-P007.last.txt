@@ -1,0 +1,13 @@
+**完成内容**
+- 新增长文档把手拖拽隔离回归：`test/widgets/wenz_rich_text_editor_test.dart:1773`
+- 新增异构顶层 block 移动与表格 selection 回归：`test/core/block_structure_commands_test.dart:257`
+- 新增菜单态与落点线交互 golden：`test/widgets/editor_golden_test.dart:196`、`test/widgets/editor_golden_test.dart:214`
+- 生成对应 golden：`test/widgets/goldens/editor_block_handle_menu.png`、`test/widgets/goldens/editor_block_drop_indicator.png`
+- 更新把手回归矩阵与使用说明：`docs/selection_engine.md:73`、`README.md:54`、`README.md:72`
+- 未修改 plan 文件。
+
+**验证结果**
+- 已通过：`dart format ...`
+- 已通过：`flutter test test/widgets/editor_golden_test.dart --update-goldens --name "golden: block"`
+- 已通过：P007 三条定向测试、`flutter analyze`
+- `flutter test` 全量失败 2 项，均在 P007 scope 外：`test/widgets/import_export_demo_test.dart` 的 markdown/html 示例测试，失败原因为 `RenderFlex overflow` 与 deactivated widget ancestor 异常。

@@ -1,0 +1,12 @@
+已完成指定任务 P005；未修改 plan 文件、未勾选 checkbox、未运行测试/构建/分析命令。
+
+**完成内容**
+- `lib/src/controller/slash_menu_controller.dart:16`：新增 `SlashMenuItemFilter`、`SlashMenuItemSorter` 公共扩展类型。
+- `lib/src/controller/slash_menu_controller.dart:80`：`SlashMenuRegistry` 支持 `registerAll`、覆盖去重查询、外部过滤器、排序器。
+- `lib/src/plugins/editor_plugin.dart:116`：`WenzPluginContext` 增加批量注册 slash menu item、添加过滤器、设置排序器入口。
+- `lib/src/plugins/editor_plugin.dart:172`：`WenzPluginBundle` 增加 `slashMenuFilters` 和 `slashMenuSorter` 声明式扩展配置。
+- `test/controller/slash_menu_controller_test.dart:494`：补充 registry 覆盖、过滤、排序、去重测试。
+- `test/plugins/editor_plugin_test.dart:69`：补充插件 bundle 和 context 的 slash 菜单扩展测试。
+
+**未执行验证**
+- 按本阶段要求，未运行 `flutter test`、`dart test`、`flutter analyze`、`dart analyze`、格式化或构建命令。

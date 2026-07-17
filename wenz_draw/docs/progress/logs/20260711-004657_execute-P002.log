@@ -1,0 +1,5345 @@
+OpenAI Codex v0.144.1
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_draw
+model: gpt-5.6-sol
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f4ce6-44aa-7090-aabc-a8d41bc388ca
+--------
+user
+你是开发执行者，在无人值守模式下工作：禁止反问用户、禁止请求确认或补充信息、禁止输出“请告诉我…/是否需要…”之类等待回复的话；遇到不确定一律自行从代码推断，按最合理的工程方案直接推进，不要停下来等待输入。
+请只执行指定任务 P002，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_draw\docs\plan\plan_requirement_2_20260711-002820.md
+指定任务：- [ ] P002: 补充文字编辑悬浮工具栏交互的 Widget 回归覆盖 <!-- scope: test/infinite_canvas_text_editing_test.dart -->
+任务 scope：test/infinite_canvas_text_editing_test.dart
+
+完成后必须：
+- 当前任务已恢复同一 plan 前序任务的 Codex 会话，请沿用已有分析结论和修改背景，避免重新从零梳理
+- 这是无人值守执行：不要提问、不要请求确认、不要等待用户输入，所有不确定项自行基于代码推断并直接落地修改
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 当前阶段只做开发修改，不运行测试、回归、验收、构建、lint/analyze、coverage、e2e 或 benchmark 命令；AutoPlan 会在所有任务完成后统一执行最终验收命令
+- 即使任务验收要点提到测试，也只补充或调整必要代码/测试文件，不在当前任务内启动测试进程；除非当前任务或 plan 总体说明明确写着“本任务必须执行某命令”
+- 若识别到 Flutter/Dart 项目，可遵循其代码组织、格式和测试文件约定，但当前任务内不要运行 flutter test、dart test、flutter analyze 或 dart analyze
+- 如果工具链命令因 PathAccessException、Permission denied、拒绝访问或超时失败，停止重试并说明环境阻塞，把验证留给最终验收阶段
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+2026-07-10T16:47:03.170498Z ERROR codex_models_manager::manager: failed to refresh available models: timeout waiting for child process to exit
+codex
+我会沿用 P001 的实现背景，只补充 `test/infinite_canvas_text_editing_test.dart`：覆盖窄文本与缩放下的工具栏边缘命中、两类编辑目标的颜色/字号/字体族与颜色弹层焦点恢复，以及外部点击单次提交和撤销。按要求仅编写测试，不启动任何测试、构建或分析命令。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Write-Output '--- P002 context ---'
+Select-String -LiteralPath 'docs\\plan\\plan_requirement_2_20260711-002820.md' -Pattern 'P002|Widget 回归|窄文字|共享编辑|真正点击' -Context 1,5 -Encoding UTF8
+Write-Output '--- target status ---'
+git status --short -- 'test/infinite_canvas_text_editing_test.dart' 'lib/src/infinite_canvas/infinite_canvas_widget.dart' 'docs/plan/plan_requirement_2_20260711-002820.md'
+Write-Output '--- widget test candidates ---'
+rg -l \"InfiniteCanvasWidget|beginTextEditing|beginShapeLabelEditing|TextTool|undo\\(\" test -g \"*.dart\"
+Write-Output '--- test directories ---'
+Get-ChildItem -LiteralPath test -File | Select-Object -ExpandProperty Name | Sort-Object" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 4954ms:
+--- P002 context ---
+
+  docs\plan\plan_requirement_2_20260711-002820.md:13:  - 验收要点：只有提交输入或点击文字编辑区域与悬浮工具栏之外的位置才结束编辑；一次编辑会话中的文字与字体样式变更作为一次可撤销修
+改提交，不会因弹层焦点变化重复提交、遗漏历史记录或访问已释放的 FocusNode。
+> docs\plan\plan_requirement_2_20260711-002820.md:14:- [ ] P002: 补充文字编辑悬浮工具栏交互的 Widget 回归覆盖 <!-- scope: test/infinite_c
+anvas_text_editing_test.dart -->
+> docs\plan\plan_requirement_2_20260711-002820.md:15:  - 验收要点：覆盖窄文字元素在常规缩放和非 1.0 缩放下进入编辑后点击悬浮栏边缘控件的场景，验证编辑状态不会被画布指针处理提前
+终止。
+  docs\plan\plan_requirement_2_20260711-002820.md:16:  - 验收要点：覆盖预设颜色、字号、字体族以及自定义颜色弹层的选择或取消流程，验证样式写入当前元素、工具栏状态同步且输入焦点能够恢
+复。
+> docs\plan\plan_requirement_2_20260711-002820.md:17:  - 验收要点：覆盖共享编辑覆盖层处理独立文字元素和可编辑图形标签的场景，验证两类目标均可在不退出编辑的情况下修改字体样式。
+> docs\plan\plan_requirement_2_20260711-002820.md:18:  - 验收要点：覆盖真正点击编辑区外后只提交一次以及撤销恢复编辑前文字和样式的场景，并验证工具栏弹层关闭、组件重建和焦点节点释放过
+程中没有异常。
+  docs\plan\plan_requirement_2_20260711-002820.md:19:- [ ] P003: 完整验收 <!-- scope: validation -->
+  docs\plan\plan_requirement_2_20260711-002820.md:20:  - 验收要点：最终验收命令为 flutter analyze && flutter test
+  docs\plan\plan_requirement_2_20260711-002820.md:21:  - 验收要点：Flutter 静态分析无新增错误或警告，完整测试套件全部通过。
+  docs\plan\plan_requirement_2_20260711-002820.md:22:  - 验收要点：文字输入框进入编辑后，悬浮工具栏所有可见区域在窄文本、不同字号和不同画布缩放下均可正常交互，不会触发误提交或画布工
+具操作。
+  docs\plan\plan_requirement_2_20260711-002820.md:23:  - 验收要点：预设颜色、自定义颜色、字号和字体族均可连续设置并即时显示，关闭下拉菜单或颜色对话框后仍可继续输入文字。
+--- target status ---
+ M lib/src/infinite_canvas/infinite_canvas_widget.dart
+?? docs/plan/plan_requirement_2_20260711-002820.md
+--- widget test candidates ---
+--- test directories ---
+canvas_config_test.dart
+canvas_controller_test.dart
+canvas_transform_test.dart
+clipboard_test.dart
+curve_element_test.dart
+document_robustness_test.dart
+drawio_importer_test.dart
+drawio_shape_element_test.dart
+drawio_style_parser_test.dart
+image_loader_test.dart
+line_arrow_mode_control_test.dart
+line_arrow_style_test.dart
+line_label_test.dart
+mindmap_module_test.dart
+minimap_widget_test.dart
+performance_widget_test.dart
+polyline_element_test.dart
+roundtrip_closure_test.dart
+serialization_test.dart
+shape_label_test.dart
+snap_resolver_test.dart
+stencil_parser_advanced_test.dart
+stencil_parser_test.dart
+svg_exporter_test.dart
+text_element_test.dart
+toolbar_test.dart
+toolbar_test.dart~32100
+widget_element_test.dart
+
+
+rg : 无法将“rg”项识别为 cmdlet、函数、脚本文件或可运行程序的名称。请检查名称的拼写，如果包括路径，请确保路径正确，然后再试一次。
+所在位置 行:7 字符: 1
++ rg -l "InfiniteCanvasWidget|beginTextEditing|beginShapeLabelEditing|T ...
++ ~~
+    + CategoryInfo          : ObjectNotFound: (rg:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+
+codex
+目标测试文件当前不存在，将按项目现有测试风格新建。当前环境未提供 `rg`，后续改用 PowerShell 只读检索；这不影响开发，也不会触发工具链命令。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Write-Output '--- references to InfiniteCanvasWidget/editing APIs ---'
+Get-ChildItem -LiteralPath test -File -Filter '*.dart' | Select-String -Pattern 'InfiniteCanvasWidget|beginTextEditing|beginShapeLabelEditing|editingTextElementId|editingShapeLabelElementId|undo\\(' -Encoding UTF8 | Select-Object -First 300
+Write-Output '--- canvas controller tests ---'
+Get-Content -LiteralPath 'test/canvas_controller_test.dart' -Encoding UTF8 | Select-Object -First 260
+Write-Output '--- performance widget harness ---'
+Get-Content -LiteralPath 'test/performance_widget_test.dart' -Encoding UTF8 | Select-Object -Skip 360 -First 260
+Write-Output '--- small widget tests ---'
+Get-Content -LiteralPath 'test/line_arrow_mode_control_test.dart' -Encoding UTF8
+Get-Content -LiteralPath 'test/toolbar_test.dart' -Encoding UTF8 | Select-Object -First 170" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 887ms:
+--- references to InfiniteCanvasWidget/editing APIs ---
+
+test\canvas_controller_test.dart:117:    controller.undo();
+test\canvas_controller_test.dart:432:    controller.undo();
+test\canvas_controller_test.dart:516:    controller.undo();
+test\clipboard_test.dart:550:      controller.undo();
+test\clipboard_test.dart:577:      controller.undo();
+test\line_arrow_style_test.dart:97:      controller.undo();
+test\line_label_test.dart:158:    expect(controller.editingShapeLabelElementId, 'poly-1');
+test\line_label_test.dart:191:    expect(controller.editingShapeLabelElementId, 'line-1');
+test\line_label_test.dart:202:    expect(controller.editingShapeLabelElementId, 'arrow-1');
+test\performance_widget_test.dart:409:              body: InfiniteCanvasWidget(
+test\performance_widget_test.dart:443:            body: InfiniteCanvasWidget(
+test\performance_widget_test.dart:484:            body: InfiniteCanvasWidget(
+test\performance_widget_test.dart:529:            body: InfiniteCanvasWidget(
+test\performance_widget_test.dart:578:              body: InfiniteCanvasWidget(
+test\performance_widget_test.dart:620:    controller.undo();
+test\snap_resolver_test.dart:378:    controller.undo();
+test\snap_resolver_test.dart:686:    controller.undo();
+test\snap_resolver_test.dart:760:    controller.undo();
+test\text_element_test.dart:93:    controller.beginTextEditing('text-1');
+test\text_element_test.dart:94:    expect(controller.editingTextElementId, 'text-1');
+test\text_element_test.dart:99:    controller.undo();
+test\text_element_test.dart:121:    expect(controller.editingTextElementId, 'text-1');
+test\text_element_test.dart:140:    controller.beginTextEditing('text-1');
+test\text_element_test.dart:147:    controller.undo();
+test\text_element_test.dart:158:    controller.beginTextEditing('text-1');
+test\text_element_test.dart:252:    controller.undo();
+--- canvas controller tests ---
+import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/widgets.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+
+void main() {
+  test(
+    'built-in shape tools create drawio shape elements from drag gestures',
+    () {
+      final controller = CanvasController();
+      controller
+        ..updateBrushSettings(
+          const BrushSettings(
+            color: Color(0xFF1D4ED8),
+            strokeWidth: 3,
+            fillColor: Color(0xFFE0F2FE),
+          ),
+        )
+        ..setTool(ShapeTool.idFor('rhombus'));
+
+      controller.dispatchCanvasEvent(
+        const CanvasPointerDownEvent(
+          pointer: 1,
+          screenPoint: Offset(20, 30),
+          worldPoint: Offset(20, 30),
+          transform: CanvasTransform.identity,
+          buttons: 1,
+        ),
+      );
+
+      expect(controller.previewElement, isA<DrawioShapeElement>());
+      expect(
+        (controller.previewElement! as DrawioShapeElement).shapeKey,
+        'rhombus',
+      );
+
+      controller.dispatchCanvasEvent(
+        const CanvasPointerMoveEvent(
+          pointer: 1,
+          screenPoint: Offset(120, 90),
+          worldPoint: Offset(120, 90),
+          transform: CanvasTransform.identity,
+          delta: Offset(100, 60),
+          buttons: 1,
+        ),
+      );
+      controller.dispatchCanvasEvent(
+        const CanvasPointerUpEvent(
+          pointer: 1,
+          screenPoint: Offset(120, 90),
+          worldPoint: Offset(120, 90),
+          transform: CanvasTransform.identity,
+        ),
+      );
+
+      final element = controller.elements.single as DrawioShapeElement;
+      expect(element.shapeKey, 'rhombus');
+      expect(element.rect, const Rect.fromLTWH(20, 30, 100, 60));
+      expect(element.strokeStyle.color, const Color(0xFF1D4ED8));
+      expect(element.strokeStyle.strokeWidth, 3);
+      expect(element.fillStyle!.color, const Color(0xFFE0F2FE));
+      expect(controller.previewElement, isNull);
+    },
+  );
+
+  test('adds, selects, and removes elements', () {
+    final controller = CanvasController();
+    const element = LineElement(
+      id: 'line-1',
+      start: Offset.zero,
+      end: Offset(100, 0),
+    );
+
+    controller.addElement(element);
+    expect(controller.elements.single.id, 'line-1');
+
+    controller.select('line-1');
+    expect(controller.selectedIds, {'line-1'});
+
+    controller.removeElement('line-1');
+    expect(controller.elements, isEmpty);
+    expect(controller.selectedIds, isEmpty);
+  });
+
+  test('hitTest returns topmost visible element', () {
+    final controller = CanvasController()
+      ..addElement(
+        const LineElement(
+          id: 'bottom',
+          start: Offset.zero,
+          end: Offset(100, 0),
+          zIndex: 0,
+        ),
+      )
+      ..addElement(
+        const LineElement(
+          id: 'top',
+          start: Offset.zero,
+          end: Offset(100, 0),
+          zIndex: 1,
+        ),
+      );
+
+    expect(controller.hitTest(const Offset(30, 0))?.id, 'top');
+  });
+
+  test('undo and redo restore element operations', () {
+    final controller = CanvasController();
+    const element = LineElement(
+      id: 'line-1',
+      start: Offset.zero,
+      end: Offset(10, 0),
+    );
+
+    controller.addElement(element);
+    expect(controller.canUndo, isTrue);
+
+    controller.undo();
+    expect(controller.elements, isEmpty);
+    expect(controller.canRedo, isTrue);
+
+    controller.redo();
+    expect(controller.elements.single.id, 'line-1');
+  });
+
+  test('layer visibility removes elements from hit testing', () {
+    final controller = CanvasController();
+    controller.addLayer(name: 'Hidden');
+    final hiddenLayerId = controller.activeLayerId;
+    controller
+      ..addElement(
+        const LineElement(
+          id: 'hidden-line',
+          start: Offset.zero,
+          end: Offset(100, 0),
+        ),
+      )
+      ..toggleLayerVisibility(hiddenLayerId);
+
+    expect(controller.hitTest(const Offset(20, 0)), isNull);
+  });
+
+  test('serializes and deserializes basic elements', () {
+    final controller = CanvasController()
+      ..addElement(
+        const RectElement(id: 'rect-1', rect: Rect.fromLTWH(0, 0, 20, 10)),
+      );
+
+    final json = CanvasSerializer.toJson(controller);
+    final document = CanvasSerializer.fromJson(json);
+
+    expect(document.elements.single, isA<RectElement>());
+    expect(document.elements.single.id, 'rect-1');
+  });
+  test('hitTest uses zIndex across drawing and widget elements', () {
+    final controller = CanvasController()
+      ..addElement(
+        const RectElement(
+          id: 'rect-bottom',
+          rect: Rect.fromLTWH(0, 0, 100, 100),
+          fillStyle: PaintStyle(),
+          zIndex: 0,
+        ),
+      )
+      ..addElement(
+        const CanvasWidgetElement(
+          id: 'widget-top',
+          worldRect: Rect.fromLTWH(0, 0, 100, 100),
+          widgetType: 'test-widget',
+          zIndex: 1,
+        ),
+      );
+
+    expect(controller.hitTest(const Offset(50, 50))?.id, 'widget-top');
+  });
+
+  test('hitTest uses zIndex when drawing element is above widget element', () {
+    final controller = CanvasController()
+      ..addElement(
+        const CanvasWidgetElement(
+          id: 'widget-bottom',
+          worldRect: Rect.fromLTWH(0, 0, 100, 100),
+          widgetType: 'test-widget',
+          zIndex: 0,
+        ),
+      )
+      ..addElement(
+        const RectElement(
+          id: 'rect-top',
+          rect: Rect.fromLTWH(0, 0, 100, 100),
+          fillStyle: PaintStyle(),
+          zIndex: 1,
+        ),
+      );
+
+    expect(controller.hitTest(const Offset(50, 50))?.id, 'rect-top');
+  });
+
+  test('hitTest prefers elements on higher layers', () {
+    final controller = CanvasController(
+      autoLayeringPolicy: const AutoLayeringPolicy.manual(),
+    );
+    controller.addLayer(name: 'Top');
+    final topLayerId = controller.activeLayerId;
+    controller
+      ..setActiveLayer('default')
+      ..addElement(
+        const CanvasWidgetElement(
+          id: 'widget-bottom-layer',
+          worldRect: Rect.fromLTWH(0, 0, 100, 100),
+          widgetType: 'test-widget',
+          layerId: 'default',
+          zIndex: 100,
+        ),
+      )
+      ..setActiveLayer(topLayerId)
+      ..addElement(
+        RectElement(
+          id: 'rect-top-layer',
+          rect: const Rect.fromLTWH(0, 0, 100, 100),
+          fillStyle: const PaintStyle(),
+          layerId: topLayerId,
+          zIndex: 0,
+        ),
+      );
+
+    expect(controller.hitTest(const Offset(50, 50))?.id, 'rect-top-layer');
+  });
+
+  test(
+    'orderedElements keeps mixed elements stable by layer, zIndex, insertion',
+    () {
+      final controller =
+          CanvasController(
+              autoLayeringPolicy: const AutoLayeringPolicy.manual(),
+            )
+            ..addElement(
+              const RectElement(
+                id: 'rect-a',
+                rect: Rect.fromLTWH(0, 0, 10, 10),
+                zIndex: 1,
+              ),
+            )
+            ..addElement(
+              const CanvasWidgetElement(
+                id: 'widget-b',
+                worldRect: Rect.fromLTWH(0, 0, 10, 10),
+                widgetType: 'test-widget',
+                zIndex: 1,
+              ),
+            )
+            ..addElement(
+              const RectElement(
+                id: 'rect-c',
+                rect: Rect.fromLTWH(0, 0, 10, 10),
+                zIndex: 0,
+              ),
+            );
+
+      expect(controller.orderedElements().map((element) => element.id), [
+        'rect-c',
+--- performance widget harness ---
+
+    test('undo stack stays within bounds', () {
+      final controller = CanvasController();
+      final elements = _make500Elements();
+
+      for (final e in elements) {
+        controller.addElement(e); // with history recording
+      }
+
+      // After 500 individual adds the undo stack should be pruned.
+      expect(controller.canUndo, isTrue);
+      final undoCount = _countUndos(controller);
+      print('  -> Undo stack depth after 500 adds: $undoCount');
+      // Should have been capped (default is usually 50-100).
+      expect(undoCount, lessThanOrEqualTo(200));
+    });
+  });
+
+  // -----------------------------------------------------------------
+  // 2) Full widget-tree performance tests.
+  // -----------------------------------------------------------------
+  group('Widget-tree: 500-element render', () {
+    // Ensure the builder is registered before widget tests run.
+    setUpAll(() {
+      WidgetElementRegistry.register('perf_box', const PerfBoxBuilder());
+      PerfBoxBuilder.reset();
+    });
+
+    tearDownAll(() {
+      WidgetElementRegistry.unregister('perf_box');
+    });
+
+    testWidgets(
+      'uses preview LOD instead of full widget builds at default zoom',
+      (tester) async {
+        final canvasController = CanvasController();
+        final viewController = InfiniteCanvasController(
+          canvasController: canvasController,
+        );
+
+        for (final e in _make500Elements()) {
+          canvasController.addElement(e, record: false);
+        }
+        PerfBoxBuilder.reset();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: InfiniteCanvasWidget(
+                controller: viewController,
+                config: const InfiniteCanvasConfig(gridType: GridType.none),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        expect(tester.takeException(), isNull);
+        expect(PerfBoxBuilder.buildCount, 0);
+        expect(PerfBoxBuilder.previewCount, greaterThan(0));
+      },
+    );
+
+    testWidgets('initial layout with 500 widgets does not crash', (
+      tester,
+    ) async {
+      final canvasController = CanvasController();
+      final viewController = InfiniteCanvasController(
+        canvasController: canvasController,
+      );
+
+      // Add all elements BEFORE mounting the widget so we measure "first-load".
+      for (final e in _make500Elements()) {
+        canvasController.addElement(e, record: false);
+      }
+
+      // Profiling: wrap pump in a measured scope.
+      final stopwatch = Stopwatch()..start();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: InfiniteCanvasWidget(
+              controller: viewController,
+              config: const InfiniteCanvasConfig(
+                gridType: GridType.none,
+                backgroundColor: Color(0xFFFFFFFF),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Allow the post-frame snapshot captures to settle.
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 1));
+
+      stopwatch.stop();
+
+      // The key assertion: no exceptions were thrown.
+      expect(tester.takeException(), isNull);
+      // The widget tree should still be alive.
+      expect(viewController.viewportSize, isNotNull);
+
+      print(
+        '  -> First-frame layout + 2 pump cycles with 500 elements: '
+        '${stopwatch.elapsedMilliseconds} ms',
+      );
+    });
+
+    testWidgets('scroll/pan performance with 500 widgets', (tester) async {
+      final canvasController = CanvasController();
+      final viewController = InfiniteCanvasController(
+        canvasController: canvasController,
+      );
+
+      for (final e in _make500Elements()) {
+        canvasController.addElement(e, record: false);
+      }
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: InfiniteCanvasWidget(
+              controller: viewController,
+              config: const InfiniteCanvasConfig(
+                gridType: GridType.none,
+                backgroundColor: Color(0xFFFFFFFF),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(seconds: 1));
+
+      // Simulate pan gestures.
+      final stopwatch = Stopwatch()..start();
+
+      final panGesture = await tester.startGesture(const Offset(300, 300));
+      for (double dx = 0; dx < 2000; dx += 50) {
+        await panGesture.moveBy(const Offset(-50, 0));
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await panGesture.up();
+      await tester.pump(const Duration(seconds: 1));
+
+      stopwatch.stop();
+
+      expect(tester.takeException(), isNull);
+      print(
+        '  -> Pan across 2000 world-units with 500 elements: '
+        '${stopwatch.elapsedMilliseconds} ms',
+      );
+    });
+
+    testWidgets('zoom performance with 500 widgets', (tester) async {
+      final canvasController = CanvasController();
+      final viewController = InfiniteCanvasController(
+        canvasController: canvasController,
+      );
+
+      for (final e in _make500Elements()) {
+        canvasController.addElement(e, record: false);
+      }
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: InfiniteCanvasWidget(
+              controller: viewController,
+              config: const InfiniteCanvasConfig(
+                gridType: GridType.none,
+                backgroundColor: Color(0xFFFFFFFF),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(seconds: 1));
+
+      final stopwatch = Stopwatch()..start();
+
+      // Zoom in and out in steps.
+      for (int i = 0; i < 10; i++) {
+        viewController.zoomIn();
+        await tester.pump(const Duration(milliseconds: 32));
+      }
+      for (int i = 0; i < 10; i++) {
+        viewController.zoomOut();
+        await tester.pump(const Duration(milliseconds: 32));
+      }
+      await tester.pump(const Duration(seconds: 1));
+
+      stopwatch.stop();
+
+      expect(tester.takeException(), isNull);
+      print(
+        '  -> Zoom in/out x10 with 500 elements: '
+        '${stopwatch.elapsedMilliseconds} ms',
+      );
+    });
+
+    testWidgets(
+      'full-frame rasterization timing',
+      (tester) async {
+        final canvasController = CanvasController();
+        final viewController = InfiniteCanvasController(
+          canvasController: canvasController,
+        );
+
+        for (final e in _make500Elements()) {
+          canvasController.addElement(e, record: false);
+        }
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: InfiniteCanvasWidget(
+                controller: viewController,
+                config: const InfiniteCanvasConfig(
+                  gridType: GridType.none,
+                  backgroundColor: Color(0xFFFFFFFF),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(seconds: 1));
+
+        // Measure how long a single frame takes to rasterize.
+        final durations = <Duration>[];
+
+        for (int i = 0; i < 5; i++) {
+          final stopwatch = Stopwatch()..start();
+          await tester.pump(const Duration(milliseconds: 16));
+          stopwatch.stop();
+          durations.add(stopwatch.elapsed);
+        }
+
+        final avgMs =
+            (durations.map((d) => d.inMicroseconds).reduce((a, b) => a + b) /
+                    durations.length /
+                    1000)
+                .toStringAsFixed(1);
+
+        print('  -> Avg pump() time across 5 frames: $avgMs ms');
+        // On a reasonable machine this should be well under 100 ms per pump
+        // (pump includes the full build/layout/paint/composite cycle).
+        expect(tester.takeException(), isNull);
+      },
+      timeout: const Timeout(Duration(minutes: 2)),
+    );
+  });
+}
+
+/// Count how many undo steps are available by actually stepping through them.
+int _countUndos(CanvasController controller) {
+  int count = 0;
+  while (controller.canUndo) {
+    controller.undo();
+--- small widget tests ---
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+import 'package:wenz_draw/wenz_draw_ui.dart';
+
+void main() {
+  testWidgets('line arrow control exposes all three modes', (tester) async {
+    LineArrowMode? changedMode;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 292,
+            child: LineArrowModeControl(
+              value: LineArrowMode.none,
+              onChanged: (mode) => changedMode = mode,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('无箭头'), findsOneWidget);
+    expect(find.text('单向箭头'), findsOneWidget);
+    expect(find.text('双向箭头'), findsOneWidget);
+
+    await tester.tap(find.text('双向箭头'));
+    expect(changedMode, LineArrowMode.both);
+  });
+
+  testWidgets('inspector updates a selected line to double arrows', (
+    tester,
+  ) async {
+    final controller = CanvasController()
+      ..addElement(
+        const LineElement(id: 'line', start: Offset.zero, end: Offset(100, 0)),
+        record: false,
+      )
+      ..setSelection({'line'});
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 292,
+            height: 900,
+            child: RightInspectorPanel(canvasController: controller),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('无箭头'), findsOneWidget);
+    await tester.tap(find.text('双向箭头'));
+    await tester.pump();
+
+    expect(
+      (controller.elementById('line') as LineElement).arrowStyle.mode,
+      LineArrowMode.both,
+    );
+  });
+}
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wenz_draw/src/ui/toolbar/toolbar.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+
+void main() {
+  group('Toolbar component insert menu', () {
+    testWidgets('shows mindmap with an icon distinct from curve', (
+      tester,
+    ) async {
+      await _pumpToolbar(tester);
+
+      expect(find.byIcon(Icons.timeline), findsOneWidget);
+
+      await tester.tap(find.byTooltip('特殊组件创建'));
+      await tester.pumpAndSettle();
+
+      final mindmapText = find.text('思维导图');
+      expect(mindmapText, findsOneWidget);
+
+      final mindmapItem = find.ancestor(
+        of: mindmapText,
+        matching: find.byWidgetPredicate(
+          (widget) => widget is PopupMenuItem<String>,
+        ),
+      );
+      expect(mindmapItem, findsOneWidget);
+      expect(
+        find.descendant(
+          of: mindmapItem,
+          matching: find.byIcon(Icons.account_tree_outlined),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: mindmapItem,
+          matching: find.byIcon(Icons.timeline),
+        ),
+        findsNothing,
+      );
+      expect(find.byIcon(Icons.timeline), findsOneWidget);
+    });
+
+    testWidgets('selecting mindmap calls only the mindmap callback', (
+      tester,
+    ) async {
+      final harness = await _pumpToolbar(tester);
+
+      await tester.tap(find.byTooltip('曲线'));
+      await tester.pump();
+
+      expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+      expect(find.byIcon(Icons.timeline), findsOneWidget);
+
+      await tester.tap(find.byTooltip('特殊组件创建'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('思维导图'));
+      await tester.pumpAndSettle();
+
+      expect(harness.mindmapAdds, 1);
+      expect(harness.stickyNoteAdds, 0);
+      expect(harness.counterAdds, 0);
+      expect(harness.canvasController.currentTool?.id, CurveTool.idValue);
+    });
+  });
+}
+
+Future<_ToolbarHarness> _pumpToolbar(WidgetTester tester) async {
+  final harness = _ToolbarHarness();
+  addTearDown(harness.dispose);
+
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: Align(
+          alignment: Alignment.topCenter,
+          child: Toolbar(
+            canvasController: harness.canvasController,
+            viewController: harness.viewController,
+            onAddStickyNote: () => harness.stickyNoteAdds++,
+            onAddCounter: () => harness.counterAdds++,
+            onAddMindmap: () => harness.mindmapAdds++,
+            onInsertImage: () => harness.imageInserts++,
+          ),
+        ),
+      ),
+    ),
+  );
+
+  return harness;
+}
+
+class _ToolbarHarness {
+  _ToolbarHarness() {
+    viewController = InfiniteCanvasController(
+      canvasController: canvasController,
+    );
+  }
+
+  final CanvasController canvasController = CanvasController();
+  late final InfiniteCanvasController viewController;
+  int stickyNoteAdds = 0;
+  int counterAdds = 0;
+  int mindmapAdds = 0;
+  int imageInserts = 0;
+
+  void dispose() {
+    viewController.dispose();
+    canvasController.dispose();
+  }
+}
+
+
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Write-Output '--- InfiniteCanvasController transform APIs ---'
+Get-Content -LiteralPath 'lib/src/infinite_canvas/infinite_canvas_controller.dart' -Encoding UTF8 | Select-Object -First 320
+Write-Output '--- TextElement constructor/copy ---'
+Get-Content -LiteralPath 'lib/src/elements/text_element.dart' -Encoding UTF8 | Select-Object -First 310
+Write-Output '--- RectElement constructor/copy ---'
+Get-Content -LiteralPath 'lib/src/elements/rect_element.dart' -Encoding UTF8 | Select-Object -First 250
+Write-Output '--- exports ---'
+Select-String -LiteralPath 'lib/wenz_draw.dart' -Pattern 'infinite_canvas_widget|infinite_canvas_controller|text_element|rect_element' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 767ms:
+--- InfiniteCanvasController transform APIs ---
+import 'dart:math' as math;
+
+import 'package:flutter/widgets.dart';
+
+import '../canvas/canvas_controller.dart';
+import '../serialization/canvas_document.dart';
+import 'canvas_transform.dart';
+
+class InfiniteCanvasController extends ChangeNotifier {
+  InfiniteCanvasController({
+    CanvasController? canvasController,
+    CanvasTransform transform = CanvasTransform.identity,
+    this.minScale = CanvasTransform.minScale,
+    this.maxScale = CanvasTransform.maxScale,
+  }) : canvasController = canvasController ?? CanvasController(),
+       _transform = transform;
+
+  final CanvasController canvasController;
+
+  /// Minimum zoom scale. Defaults to [CanvasTransform.minScale]; override via
+  /// the constructor to match a host's [InfiniteCanvasConfig.minScale].
+  final double minScale;
+
+  /// Maximum zoom scale. Defaults to [CanvasTransform.maxScale]; override via
+  /// the constructor to match a host's [InfiniteCanvasConfig.maxScale].
+  final double maxScale;
+
+  CanvasTransform _transform;
+  Size _viewportSize = Size.zero;
+
+  CanvasTransform get transform => _transform;
+  Size get viewportSize => _viewportSize;
+
+  void setViewportSize(Size size) {
+    if (_viewportSize == size) {
+      return;
+    }
+    _viewportSize = size;
+    notifyListeners();
+  }
+
+  void pan(Offset delta) {
+    if (delta == Offset.zero) {
+      return;
+    }
+    _setTransform(_transform.pan(delta));
+  }
+
+  void zoomTo(double newScale, {Offset? focalPoint}) {
+    final focus = focalPoint ?? _viewportCenter;
+    _setTransform(
+      _transform.zoomTo(
+        newScale,
+        focus,
+        minScale: minScale,
+        maxScale: maxScale,
+      ),
+    );
+  }
+
+  void zoomBy(double factor, {Offset? focalPoint}) {
+    final focus = focalPoint ?? _viewportCenter;
+    _setTransform(
+      _transform.zoomBy(
+        factor,
+        focus,
+        minScale: minScale,
+        maxScale: maxScale,
+      ),
+    );
+  }
+
+  void zoomIn({Offset? focalPoint}) {
+    zoomBy(1.2, focalPoint: focalPoint);
+  }
+
+  void zoomOut({Offset? focalPoint}) {
+    zoomBy(1 / 1.2, focalPoint: focalPoint);
+  }
+
+  void resetView() {
+    _setTransform(CanvasTransform.identity);
+  }
+
+  /// The current view as a serializable [DocumentViewport].
+  ///
+  /// Captures the zoom scale and the world-space point currently centered in
+  /// the viewport, so a document can be saved and later restored to the exact
+  /// same view. Returns an empty viewport when the viewport size is unknown
+  /// (e.g. before the widget has been laid out).
+  DocumentViewport get currentViewport {
+    if (_viewportSize.isEmpty) {
+      return const DocumentViewport();
+    }
+    final worldCenter = screenToWorld(_viewportCenter);
+    return DocumentViewport(
+      scale: _transform.scale,
+      centerX: worldCenter.dx,
+      centerY: worldCenter.dy,
+    );
+  }
+
+  /// Restores a previously saved view ([DocumentViewport]).
+  ///
+  /// Sets the zoom scale and recenters on the stored world point. No-op when
+  /// the viewport is empty (the widget has not been laid out yet) or the given
+  /// viewport carries no data. Call after [loadDocument] once the canvas widget
+  /// has a size; otherwise defer to the next frame.
+  void applyViewport(DocumentViewport viewport) {
+    if (_viewportSize.isEmpty || viewport.isEmpty) {
+      return;
+    }
+    final scale = viewport.scale;
+    if (scale == null) {
+      return;
+    }
+    final center = Offset(
+      viewport.centerX ?? 0,
+      viewport.centerY ?? 0,
+    );
+    final nextOffset = _viewportCenter - center * scale;
+    _setTransform(CanvasTransform(scale: scale, offset: nextOffset));
+  }
+
+  void centerOnWorld(Offset worldPoint) {
+    if (_viewportSize.isEmpty) {
+      return;
+    }
+    final nextOffset = _viewportCenter - worldPoint * _transform.scale;
+    _setTransform(_transform.copyWith(offset: nextOffset));
+  }
+
+  void zoomToFit(Rect contentBounds, {double padding = 48}) {
+    if (contentBounds.isEmpty || _viewportSize.isEmpty) {
+      return;
+    }
+
+    final availableWidth = (_viewportSize.width - padding * 2).clamp(
+      1.0,
+      double.infinity,
+    );
+    final availableHeight = (_viewportSize.height - padding * 2).clamp(
+      1.0,
+      double.infinity,
+    );
+    final widthScale = availableWidth / contentBounds.width;
+    final heightScale = availableHeight / contentBounds.height;
+    final scale = math
+        .min(widthScale, heightScale)
+        .clamp(minScale, maxScale)
+        .toDouble();
+    final viewportCenter = _viewportCenter;
+    final contentCenter = contentBounds.center;
+    final nextOffset = viewportCenter - contentCenter * scale;
+    _setTransform(CanvasTransform(scale: scale, offset: nextOffset));
+  }
+
+  Offset screenToWorld(Offset screenPoint) {
+    return _transform.screenToWorld(screenPoint);
+  }
+
+  Offset worldToScreen(Offset worldPoint) {
+    return _transform.worldToScreen(worldPoint);
+  }
+
+  Rect visibleWorldRect() {
+    return _transform.visibleWorldRect(_viewportSize);
+  }
+
+  Offset get _viewportCenter {
+    if (_viewportSize.isEmpty) {
+      return Offset.zero;
+    }
+    return Offset(_viewportSize.width / 2, _viewportSize.height / 2);
+  }
+
+  void _setTransform(CanvasTransform transform) {
+    if (transform == _transform) {
+      return;
+    }
+    _transform = transform;
+    notifyListeners();
+  }
+}
+--- TextElement constructor/copy ---
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+
+import '../utils/math_utils.dart';
+import 'canvas_element.dart';
+import 'element_renderer.dart';
+
+@immutable
+class TextElement extends CanvasElement {
+  TextElement({
+    required this.id,
+    required this.position,
+    required this.text,
+    this.style = const TextStyle(
+      color: Colors.black,
+      fontSize: 24,
+      height: 1.2,
+    ),
+    this.maxWidth,
+    this.boxSize,
+    this.textAlign = TextAlign.left,
+    this.rotation = 0,
+    this.layerId = 'default',
+    this.visible = true,
+    this.opacity = 1,
+    this.zIndex = 0,
+    this.groupId,
+  });
+
+  static const elementType = 'text';
+
+  @override
+  final String id;
+  final Offset position;
+  final String text;
+  final TextStyle style;
+  final double? maxWidth;
+  final Size? boxSize;
+  final TextAlign textAlign;
+  @override
+  final double rotation;
+
+  @override
+  final String layerId;
+  @override
+  final bool visible;
+  @override
+  final double opacity;
+  @override
+  final int zIndex;
+
+  @override
+  final String? groupId;
+
+  late final Size _laidOutSize = _layoutSize();
+
+  @override
+  String get type => elementType;
+
+  double? get layoutMaxWidth => boxSize?.width ?? maxWidth;
+
+  /// The unrotated local rect of this text element.
+  Rect get localBounds {
+    final size = boxSize ?? _laidOutSize;
+    final fallbackHeight = style.fontSize ?? 24;
+    return position &
+        Size(math.max(size.width, 1), math.max(size.height, fallbackHeight));
+  }
+
+  @override
+  Rect get bounds {
+    final rawBounds = localBounds;
+    return rotation != 0
+        ? rotatedRectBounds(rawBounds, rotation)
+        : rawBounds;
+  }
+
+  @override
+  bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
+    final size = boxSize ?? _laidOutSize;
+    final fallbackHeight = style.fontSize ?? 24;
+    final rawBounds = position &
+        Size(math.max(size.width, 1), math.max(size.height, fallbackHeight));
+    final localPoint = rotation != 0
+        ? inverseRotatePoint(worldPoint, rotation, rawBounds.center)
+        : worldPoint;
+    return rawBounds.inflate(tolerance).contains(localPoint);
+  }
+
+  TextPainter createTextPainter({Color? color, double opacity = 1}) {
+    final resolvedColor = color ?? style.color ?? Colors.black;
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: style.copyWith(
+          color: resolvedColor.withValues(alpha: opacity.clamp(0.0, 1.0)),
+        ),
+      ),
+      textAlign: textAlign,
+      textDirection: TextDirection.ltr,
+    );
+    final width = layoutMaxWidth;
+    painter.layout(maxWidth: width ?? double.infinity);
+    return painter;
+  }
+
+  @override
+  TextElement copyWith({
+    String? id,
+    Offset? position,
+    String? text,
+    TextStyle? style,
+    Object? maxWidth = _unset,
+    Object? boxSize = _unset,
+    TextAlign? textAlign,
+    double? rotation,
+    String? layerId,
+    bool? visible,
+    double? opacity,
+    int? zIndex,
+    Object? groupId = _unset,
+  }) {
+    return TextElement(
+      id: id ?? this.id,
+      position: position ?? this.position,
+      text: text ?? this.text,
+      style: style ?? this.style,
+      maxWidth: identical(maxWidth, _unset)
+          ? this.maxWidth
+          : maxWidth as double?,
+      boxSize: identical(boxSize, _unset) ? this.boxSize : boxSize as Size?,
+      textAlign: textAlign ?? this.textAlign,
+      rotation: rotation ?? this.rotation,
+      layerId: layerId ?? this.layerId,
+      visible: visible ?? this.visible,
+      opacity: opacity ?? this.opacity,
+      zIndex: zIndex ?? this.zIndex,
+      groupId: identical(groupId, _unset)
+          ? this.groupId
+          : groupId as String?,
+    );
+  }
+
+  @override
+  TextElement translate(Offset delta) {
+    return copyWith(position: position + delta);
+  }
+
+  @override
+  TextElement scaleElement(double factor, {Offset? pivot}) {
+    final origin = pivot ?? bounds.center;
+    return copyWith(
+      position: scalePoint(position, factor, origin),
+      style: style.copyWith(fontSize: (style.fontSize ?? 24) * factor.abs()),
+      maxWidth: maxWidth == null ? null : maxWidth! * factor.abs(),
+      boxSize: boxSize == null ? null : boxSize! * factor.abs(),
+    );
+  }
+
+  @override
+  TextElement rotateElement(double radians, {Offset? pivot}) {
+    final lb = localBounds;
+    final oldCenter = lb.center;
+    final origin = pivot ?? oldCenter;
+    final nextCenter = rotatePoint(oldCenter, radians, origin);
+    return copyWith(
+      position: nextCenter - Offset(lb.width / 2, lb.height / 2),
+      rotation: rotation + radians,
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'layerId': layerId,
+      'visible': visible,
+      'opacity': opacity,
+      'zIndex': zIndex,
+      'groupId': groupId,
+      'position': {'x': position.dx, 'y': position.dy},
+      'text': text,
+      if (maxWidth != null) 'maxWidth': maxWidth,
+      if (boxSize != null) 'boxSize': _sizeToJson(boxSize!),
+      'textAlign': textAlign.name,
+      if (rotation != 0) 'rotation': rotation,
+      'style': {
+        'color': (style.color ?? Colors.black).toARGB32(),
+        'fontSize': style.fontSize ?? 24,
+        'fontWeight': _fontWeightToJson(style.fontWeight),
+        'height': style.height ?? 1.2,
+        if (style.fontFamily != null) 'fontFamily': style.fontFamily,
+      },
+    };
+  }
+
+  Size _layoutSize() {
+    if (text.isEmpty) {
+      final height = style.fontSize ?? 24;
+      return Size(layoutMaxWidth ?? 1, height);
+    }
+    return createTextPainter(opacity: 1).size;
+  }
+
+  static const _unset = Object();
+
+  static Map<String, double> _sizeToJson(Size size) {
+    return {'width': size.width, 'height': size.height};
+  }
+
+  static int _fontWeightToJson(FontWeight? fontWeight) {
+    return fontWeight?.value ?? FontWeight.normal.value;
+  }
+}
+
+class TextElementRenderer extends ElementRenderer<TextElement> {
+  const TextElementRenderer();
+
+  @override
+  void render(Canvas canvas, TextElement element) {
+    if (!element.visible || element.text.isEmpty) {
+      return;
+    }
+    final painter = element.createTextPainter(
+      color: element.style.color ?? Colors.black,
+      opacity: element.opacity,
+    );
+    final boxSize = element.boxSize;
+    final center = boxSize != null
+        ? element.position + boxSize.center(Offset.zero)
+        : element.position + Offset(painter.width / 2, painter.height / 2);
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(element.rotation);
+    canvas.translate(-center.dx, -center.dy);
+    if (boxSize != null) {
+      canvas.clipRect(element.position & boxSize);
+    }
+    painter.paint(canvas, element.position);
+    canvas.restore();
+  }
+
+  @override
+  bool hitTest(TextElement element, Offset worldPoint, double tolerance) {
+    return element.hitTest(worldPoint, tolerance: tolerance);
+  }
+}
+--- RectElement constructor/copy ---
+import 'package:flutter/material.dart';
+
+import '../canvas/paint_style.dart';
+import '../utils/math_utils.dart';
+import 'canvas_element.dart';
+import 'element_renderer.dart';
+import 'shape_label_painter.dart';
+
+@immutable
+class RectElement extends CanvasElement {
+  const RectElement({
+    required this.id,
+    required this.rect,
+    this.borderRadius = 0,
+    this.strokeStyle = const PaintStyle(),
+    this.fillStyle,
+    this.label,
+    this.labelStyle = ShapeLabelPainter.defaultStyle,
+    this.labelAlign = TextAlign.center,
+    this.labelPadding = ShapeLabelPainter.defaultPadding,
+    this.rotation = 0,
+    this.layerId = 'default',
+    this.visible = true,
+    this.opacity = 1,
+    this.zIndex = 0,
+    this.groupId,
+  });
+
+  static const elementType = 'rect';
+
+  @override
+  final String id;
+
+  final Rect rect;
+  final double borderRadius;
+  final PaintStyle strokeStyle;
+  final PaintStyle? fillStyle;
+  final String? label;
+  final TextStyle labelStyle;
+  final TextAlign labelAlign;
+  final EdgeInsets labelPadding;
+  @override
+  final double rotation;
+
+  @override
+  final String layerId;
+
+  @override
+  final bool visible;
+
+  @override
+  final double opacity;
+
+  @override
+  final int zIndex;
+
+  @override
+  final String? groupId;
+
+  @override
+  String get type => elementType;
+
+  @override
+  Rect get bounds =>
+      rotatedRectBounds(rect.inflate(strokeStyle.strokeWidth / 2), rotation);
+
+  @override
+  bool hitTest(Offset worldPoint, {double tolerance = 5.0}) {
+    final localPoint = rotation != 0
+        ? inverseRotatePoint(worldPoint, rotation, rect.center)
+        : worldPoint;
+    if (fillStyle != null && rect.contains(localPoint)) {
+      return true;
+    }
+
+    final outer = rect.inflate(tolerance + strokeStyle.strokeWidth / 2);
+    final inner = rect.deflate(tolerance + strokeStyle.strokeWidth / 2);
+    return outer.contains(localPoint) && !inner.contains(localPoint);
+  }
+
+  @override
+  RectElement copyWith({
+    String? id,
+    Rect? rect,
+    double? borderRadius,
+    PaintStyle? strokeStyle,
+    Object? fillStyle = _unset,
+    Object? label = _unset,
+    TextStyle? labelStyle,
+    TextAlign? labelAlign,
+    EdgeInsets? labelPadding,
+    double? rotation,
+    String? layerId,
+    bool? visible,
+    double? opacity,
+    int? zIndex,
+    Object? groupId = _unset,
+  }) {
+    return RectElement(
+      id: id ?? this.id,
+      rect: rect ?? this.rect,
+      borderRadius: borderRadius ?? this.borderRadius,
+      strokeStyle: strokeStyle ?? this.strokeStyle,
+      fillStyle: identical(fillStyle, _unset)
+          ? this.fillStyle
+          : fillStyle as PaintStyle?,
+      label: identical(label, _unset) ? this.label : label as String?,
+      labelStyle: labelStyle ?? this.labelStyle,
+      labelAlign: labelAlign ?? this.labelAlign,
+      labelPadding: labelPadding ?? this.labelPadding,
+      rotation: rotation ?? this.rotation,
+      layerId: layerId ?? this.layerId,
+      visible: visible ?? this.visible,
+      opacity: opacity ?? this.opacity,
+      zIndex: zIndex ?? this.zIndex,
+      groupId: identical(groupId, _unset)
+          ? this.groupId
+          : groupId as String?,
+    );
+  }
+
+  @override
+  RectElement translate(Offset delta) {
+    return copyWith(rect: rect.shift(delta));
+  }
+
+  @override
+  RectElement scaleElement(double factor, {Offset? pivot}) {
+    final origin = pivot ?? rect.center;
+    return copyWith(
+      rect: Rect.fromPoints(
+        scalePoint(rect.topLeft, factor, origin),
+        scalePoint(rect.bottomRight, factor, origin),
+      ),
+      strokeStyle: strokeStyle.copyWith(
+        strokeWidth: strokeStyle.strokeWidth * factor.abs(),
+      ),
+      labelStyle: labelStyle.copyWith(
+        fontSize: (labelStyle.fontSize ?? 16) * factor.abs(),
+      ),
+      labelPadding: labelPadding * factor.abs(),
+    );
+  }
+
+  @override
+  RectElement rotateElement(double radians, {Offset? pivot}) {
+    final origin = pivot ?? rect.center;
+    final nextCenter = rotatePoint(rect.center, radians, origin);
+    return copyWith(
+      rect: Rect.fromCenter(
+        center: nextCenter,
+        width: rect.width,
+        height: rect.height,
+      ),
+      rotation: rotation + radians,
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'layerId': layerId,
+      'visible': visible,
+      'opacity': opacity,
+      'zIndex': zIndex,
+      'groupId': groupId,
+      'rect': {
+        'left': rect.left,
+        'top': rect.top,
+        'right': rect.right,
+        'bottom': rect.bottom,
+      },
+      'borderRadius': borderRadius,
+      'strokeStyle': strokeStyle.toJson(),
+      'fillStyle': fillStyle?.toJson(),
+      if (label != null) 'label': label,
+      'labelStyle': ShapeLabelPainter.styleToJson(labelStyle),
+      'labelAlign': labelAlign.name,
+      'labelPadding': ShapeLabelPainter.paddingToJson(labelPadding),
+      if (rotation != 0) 'rotation': rotation,
+    };
+  }
+
+  static const _unset = Object();
+}
+
+class RectElementRenderer extends ElementRenderer<RectElement> {
+  const RectElementRenderer();
+
+  @override
+  void render(Canvas canvas, RectElement element) {
+    if (!element.visible) {
+      return;
+    }
+
+    canvas.save();
+    canvas.translate(element.rect.center.dx, element.rect.center.dy);
+    canvas.rotate(element.rotation);
+    canvas.translate(-element.rect.center.dx, -element.rect.center.dy);
+
+    final rrect = RRect.fromRectAndRadius(
+      element.rect,
+      Radius.circular(element.borderRadius),
+    );
+
+    final fillStyle = element.fillStyle;
+    if (fillStyle != null) {
+      canvas.drawRRect(
+        rrect,
+        fillStyle
+            .copyWith(
+              opacity: fillStyle.opacity * element.opacity,
+              paintingStyle: PaintingStyle.fill,
+            )
+            .toPaint(),
+      );
+    }
+
+    canvas.drawRRect(
+      rrect,
+      element.strokeStyle
+          .copyWith(opacity: element.strokeStyle.opacity * element.opacity)
+          .toPaint(),
+    );
+
+    ShapeLabelPainter.paint(
+      canvas,
+      rect: element.rect,
+      label: element.label,
+      style: element.labelStyle,
+      textAlign: element.labelAlign,
+      padding: element.labelPadding,
+      opacity: element.opacity,
+    );
+
+    canvas.restore();
+  }
+
+  @override
+  bool hitTest(RectElement element, Offset worldPoint, double tolerance) {
+    return element.hitTest(worldPoint, tolerance: tolerance);
+  }
+}
+--- exports ---
+
+lib\wenz_draw.dart:29:export 'src/elements/rect_element.dart';
+lib\wenz_draw.dart:34:export 'src/elements/text_element.dart';
+lib\wenz_draw.dart:48:export 'src/infinite_canvas/infinite_canvas_controller.dart';
+lib\wenz_draw.dart:50:export 'src/infinite_canvas/infinite_canvas_widget.dart';
+
+
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Select-String -LiteralPath 'lib/wenz_draw.dart' -Pattern 'canvas_transform' -Encoding UTF8
+Get-Content -LiteralPath 'lib/src/infinite_canvas/canvas_transform.dart' -Encoding UTF8 | Select-Object -First 210
+Write-Output '--- text controller editing tests ---'
+Get-Content -LiteralPath 'test/text_element_test.dart' -Encoding UTF8 | Select-Object -Skip 70 -First 120
+Write-Output '--- label editing controller tests ---'
+Get-Content -LiteralPath 'test/line_label_test.dart' -Encoding UTF8 | Select-Object -Skip 130 -First 90
+Write-Output '--- history manager public depth APIs ---'
+Get-ChildItem -LiteralPath lib -Recurse -File -Filter '*.dart' | Select-String -Pattern 'undoCount|historyLength|canUndo|class HistoryManager' -Encoding UTF8 | Select-Object -First 160" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 1280ms:
+
+lib\wenz_draw.dart:46:export 'src/infinite_canvas/canvas_transform.dart';
+import 'package:flutter/widgets.dart';
+
+@immutable
+class CanvasTransform {
+  const CanvasTransform({this.scale = 1.0, this.offset = Offset.zero});
+
+  static const identity = CanvasTransform();
+
+  static const minScale = 0.1;
+  static const maxScale = 10.0;
+
+  final double scale;
+  final Offset offset;
+
+  Offset screenToWorld(Offset screenPoint) {
+    return (screenPoint - offset) / scale;
+  }
+
+  Offset worldToScreen(Offset worldPoint) {
+    return worldPoint * scale + offset;
+  }
+
+  Rect visibleWorldRect(Size viewportSize) {
+    return Rect.fromLTWH(
+      -offset.dx / scale,
+      -offset.dy / scale,
+      viewportSize.width / scale,
+      viewportSize.height / scale,
+    );
+  }
+
+  CanvasTransform pan(Offset delta) {
+    return copyWith(offset: offset + delta);
+  }
+
+  CanvasTransform zoomTo(
+    double newScale,
+    Offset focalPoint, {
+    double minScale = CanvasTransform.minScale,
+    double maxScale = CanvasTransform.maxScale,
+  }) {
+    final clampedScale = newScale.clamp(minScale, maxScale).toDouble();
+    final worldPoint = screenToWorld(focalPoint);
+    final nextOffset = Offset(
+      focalPoint.dx - worldPoint.dx * clampedScale,
+      focalPoint.dy - worldPoint.dy * clampedScale,
+    );
+
+    return CanvasTransform(scale: clampedScale, offset: nextOffset);
+  }
+
+  CanvasTransform zoomBy(
+    double factor,
+    Offset focalPoint, {
+    double minScale = CanvasTransform.minScale,
+    double maxScale = CanvasTransform.maxScale,
+  }) {
+    return zoomTo(
+      scale * factor,
+      focalPoint,
+      minScale: minScale,
+      maxScale: maxScale,
+    );
+  }
+
+  CanvasTransform reset() {
+    return identity;
+  }
+
+  Matrix4 toMatrix4() {
+    return Matrix4.identity()
+      ..translateByDouble(offset.dx, offset.dy, 0, 1)
+      ..scaleByDouble(scale, scale, scale, 1);
+  }
+
+  CanvasTransform copyWith({double? scale, Offset? offset}) {
+    return CanvasTransform(
+      scale: scale ?? this.scale,
+      offset: offset ?? this.offset,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is CanvasTransform &&
+        other.scale == scale &&
+        other.offset == offset;
+  }
+
+  @override
+  int get hashCode => Object.hash(scale, offset);
+
+  @override
+  String toString() {
+    return 'CanvasTransform(scale: $scale, offset: $offset)';
+  }
+}
+--- text controller editing tests ---
+          CanvasSerializer.elementFromJson({
+                'id': 'old-text',
+                'type': 'text',
+                'position': {'x': 1, 'y': 2},
+                'text': 'Old',
+                'style': {'color': Colors.black.toARGB32(), 'fontSize': 24},
+              })
+              as TextElement;
+      expect(old.position, const Offset(1, 2));
+      expect(old.maxWidth, isNull);
+      expect(old.boxSize, isNull);
+      expect(old.textAlign, TextAlign.left);
+    },
+  );
+
+  test('controller text editing updates text and supports undo redo', () {
+    final controller = CanvasController();
+    controller.addElement(
+      TextElement(id: 'text-1', position: Offset.zero, text: 'Draft'),
+      record: false,
+    );
+
+    controller.beginTextEditing('text-1');
+    expect(controller.editingTextElementId, 'text-1');
+    controller.endTextEditing(text: 'Final');
+    expect((controller.elementById('text-1') as TextElement).text, 'Final');
+    expect(controller.canUndo, isTrue);
+
+    controller.undo();
+    expect((controller.elementById('text-1') as TextElement).text, 'Draft');
+    controller.redo();
+    expect((controller.elementById('text-1') as TextElement).text, 'Final');
+  });
+
+  test('select tool double tap starts editing existing text', () {
+    final controller = CanvasController();
+    controller.addElement(
+      TextElement(id: 'text-1', position: Offset.zero, text: 'Editable'),
+      record: false,
+    );
+    controller.setTool(SelectTool.idValue);
+
+    controller.dispatchCanvasEvent(
+      const CanvasDoubleTapEvent(
+        screenPoint: Offset(10, 10),
+        worldPoint: Offset(10, 10),
+        transform: CanvasTransform.identity,
+      ),
+    );
+
+    expect(controller.editingTextElementId, 'text-1');
+    controller.endTextEditing(text: 'Changed');
+    expect((controller.elementById('text-1') as TextElement).text, 'Changed');
+  });
+
+  test('live editing recalculates text bounds before commit', () {
+    final controller = CanvasController();
+    controller.addElement(
+      TextElement(
+        id: 'text-1',
+        position: Offset.zero,
+        text: 'Short',
+        maxWidth: 120,
+        style: const TextStyle(fontSize: 18, height: 1.2),
+      ),
+      record: false,
+    );
+
+    final before = controller.elementById('text-1')!.bounds;
+    controller.beginTextEditing('text-1');
+    controller.updateEditingText('Line one\nLine two\nLine three');
+    final during = controller.elementById('text-1')!.bounds;
+
+    expect(during.height, greaterThan(before.height));
+    controller.endTextEditing();
+    expect(controller.canUndo, isTrue);
+    controller.undo();
+    expect((controller.elementById('text-1') as TextElement).text, 'Short');
+  });
+
+  test('text tool click while editing only commits current edit', () {
+    final controller = CanvasController();
+    controller.setTool(TextTool.idValue);
+    controller.addElement(
+      TextElement(id: 'text-1', position: Offset.zero, text: 'Draft'),
+      record: false,
+    );
+    controller.beginTextEditing('text-1');
+    controller.updateEditingText('Changed');
+
+    controller.endTextEditing();
+
+    expect(controller.elements.length, 1);
+    expect((controller.elementById('text-1') as TextElement).text, 'Changed');
+  });
+
+  test('text tool creates a concrete resizable text box', () {
+    final controller = CanvasController();
+    controller.setTool(TextTool.idValue);
+    controller.dispatchCanvasEvent(
+      const CanvasPointerDownEvent(
+        screenPoint: Offset.zero,
+        worldPoint: Offset(12, 18),
+        transform: CanvasTransform.identity,
+      ),
+    );
+
+    final element = controller.elements.single as TextElement;
+    expect(element.position, const Offset(12, 18));
+    expect(element.boxSize, const Size(240, 96));
+    expect(element.maxWidth, 240);
+    expect(element.bounds, const Rect.fromLTWH(12, 18, 240, 96));
+  });
+
+  test('controller resizes text box and keeps wrapping width in sync', () {
+    final controller = CanvasController();
+    controller.addElement(
+      TextElement(
+        id: 'text-1',
+        position: Offset.zero,
+--- label editing controller tests ---
+    expect(restored.label, isNull);
+    expect(restored.labelStyle.fontSize, 14);
+    expect(restored.labelPosition, 0.5);
+    expect(restored.labelOffset, Offset.zero);
+    expect(restored.hitTest(const Offset(50, 3)), isTrue);
+    expect(restored.hitTest(const Offset(50, 30)), isFalse);
+  });
+  test('double tapping polyline begins line label editing', () {
+    final controller = CanvasController();
+    controller
+      ..addElement(
+        const PolylineElement(
+          id: 'poly-1',
+          points: [Offset(0, 0), Offset(100, 0), Offset(100, 100)],
+        ),
+        record: false,
+      )
+      ..setTool(SelectTool.idValue);
+
+    controller.dispatchCanvasEvent(
+      const CanvasDoubleTapEvent(
+        screenPoint: Offset(100, 0),
+        worldPoint: Offset(100, 0),
+        transform: CanvasTransform.identity,
+      ),
+    );
+
+    expect(controller.editingShapeLabelElementId, 'poly-1');
+    controller.endShapeLabelEditing(text: 'Flow');
+    expect((controller.elementById('poly-1') as PolylineElement).label, 'Flow');
+  });
+
+  test('double tapping line and arrow begins label editing', () {
+    final controller = CanvasController();
+    controller
+      ..addElement(
+        const LineElement(
+          id: 'line-1',
+          start: Offset(0, 0),
+          end: Offset(100, 0),
+        ),
+        record: false,
+      )
+      ..addElement(
+        const ArrowElement(
+          id: 'arrow-1',
+          start: Offset(0, 50),
+          end: Offset(100, 50),
+        ),
+        record: false,
+      )
+      ..setTool(SelectTool.idValue);
+
+    controller.dispatchCanvasEvent(
+      const CanvasDoubleTapEvent(
+        screenPoint: Offset(50, 0),
+        worldPoint: Offset(50, 0),
+        transform: CanvasTransform.identity,
+      ),
+    );
+    expect(controller.editingShapeLabelElementId, 'line-1');
+    controller.endShapeLabelEditing(text: 'Line');
+    expect((controller.elementById('line-1') as LineElement).label, 'Line');
+
+    controller.dispatchCanvasEvent(
+      const CanvasDoubleTapEvent(
+        screenPoint: Offset(50, 50),
+        worldPoint: Offset(50, 50),
+        transform: CanvasTransform.identity,
+      ),
+    );
+    expect(controller.editingShapeLabelElementId, 'arrow-1');
+    controller.endShapeLabelEditing(text: 'Arrow');
+    expect((controller.elementById('arrow-1') as ArrowElement).label, 'Arrow');
+  });
+}
+--- history manager public depth APIs ---
+lib\src\canvas\canvas_controller.dart:115:  bool get canUndo => historyManager.canUndo;
+lib\src\history\history_manager.dart:6:class HistoryManager extends ChangeNotifier {
+lib\src\history\history_manager.dart:13:  bool get canUndo => _undoStack.isNotEmpty;
+lib\src\history\history_manager.dart:33:    if (!canUndo) {
+lib\src\ui\toolbar\toolbar.dart:159:                    enabled: canvasController.canUndo,
+
+
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'lib/src/history/history_manager.dart' -Encoding UTF8 | Select-Object -First 180
+Get-Content -LiteralPath 'lib/wenz_draw.dart' -Encoding UTF8 | Select-Object -First 90
+Get-Content -LiteralPath 'lib/src/canvas/canvas_controller.dart' -Encoding UTF8 | Select-Object -First 145" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 772ms:
+import 'package:flutter/foundation.dart';
+
+import '../canvas/canvas_controller.dart';
+import 'canvas_command.dart';
+
+class HistoryManager extends ChangeNotifier {
+  HistoryManager({this.maxHistory = 100});
+
+  final int maxHistory;
+  final List<CanvasCommand> _undoStack = [];
+  final List<CanvasCommand> _redoStack = [];
+
+  bool get canUndo => _undoStack.isNotEmpty;
+  bool get canRedo => _redoStack.isNotEmpty;
+  List<CanvasCommand> get undoStack => List.unmodifiable(_undoStack);
+  List<CanvasCommand> get redoStack => List.unmodifiable(_redoStack);
+
+  void execute(CanvasCommand command, CanvasController controller) {
+    command.execute(controller);
+    record(command);
+  }
+
+  void record(CanvasCommand command) {
+    _undoStack.add(command);
+    if (_undoStack.length > maxHistory) {
+      _undoStack.removeAt(0);
+    }
+    _redoStack.clear();
+    notifyListeners();
+  }
+
+  void undo(CanvasController controller) {
+    if (!canUndo) {
+      return;
+    }
+    final command = _undoStack.removeLast();
+    command.undo(controller);
+    _redoStack.add(command);
+    notifyListeners();
+  }
+
+  void redo(CanvasController controller) {
+    if (!canRedo) {
+      return;
+    }
+    final command = _redoStack.removeLast();
+    command.execute(controller);
+    _undoStack.add(command);
+    notifyListeners();
+  }
+
+  void clear() {
+    _undoStack.clear();
+    _redoStack.clear();
+    notifyListeners();
+  }
+}
+library wenz_draw;
+
+export 'src/canvas/canvas_controller.dart';
+export 'src/canvas/canvas_state.dart';
+export 'src/canvas/element_manager.dart';
+export 'src/canvas/image_loader.dart';
+export 'src/canvas/paint_style.dart';
+export 'src/canvas/selection_manager.dart';
+export 'src/canvas/spatial_index.dart';
+export 'src/drawio/drawio_color.dart';
+export 'src/drawio/drawio_importer.dart';
+export 'src/drawio/drawio_shape_adapter.dart';
+export 'src/drawio/drawio_style.dart';
+export 'src/drawio/drawio_style_parser.dart';
+export 'src/elements/arrow_element.dart';
+export 'src/elements/canvas_element.dart';
+export 'src/elements/curve_element.dart';
+export 'src/elements/drawio_shape_definitions.dart';
+export 'src/elements/drawio_shape_element.dart';
+export 'src/elements/element_registry.dart';
+export 'src/elements/element_renderer.dart';
+export 'src/elements/ellipse_element.dart';
+export 'src/elements/image_element.dart';
+export 'src/elements/line_element.dart';
+export 'src/elements/line_label_painter.dart';
+export 'src/elements/line_arrow_style.dart';
+export 'src/elements/path_element.dart';
+export 'src/elements/polyline_element.dart';
+export 'src/elements/rect_element.dart';
+export 'src/elements/shape_connection_points.dart';
+export 'src/elements/shape_definition.dart';
+export 'src/elements/shape_definition_registry.dart';
+export 'src/elements/shape_label_painter.dart';
+export 'src/elements/text_element.dart';
+export 'src/elements/unknown_element.dart';
+export 'src/elements/widget_element.dart';
+export 'src/history/canvas_command.dart';
+export 'src/history/commands/add_element_command.dart';
+export 'src/history/commands/batch_command.dart';
+export 'src/history/commands/move_element_command.dart';
+export 'src/history/commands/remove_element_command.dart';
+export 'src/history/commands/remove_layer_command.dart';
+export 'src/history/commands/update_element_command.dart';
+export 'src/history/history_manager.dart';
+export 'src/infinite_canvas/canvas_event.dart';
+export 'src/infinite_canvas/canvas_transform.dart';
+export 'src/infinite_canvas/infinite_canvas_config.dart';
+export 'src/infinite_canvas/infinite_canvas_controller.dart';
+export 'src/infinite_canvas/infinite_canvas_painter.dart';
+export 'src/infinite_canvas/infinite_canvas_widget.dart';
+export 'src/infinite_canvas/minimap_widget.dart';
+export 'src/infinite_canvas/zoom_controls.dart';
+export 'src/layers/auto_layering.dart';
+export 'src/layers/canvas_layer.dart';
+export 'src/layers/layer_manager.dart';
+export 'src/rendering/grid_renderer.dart';
+export 'src/rendering/selection_renderer.dart';
+export 'src/rendering/viewport_culling.dart';
+export 'src/routing/connector_routing.dart';
+export 'src/routing/elbow_router.dart';
+export 'src/routing/orth_connector.dart';
+export 'src/routing/perimeter.dart';
+export 'src/routing/segment_connector.dart';
+export 'src/serialization/canvas_document.dart';
+export 'src/serialization/canvas_serializer.dart';
+export 'src/serialization/document_format_exception.dart';
+export 'src/serialization/document_migrator.dart';
+export 'src/serialization/document_store.dart';
+export 'src/serialization/exporters/png_exporter.dart';
+export 'src/serialization/exporters/svg_exporter.dart';
+export 'src/snap/snap_resolver.dart';
+export 'src/stencils/builtin_stencils.dart';
+export 'src/stencils/libraries/arrow_stencils.dart';
+export 'src/stencils/libraries/basic_stencils.dart';
+export 'src/stencils/libraries/flowchart_stencils.dart';
+export 'src/stencils/libraries/stencil_library_registry.dart';
+export 'src/stencils/stencil_command.dart';
+export 'src/stencils/stencil_definition.dart';
+export 'src/stencils/stencil_parser.dart';
+export 'src/stencils/stencil_renderer.dart';
+export 'src/tools/arrow_tool.dart';
+export 'src/tools/brush_settings.dart';
+export 'src/tools/canvas_tool.dart';
+export 'src/tools/curve_tool.dart';
+export 'src/tools/ellipse_tool.dart';
+export 'src/tools/eraser_tool.dart';
+export 'src/tools/highlighter_tool.dart';
+export 'src/tools/line_tool.dart';
+export 'src/tools/pan_tool.dart';
+export 'src/tools/pen_tool.dart';
+import 'package:flutter/widgets.dart';
+
+import '../canvas/image_loader.dart';
+import '../canvas/paint_style.dart';
+import '../elements/arrow_element.dart';
+import '../elements/canvas_element.dart';
+import '../elements/curve_element.dart';
+import '../elements/drawio_shape_element.dart';
+import '../elements/element_registry.dart';
+import '../elements/ellipse_element.dart';
+import '../elements/image_element.dart';
+import '../elements/line_element.dart';
+import '../elements/line_arrow_style.dart';
+import '../elements/polyline_element.dart';
+import '../elements/rect_element.dart';
+import '../elements/text_element.dart';
+import '../elements/widget_element.dart';
+import '../history/commands/add_element_command.dart';
+import '../history/commands/add_layer_command.dart';
+import '../history/commands/batch_command.dart';
+import '../history/commands/remove_element_command.dart';
+import '../history/commands/remove_layer_command.dart';
+import '../history/commands/reorder_layer_command.dart';
+import '../history/commands/update_element_command.dart';
+import '../history/commands/update_layer_command.dart';
+import '../history/canvas_command.dart';
+import '../history/history_manager.dart';
+import '../infinite_canvas/canvas_event.dart';
+import '../layers/auto_layering.dart';
+import '../layers/canvas_layer.dart';
+import '../layers/layer_manager.dart';
+import '../routing/connector_routing.dart';
+import '../serialization/canvas_serializer.dart';
+import '../snap/snap_resolver.dart';
+import '../tools/brush_settings.dart';
+import '../tools/alignment_tools.dart';
+import '../tools/canvas_tool.dart';
+import '../tools/ellipse_tool.dart';
+import '../tools/eraser_tool.dart';
+import '../tools/highlighter_tool.dart';
+import '../tools/line_tool.dart';
+import '../tools/curve_tool.dart';
+import '../tools/pan_tool.dart';
+import '../tools/pen_tool.dart';
+import '../tools/polyline_arrow_tool.dart';
+import '../tools/polyline_tool.dart';
+import '../tools/rect_tool.dart';
+import '../tools/select_tool.dart';
+import '../tools/shape_tool.dart';
+import '../tools/text_tool.dart';
+import '../tools/arrow_tool.dart';
+import '../tools/tool_manager.dart';
+import '../utils/uuid_generator.dart';
+import 'canvas_state.dart';
+import 'element_manager.dart';
+import 'spatial_index.dart';
+
+class CanvasController extends ChangeNotifier {
+  CanvasController({
+    CanvasState initialState = const CanvasState(),
+    ToolManager? toolManager,
+    HistoryManager? historyManager,
+    LayerManager? layerManager,
+    this.autoLayeringPolicy = const AutoLayeringPolicy.activeLayer(),
+    SnapSettings snapSettings = const SnapSettings(),
+    this.connectorRoutingOptions = const ConnectorRoutingOptions(),
+  }) : _state = initialState,
+       toolManager = toolManager ?? ToolManager(),
+       historyManager = historyManager ?? HistoryManager(),
+       layerManager = layerManager ?? LayerManager(),
+       snapResolver = SnapResolver(settings: snapSettings) {
+    ElementRendererRegistry.ensureBuiltInsRegistered();
+    _registerBuiltInTools();
+    this.historyManager.addListener(notifyListeners);
+    this.layerManager.addListener(notifyListeners);
+    setTool(PenTool.idValue);
+  }
+
+  final ElementManager _elementManager = const ElementManager();
+  final SpatialIndex _spatialIndex = SpatialIndex();
+  final AutoLayeringResolver _autoLayeringResolver =
+      const AutoLayeringResolver();
+  final ToolManager toolManager;
+  final HistoryManager historyManager;
+  final LayerManager layerManager;
+  final AutoLayeringPolicy autoLayeringPolicy;
+  final ConnectorRoutingOptions connectorRoutingOptions;
+  SnapResolver snapResolver;
+
+  /// Registry consulted when an [ImageElement] needs its raster decoded from a
+  /// serialized source (base64 / URL / file path). Hosts register custom
+  /// loaders here (e.g. an OSS-backed fetcher). Defaults to the shared
+  /// [ImageLoaderRegistry.instance], which ships base64, raw-bytes and network
+  /// loaders.
+  ImageLoaderRegistry imageLoaders = ImageLoaderRegistry.instance;
+
+  CanvasState _state;
+  String? _editingTextElementId;
+  TextElement? _editingTextOriginal;
+  String? _editingShapeLabelElementId;
+  CanvasElement? _editingShapeLabelOriginal;
+
+  SnapResult? _snapPreview;
+
+  CanvasState get state => _state;
+  String? get editingTextElementId => _editingTextElementId;
+  String? get editingShapeLabelElementId => _editingShapeLabelElementId;
+  SnapResult? get snapPreview => _snapPreview;
+  List<CanvasElement> get elements => _state.elements;
+  CanvasElement? get previewElement => _state.previewElement;
+  Set<String> get selectedIds => _state.selectedIds;
+  Rect? get selectionRect => _state.selectionRect;
+  BrushSettings get brushSettings => toolManager.brushSettings;
+  CanvasTool? get currentTool => toolManager.activeTool;
+  bool get canUndo => historyManager.canUndo;
+  bool get canRedo => historyManager.canRedo;
+  List<CanvasLayer> get layers => layerManager.layers;
+  String get activeLayerId => layerManager.activeLayerId;
+
+  void addElement(
+    CanvasElement element, {
+    bool record = true,
+    bool bringToFront = false,
+  }) {
+    final prepared = _prepareElementForInsert(
+      element,
+      bringToFront: bringToFront,
+    );
+    if (record) {
+      historyManager.execute(AddElementCommand(prepared), this);
+      return;
+    }
+    applyElementAdded(prepared);
+  }
+
+  void applyElementAdded(CanvasElement element) {
+    _state = _state.copyWith(
+      elements: _elementManager.add(_state.elements, element),
+      previewElement: null,
+    );
+    _spatialIndex.invalidate();
+    notifyListeners();
+  }
+
+  void removeElement(String id, {bool record = true}) {
+
+codex
+测试结构已确定为五类场景：两个缩放档位的窄文本边缘控件、独立文字的连续样式与颜色弹层、图形标签的共享覆盖层、以及外部点击后的单次历史记录与撤销。交互将通过公开控件语义和控制器状态断言，不依赖私有类名。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_draw\test\infinite_canvas_text_editing_test.dart
+diff --git a/test/infinite_canvas_text_editing_test.dart b/test/infinite_canvas_text_editing_test.dart
+new file mode 100644
+index 0000000000000000000000000000000000000000..4725bf8288e985c01c1ac3894dc9e31439ca52b1
+--- /dev/null
++++ b/test/infinite_canvas_text_editing_test.dart
+@@ -0,0 +1,314 @@
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:wenz_draw/wenz_draw.dart';
++
++const _textId = 'editable-text';
++const _shapeId = 'editable-shape';
++const _red = Color(0xFFEF4444);
++const _blue = Color(0xFF3B82F6);
++
++void main() {
++  group('InfiniteCanvasWidget text editing toolbar', () {
++    for (final scale in [1.0, 1.75]) {
++      testWidgets(
++        'keeps narrow text editing active at ${scale}x toolbar edges',
++        (tester) async {
++          final harness = await _pumpEditingTarget(
++            tester,
++            TextElement(
++              id: _textId,
++              position: Offset(360 / scale, 250 / scale),
++              text: 'Narrow',
++              boxSize: const Size(24, 48),
++            ),
++            transform: CanvasTransform(scale: scale),
++          );
++
++          await tester.tap(_toolbarColor(_red));
++          await tester.pump();
++
++          expect(harness.canvasController.editingTextElementId, _textId);
++          expect(_textElement(harness).style.color, _red);
++
++          await _selectToolbarMenu(
++            tester,
++            tooltip: 'Font family',
++            option: 'Mono',
++          );
++
++          expect(harness.canvasController.editingTextElementId, _textId);
++          expect(_textElement(harness).style.fontFamily, 'Consolas');
++          expect(harness.canvasController.historyManager.undoStack, isEmpty);
++          _expectEditingFieldFocused(tester);
++          expect(tester.takeException(), isNull);
++        },
++      );
++    }
++
++    testWidgets(
++      'updates text styles continuously and restores focus after color dialogs',
++      (tester) async {
++        final harness = await _pumpEditingTarget(
++          tester,
++          TextElement(
++            id: _textId,
++            position: const Offset(340, 250),
++            text: 'Draft',
++            boxSize: const Size(120, 64),
++          ),
++        );
++
++        await tester.tap(_toolbarColor(_red));
++        await tester.pump();
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font size',
++          option: '32',
++        );
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        var element = _textElement(harness);
++        expect(element.style.color, _red);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(find.text('32'), findsOneWidget);
++        expect(find.text('Serif'), findsOneWidget);
++        expect(harness.canvasController.editingTextElementId, _textId);
++        _expectEditingFieldFocused(tester);
++
++        await tester.tap(find.byTooltip('Custom color'));
++        await tester.pumpAndSettle();
++        expect(find.text('Text color'), findsOneWidget);
++
++        await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(_textElement(harness).style.color, _red);
++        _expectEditingFieldFocused(tester);
++
++        await tester.tap(find.byTooltip('Custom color'));
++        await tester.pumpAndSettle();
++        await tester.enterText(find.byType(TextField).last, '112233');
++        await tester.pump();
++        await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
++        await tester.pumpAndSettle();
++
++        element = _textElement(harness);
++        expect(element.style.color?.toARGB32(), 0xFF112233);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(find.text('32'), findsOneWidget);
++        expect(find.text('Serif'), findsOneWidget);
++        _expectEditingFieldFocused(tester);
++
++        await tester.enterText(find.byType(TextField), 'Still editing');
++        await tester.pump();
++
++        expect(_textElement(harness).text, 'Still editing');
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(harness.canvasController.historyManager.undoStack, isEmpty);
++        expect(tester.takeException(), isNull);
++      },
++    );
++
++    testWidgets('uses the same live style controls for editable shape labels', (
++      tester,
++    ) async {
++      final harness = await _pumpEditingTarget(
++        tester,
++        const RectElement(
++          id: _shapeId,
++          rect: Rect.fromLTWH(300, 240, 180, 88),
++          label: 'Shape label',
++          labelStyle: TextStyle(
++            color: Colors.black,
++            fontSize: 14,
++            height: 1.2,
++          ),
++        ),
++      );
++
++      await tester.tap(_toolbarColor(_blue));
++      await tester.pump();
++      await _selectToolbarMenu(
++        tester,
++        tooltip: 'Font size',
++        option: '48',
++      );
++      await _selectToolbarMenu(
++        tester,
++        tooltip: 'Font family',
++        option: 'Mono',
++      );
++      await tester.enterText(find.byType(TextField), 'Updated label');
++      await tester.pump();
++
++      final element = _shapeElement(harness);
++      expect(element.label, 'Updated label');
++      expect(element.labelStyle.color, _blue);
++      expect(element.labelStyle.fontSize, 48);
++      expect(element.labelStyle.fontFamily, 'Consolas');
++      expect(harness.canvasController.editingShapeLabelElementId, _shapeId);
++      expect(harness.canvasController.historyManager.undoStack, isEmpty);
++      _expectEditingFieldFocused(tester);
++      expect(tester.takeException(), isNull);
++    });
++
++    testWidgets(
++      'outside click commits one undo entry and restores text and styles',
++      (tester) async {
++        final harness = await _pumpEditingTarget(
++          tester,
++          TextElement(
++            id: _textId,
++            position: const Offset(340, 250),
++            text: 'Before',
++            boxSize: const Size(120, 64),
++            style: const TextStyle(
++              color: Colors.black,
++              fontSize: 18,
++              height: 1.2,
++            ),
++          ),
++        );
++
++        await tester.enterText(find.byType(TextField), 'After');
++        await tester.pump();
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font size',
++          option: '32',
++        );
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        expect(harness.canvasController.historyManager.undoStack, isEmpty);
++
++        // Leave a pending post-frame focus restoration while ending editing.
++        // This exercises disposal of the editing overlay's FocusNode as well as
++        // the outside-pointer commit path.
++        await tester.tap(_toolbarColor(_red));
++        await tester.tapAt(const Offset(40, 560));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, isNull);
++        expect(find.byType(TextField), findsNothing);
++        expect(harness.canvasController.historyManager.undoStack, hasLength(1));
++
++        var element = _textElement(harness);
++        expect(element.text, 'After');
++        expect(element.style.color, _red);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(tester.takeException(), isNull);
++
++        harness.canvasController.undo();
++        await tester.pump();
++
++        element = _textElement(harness);
++        expect(element.text, 'Before');
++        expect(element.style.color, Colors.black);
++        expect(element.style.fontSize, 18);
++        expect(element.style.fontFamily, isNull);
++        expect(harness.canvasController.canUndo, isFalse);
++        expect(harness.canvasController.canRedo, isTrue);
++        expect(tester.takeException(), isNull);
++      },
++    );
++  });
++}
++
++Future<_CanvasHarness> _pumpEditingTarget(
++  WidgetTester tester,
++  CanvasElement element, {
++  CanvasTransform transform = CanvasTransform.identity,
++}) async {
++  final harness = _CanvasHarness(transform: transform);
++  addTearDown(harness.dispose);
++  harness.canvasController.addElement(element, record: false);
++  if (element is TextElement) {
++    harness.canvasController.beginTextEditing(element.id);
++  } else {
++    harness.canvasController.beginShapeLabelEditing(element.id);
++  }
++
++  await tester.pumpWidget(
++    MaterialApp(
++      home: Scaffold(
++        body: InfiniteCanvasWidget(
++          controller: harness.viewController,
++          config: const InfiniteCanvasConfig(gridType: GridType.none),
++        ),
++      ),
++    ),
++  );
++  await tester.pump();
++  return harness;
++}
++
++Future<void> _selectToolbarMenu(
++  WidgetTester tester, {
++  required String tooltip,
++  required String option,
++}) async {
++  await tester.tap(find.byTooltip(tooltip));
++  await tester.pumpAndSettle();
++  expect(find.text(option), findsWidgets);
++  await tester.tap(find.text(option).last);
++  await tester.pumpAndSettle();
++}
++
++Finder _toolbarColor(Color color) {
++  final dot = find.byWidgetPredicate((widget) {
++    if (widget is! DecoratedBox || widget.decoration is! BoxDecoration) {
++      return false;
++    }
++    final decoration = widget.decoration as BoxDecoration;
++    return decoration.shape == BoxShape.circle && decoration.color == color;
++  });
++  return find
++      .ancestor(of: dot, matching: find.byType(InkResponse))
++      .first;
++}
++
++void _expectEditingFieldFocused(WidgetTester tester) {
++  final fieldFinder = find.byType(TextField);
++  expect(fieldFinder, findsOneWidget);
++  final field = tester.widget<TextField>(fieldFinder);
++  expect(field.focusNode, isNotNull);
++  expect(field.focusNode!.hasFocus, isTrue);
++}
++
++TextElement _textElement(_CanvasHarness harness) {
++  return harness.canvasController.elementById(_textId)! as TextElement;
++}
++
++RectElement _shapeElement(_CanvasHarness harness) {
++  return harness.canvasController.elementById(_shapeId)! as RectElement;
++}
++
++class _CanvasHarness {
++  _CanvasHarness({required CanvasTransform transform}) {
++    viewController = InfiniteCanvasController(
++      canvasController: canvasController,
++      transform: transform,
++    );
++  }
++
++  final CanvasController canvasController = CanvasController();
++  late final InfiniteCanvasController viewController;
++
++  void dispose() {
++    viewController.dispose();
++    canvasController.dispose();
++  }
++}
+
+diff --git a/test/infinite_canvas_text_editing_test.dart b/test/infinite_canvas_text_editing_test.dart
+new file mode 100644
+index 0000000000000000000000000000000000000000..4725bf8288e985c01c1ac3894dc9e31439ca52b1
+--- /dev/null
++++ b/test/infinite_canvas_text_editing_test.dart
+@@ -0,0 +1,314 @@
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:wenz_draw/wenz_draw.dart';
++
++const _textId = 'editable-text';
++const _shapeId = 'editable-shape';
++const _red = Color(0xFFEF4444);
++const _blue = Color(0xFF3B82F6);
++
++void main() {
++  group('InfiniteCanvasWidget text editing toolbar', () {
++    for (final scale in [1.0, 1.75]) {
++      testWidgets(
++        'keeps narrow text editing active at ${scale}x toolbar edges',
++        (tester) async {
++          final harness = await _pumpEditingTarget(
++            tester,
++            TextElement(
++              id: _textId,
++              position: Offset(360 / scale, 250 / scale),
++              text: 'Narrow',
++              boxSize: const Size(24, 48),
++            ),
++            transform: CanvasTransform(scale: scale),
++          );
++
++          await tester.tap(_toolbarColor(_red));
++          await tester.pump();
++
++          expect(harness.canvasController.editingTextElementId, _textId);
++          expect(_textElement(harness).style.color, _red);
++
++          await _selectToolbarMenu(
++            tester,
++            tooltip: 'Font family',
++            option: 'Mono',
++          );
++
++          expect(harness.canvasController.editingTextElementId, _textId);
++          expect(_textElement(harness).style.fontFamily, 'Consolas');
++          expect(harness.canvasController.historyManager.undoStack, isEmpty);
++          _expectEditingFieldFocused(tester);
++          expect(tester.takeException(), isNull);
++        },
++      );
++    }
++
++    testWidgets(
++      'updates text styles continuously and restores focus after color dialogs',
++      (tester) async {
++        final harness = await _pumpEditingTarget(
++          tester,
++          TextElement(
++            id: _textId,
++            position: const Offset(340, 250),
++            text: 'Draft',
++            boxSize: const Size(120, 64),
++          ),
++        );
++
++        await tester.tap(_toolbarColor(_red));
++        await tester.pump();
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font size',
++          option: '32',
++        );
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        var element = _textElement(harness);
++        expect(element.style.color, _red);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(find.text('32'), findsOneWidget);
++        expect(find.text('Serif'), findsOneWidget);
++        expect(harness.canvasController.editingTextElementId, _textId);
++        _expectEditingFieldFocused(tester);
++
++        await tester.tap(find.byTooltip('Custom color'));
++        await tester.pumpAndSettle();
++        expect(find.text('Text color'), findsOneWidget);
++
++        await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(_textElement(harness).style.color, _red);
++        _expectEditingFieldFocused(tester);
++
++        await tester.tap(find.byTooltip('Custom color'));
++        await tester.pumpAndSettle();
++        await tester.enterText(find.byType(TextField).last, '112233');
++        await tester.pump();
++        await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
++        await tester.pumpAndSettle();
++
++        element = _textElement(harness);
++        expect(element.style.color?.toARGB32(), 0xFF112233);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(find.text('32'), findsOneWidget);
++        expect(find.text('Serif'), findsOneWidget);
++        _expectEditingFieldFocused(tester);
++
++        await tester.enterText(find.byType(TextField), 'Still editing');
++        await tester.pump();
++
++        expect(_textElement(harness).text, 'Still editing');
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(harness.canvasController.historyManager.undoStack, isEmpty);
++        expect(tester.takeException(), isNull);
++      },
++    );
++
++    testWidgets('uses the same live style controls for editable shape labels', (
++      tester,
++    ) async {
++      final harness = await _pumpEditingTarget(
++        tester,
++        const RectElement(
++          id: _shapeId,
++          rect: Rect.fromLTWH(300, 240, 180, 88),
++          label: 'Shape label',
++          labelStyle: TextStyle(
++            color: Colors.black,
++            fontSize: 14,
++            height: 1.2,
++          ),
++        ),
++      );
++
++      await tester.tap(_toolbarColor(_blue));
++      await tester.pump();
++      await _selectToolbarMenu(
++        tester,
++        tooltip: 'Font size',
++        option: '48',
++      );
++      await _selectToolbarMenu(
++        tester,
++        tooltip: 'Font family',
++        option: 'Mono',
++      );
++      await tester.enterText(find.byType(TextField), 'Updated label');
++      await tester.pump();
++
++      final element = _shapeElement(harness);
++      expect(element.label, 'Updated label');
++      expect(element.labelStyle.color, _blue);
++      expect(element.labelStyle.fontSize, 48);
++      expect(element.labelStyle.fontFamily, 'Consolas');
++      expect(harness.canvasController.editingShapeLabelElementId, _shapeId);
++      expect(harness.canvasController.historyManager.undoStack, isEmpty);
++      _expectEditingFieldFocused(tester);
++      expect(tester.takeException(), isNull);
++    });
++
++    testWidgets(
++      'outside click commits one undo entry and restores text and styles',
++      (tester) async {
++        final harness = await _pumpEditingTarget(
++          tester,
++          TextElement(
++            id: _textId,
++            position: const Offset(340, 250),
++            text: 'Before',
++            boxSize: const Size(120, 64),
++            style: const TextStyle(
++              color: Colors.black,
++              fontSize: 18,
++              height: 1.2,
++            ),
++          ),
++        );
++
++        await tester.enterText(find.byType(TextField), 'After');
++        await tester.pump();
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font size',
++          option: '32',
++        );
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        expect(harness.canvasController.historyManager.undoStack, isEmpty);
++
++        // Leave a pending post-frame focus restoration while ending editing.
++        // This exercises disposal of the editing overlay's FocusNode as well as
++        // the outside-pointer commit path.
++        await tester.tap(_toolbarColor(_red));
++        await tester.tapAt(const Offset(40, 560));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, isNull);
++        expect(find.byType(TextField), findsNothing);
++        expect(harness.canvasController.historyManager.undoStack, hasLength(1));
++
++        var element = _textElement(harness);
++        expect(element.text, 'After');
++        expect(element.style.color, _red);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(tester.takeException(), isNull);
++
++        harness.canvasController.undo();
++        await tester.pump();
++
++        element = _textElement(harness);
++        expect(element.text, 'Before');
++        expect(element.style.color, Colors.black);
++        expect(element.style.fontSize, 18);
++        expect(element.style.fontFamily, isNull);
++        expect(harness.canvasController.canUndo, isFalse);
++        expect(harness.canvasController.canRedo, isTrue);
++        expect(tester.takeException(), isNull);
++      },
++    );
++  });
++}
++
++Future<_CanvasHarness> _pumpEditingTarget(
++  WidgetTester tester,
++  CanvasElement element, {
++  CanvasTransform transform = CanvasTransform.identity,
++}) async {
++  final harness = _CanvasHarness(transform: transform);
++  addTearDown(harness.dispose);
++  harness.canvasController.addElement(element, record: false);
++  if (element is TextElement) {
++    harness.canvasController.beginTextEditing(element.id);
++  } else {
++    harness.canvasController.beginShapeLabelEditing(element.id);
++  }
++
++  await tester.pumpWidget(
++    MaterialApp(
++      home: Scaffold(
++        body: InfiniteCanvasWidget(
++          controller: harness.viewController,
++          config: const InfiniteCanvasConfig(gridType: GridType.none),
++        ),
++      ),
++    ),
++  );
++  await tester.pump();
++  return harness;
++}
++
++Future<void> _selectToolbarMenu(
++  WidgetTester tester, {
++  required String tooltip,
++  required String option,
++}) async {
++  await tester.tap(find.byTooltip(tooltip));
++  await tester.pumpAndSettle();
++  expect(find.text(option), findsWidgets);
++  await tester.tap(find.text(option).last);
++  await tester.pumpAndSettle();
++}
++
++Finder _toolbarColor(Color color) {
++  final dot = find.byWidgetPredicate((widget) {
++    if (widget is! DecoratedBox || widget.decoration is! BoxDecoration) {
++      return false;
++    }
++    final decoration = widget.decoration as BoxDecoration;
++    return decoration.shape == BoxShape.circle && decoration.color == color;
++  });
++  return find
++      .ancestor(of: dot, matching: find.byType(InkResponse))
++      .first;
++}
++
++void _expectEditingFieldFocused(WidgetTester tester) {
++  final fieldFinder = find.byType(TextField);
++  expect(fieldFinder, findsOneWidget);
++  final field = tester.widget<TextField>(fieldFinder);
++  expect(field.focusNode, isNotNull);
++  expect(field.focusNode!.hasFocus, isTrue);
++}
++
++TextElement _textElement(_CanvasHarness harness) {
++  return harness.canvasController.elementById(_textId)! as TextElement;
++}
++
++RectElement _shapeElement(_CanvasHarness harness) {
++  return harness.canvasController.elementById(_shapeId)! as RectElement;
++}
++
++class _CanvasHarness {
++  _CanvasHarness({required CanvasTransform transform}) {
++    viewController = InfiniteCanvasController(
++      canvasController: canvasController,
++      transform: transform,
++    );
++  }
++
++  final CanvasController canvasController = CanvasController();
++  late final InfiniteCanvasController viewController;
++
++  void dispose() {
++    viewController.dispose();
++    canvasController.dispose();
++  }
++}
+
+2026-07-10T16:50:08.183514Z ERROR codex_models_manager::manager: failed to refresh available models: timeout waiting for child process to exit
+codex
+初版回归文件已写入。为完整覆盖“弹层取消”而不仅是颜色对话框取消，我会再加入字号菜单点击遮罩关闭的场景；同时固定覆盖 Serif 切回 Sans 的显式字体族清除，再切回 Serif 继续编辑。
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_draw\test\infinite_canvas_text_editing_test.dart
+diff --git a/test/infinite_canvas_text_editing_test.dart b/test/infinite_canvas_text_editing_test.dart
+new file mode 100644
+index 0000000000000000000000000000000000000000..4fc990dc72d2856090fc60b043882418361b79a8
+--- /dev/null
++++ b/test/infinite_canvas_text_editing_test.dart
+@@ -0,0 +1,338 @@
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:wenz_draw/wenz_draw.dart';
++
++const _textId = 'editable-text';
++const _shapeId = 'editable-shape';
++const _red = Color(0xFFEF4444);
++const _blue = Color(0xFF3B82F6);
++
++void main() {
++  group('InfiniteCanvasWidget text editing toolbar', () {
++    for (final scale in [1.0, 1.75]) {
++      testWidgets(
++        'keeps narrow text editing active at ${scale}x toolbar edges',
++        (tester) async {
++          final harness = await _pumpEditingTarget(
++            tester,
++            TextElement(
++              id: _textId,
++              position: Offset(360 / scale, 250 / scale),
++              text: 'Narrow',
++              boxSize: const Size(24, 48),
++            ),
++            transform: CanvasTransform(scale: scale),
++          );
++
++          await tester.tap(_toolbarColor(_red));
++          await tester.pump();
++
++          expect(harness.canvasController.editingTextElementId, _textId);
++          expect(_textElement(harness).style.color, _red);
++
++          await _selectToolbarMenu(
++            tester,
++            tooltip: 'Font family',
++            option: 'Mono',
++          );
++
++          expect(harness.canvasController.editingTextElementId, _textId);
++          expect(_textElement(harness).style.fontFamily, 'Consolas');
++          expect(harness.canvasController.historyManager.undoStack, isEmpty);
++          _expectEditingFieldFocused(tester);
++          expect(tester.takeException(), isNull);
++        },
++      );
++    }
++
++    testWidgets(
++      'updates text styles continuously and restores focus after color dialogs',
++      (tester) async {
++        final harness = await _pumpEditingTarget(
++          tester,
++          TextElement(
++            id: _textId,
++            position: const Offset(340, 250),
++            text: 'Draft',
++            boxSize: const Size(120, 64),
++          ),
++        );
++
++        await tester.tap(_toolbarColor(_red));
++        await tester.pump();
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font size',
++          option: '32',
++        );
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        var element = _textElement(harness);
++        expect(element.style.color, _red);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(find.text('32'), findsOneWidget);
++        expect(find.text('Serif'), findsOneWidget);
++        expect(harness.canvasController.editingTextElementId, _textId);
++        _expectEditingFieldFocused(tester);
++
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Sans',
++        );
++        expect(_textElement(harness).style.fontFamily, isNull);
++        expect(find.text('Sans'), findsOneWidget);
++        _expectEditingFieldFocused(tester);
++
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        await tester.tap(find.byTooltip('Font size'));
++        await tester.pumpAndSettle();
++        await tester.tapAt(const Offset(40, 560));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(_textElement(harness).style.fontSize, 32);
++        _expectEditingFieldFocused(tester);
++
++        await tester.tap(find.byTooltip('Custom color'));
++        await tester.pumpAndSettle();
++        expect(find.text('Text color'), findsOneWidget);
++
++        await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(_textElement(harness).style.color, _red);
++        _expectEditingFieldFocused(tester);
++
++        await tester.tap(find.byTooltip('Custom color'));
++        await tester.pumpAndSettle();
++        await tester.enterText(find.byType(TextField).last, '112233');
++        await tester.pump();
++        await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
++        await tester.pumpAndSettle();
++
++        element = _textElement(harness);
++        expect(element.style.color?.toARGB32(), 0xFF112233);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(find.text('32'), findsOneWidget);
++        expect(find.text('Serif'), findsOneWidget);
++        _expectEditingFieldFocused(tester);
++
++        await tester.enterText(find.byType(TextField), 'Still editing');
++        await tester.pump();
++
++        expect(_textElement(harness).text, 'Still editing');
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(harness.canvasController.historyManager.undoStack, isEmpty);
++        expect(tester.takeException(), isNull);
++      },
++    );
++
++    testWidgets('uses the same live style controls for editable shape labels', (
++      tester,
++    ) async {
++      final harness = await _pumpEditingTarget(
++        tester,
++        const RectElement(
++          id: _shapeId,
++          rect: Rect.fromLTWH(300, 240, 180, 88),
++          label: 'Shape label',
++          labelStyle: TextStyle(
++            color: Colors.black,
++            fontSize: 14,
++            height: 1.2,
++          ),
++        ),
++      );
++
++      await tester.tap(_toolbarColor(_blue));
++      await tester.pump();
++      await _selectToolbarMenu(
++        tester,
++        tooltip: 'Font size',
++        option: '48',
++      );
++      await _selectToolbarMenu(
++        tester,
++        tooltip: 'Font family',
++        option: 'Mono',
++      );
++      await tester.enterText(find.byType(TextField), 'Updated label');
++      await tester.pump();
++
++      final element = _shapeElement(harness);
++      expect(element.label, 'Updated label');
++      expect(element.labelStyle.color, _blue);
++      expect(element.labelStyle.fontSize, 48);
++      expect(element.labelStyle.fontFamily, 'Consolas');
++      expect(harness.canvasController.editingShapeLabelElementId, _shapeId);
++      expect(harness.canvasController.historyManager.undoStack, isEmpty);
++      _expectEditingFieldFocused(tester);
++      expect(tester.takeException(), isNull);
++    });
++
++    testWidgets(
++      'outside click commits one undo entry and restores text and styles',
++      (tester) async {
++        final harness = await _pumpEditingTarget(
++          tester,
++          TextElement(
++            id: _textId,
++            position: const Offset(340, 250),
++            text: 'Before',
++            boxSize: const Size(120, 64),
++            style: const TextStyle(
++              color: Colors.black,
++              fontSize: 18,
++              height: 1.2,
++            ),
++          ),
++        );
++
++        await tester.enterText(find.byType(TextField), 'After');
++        await tester.pump();
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font size',
++          option: '32',
++        );
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        expect(harness.canvasController.historyManager.undoStack, isEmpty);
++
++        // Leave a pending post-frame focus restoration while ending editing.
++        // This exercises disposal of the editing overlay's FocusNode as well as
++        // the outside-pointer commit path.
++        await tester.tap(_toolbarColor(_red));
++        await tester.tapAt(const Offset(40, 560));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, isNull);
++        expect(find.byType(TextField), findsNothing);
++        expect(harness.canvasController.historyManager.undoStack, hasLength(1));
++
++        var element = _textElement(harness);
++        expect(element.text, 'After');
++        expect(element.style.color, _red);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(tester.takeException(), isNull);
++
++        harness.canvasController.undo();
++        await tester.pump();
++
++        element = _textElement(harness);
++        expect(element.text, 'Before');
++        expect(element.style.color, Colors.black);
++        expect(element.style.fontSize, 18);
++        expect(element.style.fontFamily, isNull);
++        expect(harness.canvasController.canUndo, isFalse);
++        expect(harness.canvasController.canRedo, isTrue);
++        expect(tester.takeException(), isNull);
++      },
++    );
++  });
++}
++
++Future<_CanvasHarness> _pumpEditingTarget(
++  WidgetTester tester,
++  CanvasElement element, {
++  CanvasTransform transform = CanvasTransform.identity,
++}) async {
++  final harness = _CanvasHarness(transform: transform);
++  addTearDown(harness.dispose);
++  harness.canvasController.addElement(element, record: false);
++  if (element is TextElement) {
++    harness.canvasController.beginTextEditing(element.id);
++  } else {
++    harness.canvasController.beginShapeLabelEditing(element.id);
++  }
++
++  await tester.pumpWidget(
++    MaterialApp(
++      home: Scaffold(
++        body: InfiniteCanvasWidget(
++          controller: harness.viewController,
++          config: const InfiniteCanvasConfig(gridType: GridType.none),
++        ),
++      ),
++    ),
++  );
++  await tester.pump();
++  return harness;
++}
++
++Future<void> _selectToolbarMenu(
++  WidgetTester tester, {
++  required String tooltip,
++  required String option,
++}) async {
++  await tester.tap(find.byTooltip(tooltip));
++  await tester.pumpAndSettle();
++  expect(find.text(option), findsWidgets);
++  await tester.tap(find.text(option).last);
++  await tester.pumpAndSettle();
++}
++
++Finder _toolbarColor(Color color) {
++  final dot = find.byWidgetPredicate((widget) {
++    if (widget is! DecoratedBox || widget.decoration is! BoxDecoration) {
++      return false;
++    }
++    final decoration = widget.decoration as BoxDecoration;
++    return decoration.shape == BoxShape.circle && decoration.color == color;
++  });
++  return find
++      .ancestor(of: dot, matching: find.byType(InkResponse))
++      .first;
++}
++
++void _expectEditingFieldFocused(WidgetTester tester) {
++  final fieldFinder = find.byType(TextField);
++  expect(fieldFinder, findsOneWidget);
++  final field = tester.widget<TextField>(fieldFinder);
++  expect(field.focusNode, isNotNull);
++  expect(field.focusNode!.hasFocus, isTrue);
++}
++
++TextElement _textElement(_CanvasHarness harness) {
++  return harness.canvasController.elementById(_textId)! as TextElement;
++}
++
++RectElement _shapeElement(_CanvasHarness harness) {
++  return harness.canvasController.elementById(_shapeId)! as RectElement;
++}
++
++class _CanvasHarness {
++  _CanvasHarness({required CanvasTransform transform}) {
++    viewController = InfiniteCanvasController(
++      canvasController: canvasController,
++      transform: transform,
++    );
++  }
++
++  final CanvasController canvasController = CanvasController();
++  late final InfiniteCanvasController viewController;
++
++  void dispose() {
++    viewController.dispose();
++    canvasController.dispose();
++  }
++}
+
+diff --git a/test/infinite_canvas_text_editing_test.dart b/test/infinite_canvas_text_editing_test.dart
+new file mode 100644
+index 0000000000000000000000000000000000000000..4fc990dc72d2856090fc60b043882418361b79a8
+--- /dev/null
++++ b/test/infinite_canvas_text_editing_test.dart
+@@ -0,0 +1,338 @@
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:wenz_draw/wenz_draw.dart';
++
++const _textId = 'editable-text';
++const _shapeId = 'editable-shape';
++const _red = Color(0xFFEF4444);
++const _blue = Color(0xFF3B82F6);
++
++void main() {
++  group('InfiniteCanvasWidget text editing toolbar', () {
++    for (final scale in [1.0, 1.75]) {
++      testWidgets(
++        'keeps narrow text editing active at ${scale}x toolbar edges',
++        (tester) async {
++          final harness = await _pumpEditingTarget(
++            tester,
++            TextElement(
++              id: _textId,
++              position: Offset(360 / scale, 250 / scale),
++              text: 'Narrow',
++              boxSize: const Size(24, 48),
++            ),
++            transform: CanvasTransform(scale: scale),
++          );
++
++          await tester.tap(_toolbarColor(_red));
++          await tester.pump();
++
++          expect(harness.canvasController.editingTextElementId, _textId);
++          expect(_textElement(harness).style.color, _red);
++
++          await _selectToolbarMenu(
++            tester,
++            tooltip: 'Font family',
++            option: 'Mono',
++          );
++
++          expect(harness.canvasController.editingTextElementId, _textId);
++          expect(_textElement(harness).style.fontFamily, 'Consolas');
++          expect(harness.canvasController.historyManager.undoStack, isEmpty);
++          _expectEditingFieldFocused(tester);
++          expect(tester.takeException(), isNull);
++        },
++      );
++    }
++
++    testWidgets(
++      'updates text styles continuously and restores focus after color dialogs',
++      (tester) async {
++        final harness = await _pumpEditingTarget(
++          tester,
++          TextElement(
++            id: _textId,
++            position: const Offset(340, 250),
++            text: 'Draft',
++            boxSize: const Size(120, 64),
++          ),
++        );
++
++        await tester.tap(_toolbarColor(_red));
++        await tester.pump();
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font size',
++          option: '32',
++        );
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        var element = _textElement(harness);
++        expect(element.style.color, _red);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(find.text('32'), findsOneWidget);
++        expect(find.text('Serif'), findsOneWidget);
++        expect(harness.canvasController.editingTextElementId, _textId);
++        _expectEditingFieldFocused(tester);
++
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Sans',
++        );
++        expect(_textElement(harness).style.fontFamily, isNull);
++        expect(find.text('Sans'), findsOneWidget);
++        _expectEditingFieldFocused(tester);
++
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        await tester.tap(find.byTooltip('Font size'));
++        await tester.pumpAndSettle();
++        await tester.tapAt(const Offset(40, 560));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(_textElement(harness).style.fontSize, 32);
++        _expectEditingFieldFocused(tester);
++
++        await tester.tap(find.byTooltip('Custom color'));
++        await tester.pumpAndSettle();
++        expect(find.text('Text color'), findsOneWidget);
++
++        await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(_textElement(harness).style.color, _red);
++        _expectEditingFieldFocused(tester);
++
++        await tester.tap(find.byTooltip('Custom color'));
++        await tester.pumpAndSettle();
++        await tester.enterText(find.byType(TextField).last, '112233');
++        await tester.pump();
++        await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
++        await tester.pumpAndSettle();
++
++        element = _textElement(harness);
++        expect(element.style.color?.toARGB32(), 0xFF112233);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(find.text('32'), findsOneWidget);
++        expect(find.text('Serif'), findsOneWidget);
++        _expectEditingFieldFocused(tester);
++
++        await tester.enterText(find.byType(TextField), 'Still editing');
++        await tester.pump();
++
++        expect(_textElement(harness).text, 'Still editing');
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(harness.canvasController.historyManager.undoStack, isEmpty);
++        expect(tester.takeException(), isNull);
++      },
++    );
++
++    testWidgets('uses the same live style controls for editable shape labels', (
++      tester,
++    ) async {
++      final harness = await _pumpEditingTarget(
++        tester,
++        const RectElement(
++          id: _shapeId,
++          rect: Rect.fromLTWH(300, 240, 180, 88),
++          label: 'Shape label',
++          labelStyle: TextStyle(
++            color: Colors.black,
++            fontSize: 14,
++            height: 1.2,
++          ),
++        ),
++      );
++
++      await tester.tap(_toolbarColor(_blue));
++      await tester.pump();
++      await _selectToolbarMenu(
++        tester,
++        tooltip: 'Font size',
++        option: '48',
++      );
++      await _selectToolbarMenu(
++        tester,
++        tooltip: 'Font family',
++        option: 'Mono',
++      );
++      await tester.enterText(find.byType(TextField), 'Updated label');
++      await tester.pump();
++
++      final element = _shapeElement(harness);
++      expect(element.label, 'Updated label');
++      expect(element.labelStyle.color, _blue);
++      expect(element.labelStyle.fontSize, 48);
++      expect(element.labelStyle.fontFamily, 'Consolas');
++      expect(harness.canvasController.editingShapeLabelElementId, _shapeId);
++      expect(harness.canvasController.historyManager.undoStack, isEmpty);
++      _expectEditingFieldFocused(tester);
++      expect(tester.takeException(), isNull);
++    });
++
++    testWidgets(
++      'outside click commits one undo entry and restores text and styles',
++      (tester) async {
++        final harness = await _pumpEditingTarget(
++          tester,
++          TextElement(
++            id: _textId,
++            position: const Offset(340, 250),
++            text: 'Before',
++            boxSize: const Size(120, 64),
++            style: const TextStyle(
++              color: Colors.black,
++              fontSize: 18,
++              height: 1.2,
++            ),
++          ),
++        );
++
++        await tester.enterText(find.byType(TextField), 'After');
++        await tester.pump();
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font size',
++          option: '32',
++        );
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        expect(harness.canvasController.historyManager.undoStack, isEmpty);
++
++        // Leave a pending post-frame focus restoration while ending editing.
++        // This exercises disposal of the editing overlay's FocusNode as well as
++        // the outside-pointer commit path.
++        await tester.tap(_toolbarColor(_red));
++        await tester.tapAt(const Offset(40, 560));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, isNull);
++        expect(find.byType(TextField), findsNothing);
++        expect(harness.canvasController.historyManager.undoStack, hasLength(1));
++
++        var element = _textElement(harness);
++        expect(element.text, 'After');
++        expect(element.style.color, _red);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(tester.takeException(), isNull);
++
++        harness.canvasController.undo();
++        await tester.pump();
++
++        element = _textElement(harness);
++        expect(element.text, 'Before');
++        expect(element.style.color, Colors.black);
++        expect(element.style.fontSize, 18);
++        expect(element.style.fontFamily, isNull);
++        expect(harness.canvasController.canUndo, isFalse);
++        expect(harness.canvasController.canRedo, isTrue);
++        expect(tester.takeException(), isNull);
++      },
++    );
++  });
++}
++
++Future<_CanvasHarness> _pumpEditingTarget(
++  WidgetTester tester,
++  CanvasElement element, {
++  CanvasTransform transform = CanvasTransform.identity,
++}) async {
++  final harness = _CanvasHarness(transform: transform);
++  addTearDown(harness.dispose);
++  harness.canvasController.addElement(element, record: false);
++  if (element is TextElement) {
++    harness.canvasController.beginTextEditing(element.id);
++  } else {
++    harness.canvasController.beginShapeLabelEditing(element.id);
++  }
++
++  await tester.pumpWidget(
++    MaterialApp(
++      home: Scaffold(
++        body: InfiniteCanvasWidget(
++          controller: harness.viewController,
++          config: const InfiniteCanvasConfig(gridType: GridType.none),
++        ),
++      ),
++    ),
++  );
++  await tester.pump();
++  return harness;
++}
++
++Future<void> _selectToolbarMenu(
++  WidgetTester tester, {
++  required String tooltip,
++  required String option,
++}) async {
++  await tester.tap(find.byTooltip(tooltip));
++  await tester.pumpAndSettle();
++  expect(find.text(option), findsWidgets);
++  await tester.tap(find.text(option).last);
++  await tester.pumpAndSettle();
++}
++
++Finder _toolbarColor(Color color) {
++  final dot = find.byWidgetPredicate((widget) {
++    if (widget is! DecoratedBox || widget.decoration is! BoxDecoration) {
++      return false;
++    }
++    final decoration = widget.decoration as BoxDecoration;
++    return decoration.shape == BoxShape.circle && decoration.color == color;
++  });
++  return find
++      .ancestor(of: dot, matching: find.byType(InkResponse))
++      .first;
++}
++
++void _expectEditingFieldFocused(WidgetTester tester) {
++  final fieldFinder = find.byType(TextField);
++  expect(fieldFinder, findsOneWidget);
++  final field = tester.widget<TextField>(fieldFinder);
++  expect(field.focusNode, isNotNull);
++  expect(field.focusNode!.hasFocus, isTrue);
++}
++
++TextElement _textElement(_CanvasHarness harness) {
++  return harness.canvasController.elementById(_textId)! as TextElement;
++}
++
++RectElement _shapeElement(_CanvasHarness harness) {
++  return harness.canvasController.elementById(_shapeId)! as RectElement;
++}
++
++class _CanvasHarness {
++  _CanvasHarness({required CanvasTransform transform}) {
++    viewController = InfiniteCanvasController(
++      canvasController: canvasController,
++      transform: transform,
++    );
++  }
++
++  final CanvasController canvasController = CanvasController();
++  late final InfiniteCanvasController viewController;
++
++  void dispose() {
++    viewController.dispose();
++    canvasController.dispose();
++  }
++}
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Write-Output '--- target file part 1 ---'
+Get-Content -LiteralPath 'test/infinite_canvas_text_editing_test.dart' -Encoding UTF8 | Select-Object -First 220
+Write-Output '--- target file part 2 ---'
+Get-Content -LiteralPath 'test/infinite_canvas_text_editing_test.dart' -Encoding UTF8 | Select-Object -Skip 220 -First 220
+Write-Output '--- finder API usage in existing tests ---'
+Get-ChildItem -LiteralPath test -File -Filter '*.dart' | Select-String -Pattern '\\.last\\)|\\.first;|find\\.byType\\(TextField\\)' -Encoding UTF8 | Select-Object -First 100
+Write-Output '--- scoped status and whitespace ---'
+git status --short -- 'test/infinite_canvas_text_editing_test.dart' 'lib/src/infinite_canvas/infinite_canvas_widget.dart' 'docs/plan/plan_requirement_2_20260711-002820.md'
+git diff --check -- 'test/infinite_canvas_text_editing_test.dart'" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 907ms:
+--- target file part 1 ---
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wenz_draw/wenz_draw.dart';
+
+const _textId = 'editable-text';
+const _shapeId = 'editable-shape';
+const _red = Color(0xFFEF4444);
+const _blue = Color(0xFF3B82F6);
+
+void main() {
+  group('InfiniteCanvasWidget text editing toolbar', () {
+    for (final scale in [1.0, 1.75]) {
+      testWidgets(
+        'keeps narrow text editing active at ${scale}x toolbar edges',
+        (tester) async {
+          final harness = await _pumpEditingTarget(
+            tester,
+            TextElement(
+              id: _textId,
+              position: Offset(360 / scale, 250 / scale),
+              text: 'Narrow',
+              boxSize: const Size(24, 48),
+            ),
+            transform: CanvasTransform(scale: scale),
+          );
+
+          await tester.tap(_toolbarColor(_red));
+          await tester.pump();
+
+          expect(harness.canvasController.editingTextElementId, _textId);
+          expect(_textElement(harness).style.color, _red);
+
+          await _selectToolbarMenu(
+            tester,
+            tooltip: 'Font family',
+            option: 'Mono',
+          );
+
+          expect(harness.canvasController.editingTextElementId, _textId);
+          expect(_textElement(harness).style.fontFamily, 'Consolas');
+          expect(harness.canvasController.historyManager.undoStack, isEmpty);
+          _expectEditingFieldFocused(tester);
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+
+    testWidgets(
+      'updates text styles continuously and restores focus after color dialogs',
+      (tester) async {
+        final harness = await _pumpEditingTarget(
+          tester,
+          TextElement(
+            id: _textId,
+            position: const Offset(340, 250),
+            text: 'Draft',
+            boxSize: const Size(120, 64),
+          ),
+        );
+
+        await tester.tap(_toolbarColor(_red));
+        await tester.pump();
+        await _selectToolbarMenu(
+          tester,
+          tooltip: 'Font size',
+          option: '32',
+        );
+        await _selectToolbarMenu(
+          tester,
+          tooltip: 'Font family',
+          option: 'Serif',
+        );
+
+        var element = _textElement(harness);
+        expect(element.style.color, _red);
+        expect(element.style.fontSize, 32);
+        expect(element.style.fontFamily, 'Times New Roman');
+        expect(find.text('32'), findsOneWidget);
+        expect(find.text('Serif'), findsOneWidget);
+        expect(harness.canvasController.editingTextElementId, _textId);
+        _expectEditingFieldFocused(tester);
+
+        await _selectToolbarMenu(
+          tester,
+          tooltip: 'Font family',
+          option: 'Sans',
+        );
+        expect(_textElement(harness).style.fontFamily, isNull);
+        expect(find.text('Sans'), findsOneWidget);
+        _expectEditingFieldFocused(tester);
+
+        await _selectToolbarMenu(
+          tester,
+          tooltip: 'Font family',
+          option: 'Serif',
+        );
+
+        await tester.tap(find.byTooltip('Font size'));
+        await tester.pumpAndSettle();
+        await tester.tapAt(const Offset(40, 560));
+        await tester.pumpAndSettle();
+
+        expect(harness.canvasController.editingTextElementId, _textId);
+        expect(_textElement(harness).style.fontSize, 32);
+        _expectEditingFieldFocused(tester);
+
+        await tester.tap(find.byTooltip('Custom color'));
+        await tester.pumpAndSettle();
+        expect(find.text('Text color'), findsOneWidget);
+
+        await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+        await tester.pumpAndSettle();
+
+        expect(harness.canvasController.editingTextElementId, _textId);
+        expect(_textElement(harness).style.color, _red);
+        _expectEditingFieldFocused(tester);
+
+        await tester.tap(find.byTooltip('Custom color'));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextField).last, '112233');
+        await tester.pump();
+        await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
+        await tester.pumpAndSettle();
+
+        element = _textElement(harness);
+        expect(element.style.color?.toARGB32(), 0xFF112233);
+        expect(element.style.fontSize, 32);
+        expect(element.style.fontFamily, 'Times New Roman');
+        expect(harness.canvasController.editingTextElementId, _textId);
+        expect(find.text('32'), findsOneWidget);
+        expect(find.text('Serif'), findsOneWidget);
+        _expectEditingFieldFocused(tester);
+
+        await tester.enterText(find.byType(TextField), 'Still editing');
+        await tester.pump();
+
+        expect(_textElement(harness).text, 'Still editing');
+        expect(harness.canvasController.editingTextElementId, _textId);
+        expect(harness.canvasController.historyManager.undoStack, isEmpty);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets('uses the same live style controls for editable shape labels', (
+      tester,
+    ) async {
+      final harness = await _pumpEditingTarget(
+        tester,
+        const RectElement(
+          id: _shapeId,
+          rect: Rect.fromLTWH(300, 240, 180, 88),
+          label: 'Shape label',
+          labelStyle: TextStyle(
+            color: Colors.black,
+            fontSize: 14,
+            height: 1.2,
+          ),
+        ),
+      );
+
+      await tester.tap(_toolbarColor(_blue));
+      await tester.pump();
+      await _selectToolbarMenu(
+        tester,
+        tooltip: 'Font size',
+        option: '48',
+      );
+      await _selectToolbarMenu(
+        tester,
+        tooltip: 'Font family',
+        option: 'Mono',
+      );
+      await tester.enterText(find.byType(TextField), 'Updated label');
+      await tester.pump();
+
+      final element = _shapeElement(harness);
+      expect(element.label, 'Updated label');
+      expect(element.labelStyle.color, _blue);
+      expect(element.labelStyle.fontSize, 48);
+      expect(element.labelStyle.fontFamily, 'Consolas');
+      expect(harness.canvasController.editingShapeLabelElementId, _shapeId);
+      expect(harness.canvasController.historyManager.undoStack, isEmpty);
+      _expectEditingFieldFocused(tester);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+      'outside click commits one undo entry and restores text and styles',
+      (tester) async {
+        final harness = await _pumpEditingTarget(
+          tester,
+          TextElement(
+            id: _textId,
+            position: const Offset(340, 250),
+            text: 'Before',
+            boxSize: const Size(120, 64),
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 18,
+              height: 1.2,
+            ),
+          ),
+        );
+
+        await tester.enterText(find.byType(TextField), 'After');
+        await tester.pump();
+        await _selectToolbarMenu(
+          tester,
+          tooltip: 'Font size',
+          option: '32',
+        );
+        await _selectToolbarMenu(
+          tester,
+          tooltip: 'Font family',
+          option: 'Serif',
+        );
+
+        expect(harness.canvasController.historyManager.undoStack, isEmpty);
+
+        // Leave a pending post-frame focus restoration while ending editing.
+--- target file part 2 ---
+        // This exercises disposal of the editing overlay's FocusNode as well as
+        // the outside-pointer commit path.
+        await tester.tap(_toolbarColor(_red));
+        await tester.tapAt(const Offset(40, 560));
+        await tester.pumpAndSettle();
+
+        expect(harness.canvasController.editingTextElementId, isNull);
+        expect(find.byType(TextField), findsNothing);
+        expect(harness.canvasController.historyManager.undoStack, hasLength(1));
+
+        var element = _textElement(harness);
+        expect(element.text, 'After');
+        expect(element.style.color, _red);
+        expect(element.style.fontSize, 32);
+        expect(element.style.fontFamily, 'Times New Roman');
+        expect(tester.takeException(), isNull);
+
+        harness.canvasController.undo();
+        await tester.pump();
+
+        element = _textElement(harness);
+        expect(element.text, 'Before');
+        expect(element.style.color, Colors.black);
+        expect(element.style.fontSize, 18);
+        expect(element.style.fontFamily, isNull);
+        expect(harness.canvasController.canUndo, isFalse);
+        expect(harness.canvasController.canRedo, isTrue);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  });
+}
+
+Future<_CanvasHarness> _pumpEditingTarget(
+  WidgetTester tester,
+  CanvasElement element, {
+  CanvasTransform transform = CanvasTransform.identity,
+}) async {
+  final harness = _CanvasHarness(transform: transform);
+  addTearDown(harness.dispose);
+  harness.canvasController.addElement(element, record: false);
+  if (element is TextElement) {
+    harness.canvasController.beginTextEditing(element.id);
+  } else {
+    harness.canvasController.beginShapeLabelEditing(element.id);
+  }
+
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: InfiniteCanvasWidget(
+          controller: harness.viewController,
+          config: const InfiniteCanvasConfig(gridType: GridType.none),
+        ),
+      ),
+    ),
+  );
+  await tester.pump();
+  return harness;
+}
+
+Future<void> _selectToolbarMenu(
+  WidgetTester tester, {
+  required String tooltip,
+  required String option,
+}) async {
+  await tester.tap(find.byTooltip(tooltip));
+  await tester.pumpAndSettle();
+  expect(find.text(option), findsWidgets);
+  await tester.tap(find.text(option).last);
+  await tester.pumpAndSettle();
+}
+
+Finder _toolbarColor(Color color) {
+  final dot = find.byWidgetPredicate((widget) {
+    if (widget is! DecoratedBox || widget.decoration is! BoxDecoration) {
+      return false;
+    }
+    final decoration = widget.decoration as BoxDecoration;
+    return decoration.shape == BoxShape.circle && decoration.color == color;
+  });
+  return find
+      .ancestor(of: dot, matching: find.byType(InkResponse))
+      .first;
+}
+
+void _expectEditingFieldFocused(WidgetTester tester) {
+  final fieldFinder = find.byType(TextField);
+  expect(fieldFinder, findsOneWidget);
+  final field = tester.widget<TextField>(fieldFinder);
+  expect(field.focusNode, isNotNull);
+  expect(field.focusNode!.hasFocus, isTrue);
+}
+
+TextElement _textElement(_CanvasHarness harness) {
+  return harness.canvasController.elementById(_textId)! as TextElement;
+}
+
+RectElement _shapeElement(_CanvasHarness harness) {
+  return harness.canvasController.elementById(_shapeId)! as RectElement;
+}
+
+class _CanvasHarness {
+  _CanvasHarness({required CanvasTransform transform}) {
+    viewController = InfiniteCanvasController(
+      canvasController: canvasController,
+      transform: transform,
+    );
+  }
+
+  final CanvasController canvasController = CanvasController();
+  late final InfiniteCanvasController viewController;
+
+  void dispose() {
+    viewController.dispose();
+    canvasController.dispose();
+  }
+}
+--- finder API usage in existing tests ---
+
+test\infinite_canvas_text_editing_test.dart:120:        await tester.enterText(find.byType(TextField).last, '112233');
+test\infinite_canvas_text_editing_test.dart:134:        await tester.enterText(find.byType(TextField), 'Still editing')
+;
+test\infinite_canvas_text_editing_test.dart:173:      await tester.enterText(find.byType(TextField), 'Updated label');
+test\infinite_canvas_text_editing_test.dart:205:        await tester.enterText(find.byType(TextField), 'After');
+test\infinite_canvas_text_editing_test.dart:228:        expect(find.byType(TextField), findsNothing);
+test\infinite_canvas_text_editing_test.dart:290:  await tester.tap(find.text(option).last);
+test\infinite_canvas_text_editing_test.dart:304:      .first;
+test\infinite_canvas_text_editing_test.dart:308:  final fieldFinder = find.byType(TextField);
+test\performance_widget_test.dart:303:            .first;
+--- scoped status and whitespace ---
+ M lib/src/infinite_canvas/infinite_canvas_widget.dart
+?? docs/plan/plan_requirement_2_20260711-002820.md
+?? test/infinite_canvas_text_editing_test.dart
+
+
+
+diff --git a/test/infinite_canvas_text_editing_test.dart b/test/infinite_canvas_text_editing_test.dart
+new file mode 100644
+index 0000000000000000000000000000000000000000..4fc990dc72d2856090fc60b043882418361b79a8
+--- /dev/null
++++ b/test/infinite_canvas_text_editing_test.dart
+@@ -0,0 +1,338 @@
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:wenz_draw/wenz_draw.dart';
++
++const _textId = 'editable-text';
++const _shapeId = 'editable-shape';
++const _red = Color(0xFFEF4444);
++const _blue = Color(0xFF3B82F6);
++
++void main() {
++  group('InfiniteCanvasWidget text editing toolbar', () {
++    for (final scale in [1.0, 1.75]) {
++      testWidgets(
++        'keeps narrow text editing active at ${scale}x toolbar edges',
++        (tester) async {
++          final harness = await _pumpEditingTarget(
++            tester,
++            TextElement(
++              id: _textId,
++              position: Offset(360 / scale, 250 / scale),
++              text: 'Narrow',
++              boxSize: const Size(24, 48),
++            ),
++            transform: CanvasTransform(scale: scale),
++          );
++
++          await tester.tap(_toolbarColor(_red));
++          await tester.pump();
++
++          expect(harness.canvasController.editingTextElementId, _textId);
++          expect(_textElement(harness).style.color, _red);
++
++          await _selectToolbarMenu(
++            tester,
++            tooltip: 'Font family',
++            option: 'Mono',
++          );
++
++          expect(harness.canvasController.editingTextElementId, _textId);
++          expect(_textElement(harness).style.fontFamily, 'Consolas');
++          expect(harness.canvasController.historyManager.undoStack, isEmpty);
++          _expectEditingFieldFocused(tester);
++          expect(tester.takeException(), isNull);
++        },
++      );
++    }
++
++    testWidgets(
++      'updates text styles continuously and restores focus after color dialogs',
++      (tester) async {
++        final harness = await _pumpEditingTarget(
++          tester,
++          TextElement(
++            id: _textId,
++            position: const Offset(340, 250),
++            text: 'Draft',
++            boxSize: const Size(120, 64),
++          ),
++        );
++
++        await tester.tap(_toolbarColor(_red));
++        await tester.pump();
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font size',
++          option: '32',
++        );
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        var element = _textElement(harness);
++        expect(element.style.color, _red);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(find.text('32'), findsOneWidget);
++        expect(find.text('Serif'), findsOneWidget);
++        expect(harness.canvasController.editingTextElementId, _textId);
++        _expectEditingFieldFocused(tester);
++
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Sans',
++        );
++        expect(_textElement(harness).style.fontFamily, isNull);
++        expect(find.text('Sans'), findsOneWidget);
++        _expectEditingFieldFocused(tester);
++
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        await tester.tap(find.byTooltip('Font size'));
++        await tester.pumpAndSettle();
++        await tester.tapAt(const Offset(40, 560));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(_textElement(harness).style.fontSize, 32);
++        _expectEditingFieldFocused(tester);
++
++        await tester.tap(find.byTooltip('Custom color'));
++        await tester.pumpAndSettle();
++        expect(find.text('Text color'), findsOneWidget);
++
++        await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(_textElement(harness).style.color, _red);
++        _expectEditingFieldFocused(tester);
++
++        await tester.tap(find.byTooltip('Custom color'));
++        await tester.pumpAndSettle();
++        await tester.enterText(find.byType(TextField).last, '112233');
++        await tester.pump();
++        await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
++        await tester.pumpAndSettle();
++
++        element = _textElement(harness);
++        expect(element.style.color?.toARGB32(), 0xFF112233);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(find.text('32'), findsOneWidget);
++        expect(find.text('Serif'), findsOneWidget);
++        _expectEditingFieldFocused(tester);
++
++        await tester.enterText(find.byType(TextField), 'Still editing');
++        await tester.pump();
++
++        expect(_textElement(harness).text, 'Still editing');
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(harness.canvasController.historyManager.undoStack, isEmpty);
++        expect(tester.takeException(), isNull);
++      },
++    );
++
++    testWidgets('uses the same live style controls for editable shape labels', (
++      tester,
++    ) async {
++      final harness = await _pumpEditingTarget(
++        tester,
++        const RectElement(
++          id: _shapeId,
++          rect: Rect.fromLTWH(300, 240, 180, 88),
++          label: 'Shape label',
++          labelStyle: TextStyle(
++            color: Colors.black,
++            fontSize: 14,
++            height: 1.2,
++          ),
++        ),
++      );
++
++      await tester.tap(_toolbarColor(_blue));
++      await tester.pump();
++      await _selectToolbarMenu(
++        tester,
++        tooltip: 'Font size',
++        option: '48',
++      );
++      await _selectToolbarMenu(
++        tester,
++        tooltip: 'Font family',
++        option: 'Mono',
++      );
++      await tester.enterText(find.byType(TextField), 'Updated label');
++      await tester.pump();
++
++      final element = _shapeElement(harness);
++      expect(element.label, 'Updated label');
++      expect(element.labelStyle.color, _blue);
++      expect(element.labelStyle.fontSize, 48);
++      expect(element.labelStyle.fontFamily, 'Consolas');
++      expect(harness.canvasController.editingShapeLabelElementId, _shapeId);
++      expect(harness.canvasController.historyManager.undoStack, isEmpty);
++      _expectEditingFieldFocused(tester);
++      expect(tester.takeException(), isNull);
++    });
++
++    testWidgets(
++      'outside click commits one undo entry and restores text and styles',
++      (tester) async {
++        final harness = await _pumpEditingTarget(
++          tester,
++          TextElement(
++            id: _textId,
++            position: const Offset(340, 250),
++            text: 'Before',
++            boxSize: const Size(120, 64),
++            style: const TextStyle(
++              color: Colors.black,
++              fontSize: 18,
++              height: 1.2,
++            ),
++          ),
++        );
++
++        await tester.enterText(find.byType(TextField), 'After');
++        await tester.pump();
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font size',
++          option: '32',
++        );
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        expect(harness.canvasController.historyManager.undoStack, isEmpty);
++
++        // Leave a pending post-frame focus restoration while ending editing.
++        // This exercises disposal of the editing overlay's FocusNode as well as
++        // the outside-pointer commit path.
++        await tester.tap(_toolbarColor(_red));
++        await tester.tapAt(const Offset(40, 560));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, isNull);
++        expect(find.byType(TextField), findsNothing);
++        expect(harness.canvasController.historyManager.undoStack, hasLength(1));
++
++        var element = _textElement(harness);
++        expect(element.text, 'After');
++        expect(element.style.color, _red);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(tester.takeException(), isNull);
++
++        harness.canvasController.undo();
++        await tester.pump();
++
++        element = _textElement(harness);
++        expect(element.text, 'Before');
++        expect(element.style.color, Colors.black);
++        expect(element.style.fontSize, 18);
++        expect(element.style.fontFamily, isNull);
++        expect(harness.canvasController.canUndo, isFalse);
++        expect(harness.canvasController.canRedo, isTrue);
++        expect(tester.takeException(), isNull);
++      },
++    );
++  });
++}
++
++Future<_CanvasHarness> _pumpEditingTarget(
++  WidgetTester tester,
++  CanvasElement element, {
++  CanvasTransform transform = CanvasTransform.identity,
++}) async {
++  final harness = _CanvasHarness(transform: transform);
++  addTearDown(harness.dispose);
++  harness.canvasController.addElement(element, record: false);
++  if (element is TextElement) {
++    harness.canvasController.beginTextEditing(element.id);
++  } else {
++    harness.canvasController.beginShapeLabelEditing(element.id);
++  }
++
++  await tester.pumpWidget(
++    MaterialApp(
++      home: Scaffold(
++        body: InfiniteCanvasWidget(
++          controller: harness.viewController,
++          config: const InfiniteCanvasConfig(gridType: GridType.none),
++        ),
++      ),
++    ),
++  );
++  await tester.pump();
++  return harness;
++}
++
++Future<void> _selectToolbarMenu(
++  WidgetTester tester, {
++  required String tooltip,
++  required String option,
++}) async {
++  await tester.tap(find.byTooltip(tooltip));
++  await tester.pumpAndSettle();
++  expect(find.text(option), findsWidgets);
++  await tester.tap(find.text(option).last);
++  await tester.pumpAndSettle();
++}
++
++Finder _toolbarColor(Color color) {
++  final dot = find.byWidgetPredicate((widget) {
++    if (widget is! DecoratedBox || widget.decoration is! BoxDecoration) {
++      return false;
++    }
++    final decoration = widget.decoration as BoxDecoration;
++    return decoration.shape == BoxShape.circle && decoration.color == color;
++  });
++  return find
++      .ancestor(of: dot, matching: find.byType(InkResponse))
++      .first;
++}
++
++void _expectEditingFieldFocused(WidgetTester tester) {
++  final fieldFinder = find.byType(TextField);
++  expect(fieldFinder, findsOneWidget);
++  final field = tester.widget<TextField>(fieldFinder);
++  expect(field.focusNode, isNotNull);
++  expect(field.focusNode!.hasFocus, isTrue);
++}
++
++TextElement _textElement(_CanvasHarness harness) {
++  return harness.canvasController.elementById(_textId)! as TextElement;
++}
++
++RectElement _shapeElement(_CanvasHarness harness) {
++  return harness.canvasController.elementById(_shapeId)! as RectElement;
++}
++
++class _CanvasHarness {
++  _CanvasHarness({required CanvasTransform transform}) {
++    viewController = InfiniteCanvasController(
++      canvasController: canvasController,
++      transform: transform,
++    );
++  }
++
++  final CanvasController canvasController = CanvasController();
++  late final InfiniteCanvasController viewController;
++
++  void dispose() {
++    viewController.dispose();
++    canvasController.dispose();
++  }
++}
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -LiteralPath 'test/performance_widget_test.dart' -Encoding UTF8 | Select-Object -Skip 288 -First 24
+Write-Output '--- regression test inventory ---'
+Select-String -LiteralPath 'test/infinite_canvas_text_editing_test.dart' -Pattern 'testWidgets\\(' -Encoding UTF8
+Write-Output '--- target diff summary ---'
+git diff --stat -- 'test/infinite_canvas_text_editing_test.dart'
+git diff --numstat -- 'test/infinite_canvas_text_editing_test.dart'" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 1143ms:
+      () {
+        final canvasController = CanvasController();
+        final viewController = InfiniteCanvasController(
+          canvasController: canvasController,
+        );
+        for (final e in _makeMixed500Elements()) {
+          canvasController.addElement(e, record: false);
+        }
+
+        viewController.pan(const Offset(-240, -160));
+        viewController.zoomBy(1.5, focalPoint: const Offset(400, 300));
+
+        final firstShape = canvasController.elements
+            .whereType<DrawioShapeElement>()
+            .first;
+        expect(canvasController.hitTest(firstShape.rect.center), firstShape);
+
+        canvasController
+          ..setTool(SelectTool.idValue)
+          ..setSelection({firstShape.id});
+        canvasController.moveSelected(const Offset(12, 8), record: false);
+
+        final moved =
+            canvasController.elementById(firstShape.id) as DrawioShapeElement;
+--- regression test inventory ---
+
+test\infinite_canvas_text_editing_test.dart:13:      testWidgets(
+test\infinite_canvas_text_editing_test.dart:48:    testWidgets(
+test\infinite_canvas_text_editing_test.dart:144:    testWidgets('uses the same live style controls for editable shape l
+abels', (
+test\infinite_canvas_text_editing_test.dart:187:    testWidgets(
+--- target diff summary ---
+
+
+
+diff --git a/test/infinite_canvas_text_editing_test.dart b/test/infinite_canvas_text_editing_test.dart
+new file mode 100644
+index 0000000000000000000000000000000000000000..4fc990dc72d2856090fc60b043882418361b79a8
+--- /dev/null
++++ b/test/infinite_canvas_text_editing_test.dart
+@@ -0,0 +1,338 @@
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:wenz_draw/wenz_draw.dart';
++
++const _textId = 'editable-text';
++const _shapeId = 'editable-shape';
++const _red = Color(0xFFEF4444);
++const _blue = Color(0xFF3B82F6);
++
++void main() {
++  group('InfiniteCanvasWidget text editing toolbar', () {
++    for (final scale in [1.0, 1.75]) {
++      testWidgets(
++        'keeps narrow text editing active at ${scale}x toolbar edges',
++        (tester) async {
++          final harness = await _pumpEditingTarget(
++            tester,
++            TextElement(
++              id: _textId,
++              position: Offset(360 / scale, 250 / scale),
++              text: 'Narrow',
++              boxSize: const Size(24, 48),
++            ),
++            transform: CanvasTransform(scale: scale),
++          );
++
++          await tester.tap(_toolbarColor(_red));
++          await tester.pump();
++
++          expect(harness.canvasController.editingTextElementId, _textId);
++          expect(_textElement(harness).style.color, _red);
++
++          await _selectToolbarMenu(
++            tester,
++            tooltip: 'Font family',
++            option: 'Mono',
++          );
++
++          expect(harness.canvasController.editingTextElementId, _textId);
++          expect(_textElement(harness).style.fontFamily, 'Consolas');
++          expect(harness.canvasController.historyManager.undoStack, isEmpty);
++          _expectEditingFieldFocused(tester);
++          expect(tester.takeException(), isNull);
++        },
++      );
++    }
++
++    testWidgets(
++      'updates text styles continuously and restores focus after color dialogs',
++      (tester) async {
++        final harness = await _pumpEditingTarget(
++          tester,
++          TextElement(
++            id: _textId,
++            position: const Offset(340, 250),
++            text: 'Draft',
++            boxSize: const Size(120, 64),
++          ),
++        );
++
++        await tester.tap(_toolbarColor(_red));
++        await tester.pump();
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font size',
++          option: '32',
++        );
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        var element = _textElement(harness);
++        expect(element.style.color, _red);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(find.text('32'), findsOneWidget);
++        expect(find.text('Serif'), findsOneWidget);
++        expect(harness.canvasController.editingTextElementId, _textId);
++        _expectEditingFieldFocused(tester);
++
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Sans',
++        );
++        expect(_textElement(harness).style.fontFamily, isNull);
++        expect(find.text('Sans'), findsOneWidget);
++        _expectEditingFieldFocused(tester);
++
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        await tester.tap(find.byTooltip('Font size'));
++        await tester.pumpAndSettle();
++        await tester.tapAt(const Offset(40, 560));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(_textElement(harness).style.fontSize, 32);
++        _expectEditingFieldFocused(tester);
++
++        await tester.tap(find.byTooltip('Custom color'));
++        await tester.pumpAndSettle();
++        expect(find.text('Text color'), findsOneWidget);
++
++        await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(_textElement(harness).style.color, _red);
++        _expectEditingFieldFocused(tester);
++
++        await tester.tap(find.byTooltip('Custom color'));
++        await tester.pumpAndSettle();
++        await tester.enterText(find.byType(TextField).last, '112233');
++        await tester.pump();
++        await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
++        await tester.pumpAndSettle();
++
++        element = _textElement(harness);
++        expect(element.style.color?.toARGB32(), 0xFF112233);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(find.text('32'), findsOneWidget);
++        expect(find.text('Serif'), findsOneWidget);
++        _expectEditingFieldFocused(tester);
++
++        await tester.enterText(find.byType(TextField), 'Still editing');
++        await tester.pump();
++
++        expect(_textElement(harness).text, 'Still editing');
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(harness.canvasController.historyManager.undoStack, isEmpty);
++        expect(tester.takeException(), isNull);
++      },
++    );
++
++    testWidgets('uses the same live style controls for editable shape labels', (
++      tester,
++    ) async {
++      final harness = await _pumpEditingTarget(
++        tester,
++        const RectElement(
++          id: _shapeId,
++          rect: Rect.fromLTWH(300, 240, 180, 88),
++          label: 'Shape label',
++          labelStyle: TextStyle(
++            color: Colors.black,
++            fontSize: 14,
++            height: 1.2,
++          ),
++        ),
++      );
++
++      await tester.tap(_toolbarColor(_blue));
++      await tester.pump();
++      await _selectToolbarMenu(
++        tester,
++        tooltip: 'Font size',
++        option: '48',
++      );
++      await _selectToolbarMenu(
++        tester,
++        tooltip: 'Font family',
++        option: 'Mono',
++      );
++      await tester.enterText(find.byType(TextField), 'Updated label');
++      await tester.pump();
++
++      final element = _shapeElement(harness);
++      expect(element.label, 'Updated label');
++      expect(element.labelStyle.color, _blue);
++      expect(element.labelStyle.fontSize, 48);
++      expect(element.labelStyle.fontFamily, 'Consolas');
++      expect(harness.canvasController.editingShapeLabelElementId, _shapeId);
++      expect(harness.canvasController.historyManager.undoStack, isEmpty);
++      _expectEditingFieldFocused(tester);
++      expect(tester.takeException(), isNull);
++    });
++
++    testWidgets(
++      'outside click commits one undo entry and restores text and styles',
++      (tester) async {
++        final harness = await _pumpEditingTarget(
++          tester,
++          TextElement(
++            id: _textId,
++            position: const Offset(340, 250),
++            text: 'Before',
++            boxSize: const Size(120, 64),
++            style: const TextStyle(
++              color: Colors.black,
++              fontSize: 18,
++              height: 1.2,
++            ),
++          ),
++        );
++
++        await tester.enterText(find.byType(TextField), 'After');
++        await tester.pump();
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font size',
++          option: '32',
++        );
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        expect(harness.canvasController.historyManager.undoStack, isEmpty);
++
++        // Leave a pending post-frame focus restoration while ending editing.
++        // This exercises disposal of the editing overlay's FocusNode as well as
++        // the outside-pointer commit path.
++        await tester.tap(_toolbarColor(_red));
++        await tester.tapAt(const Offset(40, 560));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, isNull);
++        expect(find.byType(TextField), findsNothing);
++        expect(harness.canvasController.historyManager.undoStack, hasLength(1));
++
++        var element = _textElement(harness);
++        expect(element.text, 'After');
++        expect(element.style.color, _red);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(tester.takeException(), isNull);
++
++        harness.canvasController.undo();
++        await tester.pump();
++
++        element = _textElement(harness);
++        expect(element.text, 'Before');
++        expect(element.style.color, Colors.black);
++        expect(element.style.fontSize, 18);
++        expect(element.style.fontFamily, isNull);
++        expect(harness.canvasController.canUndo, isFalse);
++        expect(harness.canvasController.canRedo, isTrue);
++        expect(tester.takeException(), isNull);
++      },
++    );
++  });
++}
++
++Future<_CanvasHarness> _pumpEditingTarget(
++  WidgetTester tester,
++  CanvasElement element, {
++  CanvasTransform transform = CanvasTransform.identity,
++}) async {
++  final harness = _CanvasHarness(transform: transform);
++  addTearDown(harness.dispose);
++  harness.canvasController.addElement(element, record: false);
++  if (element is TextElement) {
++    harness.canvasController.beginTextEditing(element.id);
++  } else {
++    harness.canvasController.beginShapeLabelEditing(element.id);
++  }
++
++  await tester.pumpWidget(
++    MaterialApp(
++      home: Scaffold(
++        body: InfiniteCanvasWidget(
++          controller: harness.viewController,
++          config: const InfiniteCanvasConfig(gridType: GridType.none),
++        ),
++      ),
++    ),
++  );
++  await tester.pump();
++  return harness;
++}
++
++Future<void> _selectToolbarMenu(
++  WidgetTester tester, {
++  required String tooltip,
++  required String option,
++}) async {
++  await tester.tap(find.byTooltip(tooltip));
++  await tester.pumpAndSettle();
++  expect(find.text(option), findsWidgets);
++  await tester.tap(find.text(option).last);
++  await tester.pumpAndSettle();
++}
++
++Finder _toolbarColor(Color color) {
++  final dot = find.byWidgetPredicate((widget) {
++    if (widget is! DecoratedBox || widget.decoration is! BoxDecoration) {
++      return false;
++    }
++    final decoration = widget.decoration as BoxDecoration;
++    return decoration.shape == BoxShape.circle && decoration.color == color;
++  });
++  return find
++      .ancestor(of: dot, matching: find.byType(InkResponse))
++      .first;
++}
++
++void _expectEditingFieldFocused(WidgetTester tester) {
++  final fieldFinder = find.byType(TextField);
++  expect(fieldFinder, findsOneWidget);
++  final field = tester.widget<TextField>(fieldFinder);
++  expect(field.focusNode, isNotNull);
++  expect(field.focusNode!.hasFocus, isTrue);
++}
++
++TextElement _textElement(_CanvasHarness harness) {
++  return harness.canvasController.elementById(_textId)! as TextElement;
++}
++
++RectElement _shapeElement(_CanvasHarness harness) {
++  return harness.canvasController.elementById(_shapeId)! as RectElement;
++}
++
++class _CanvasHarness {
++  _CanvasHarness({required CanvasTransform transform}) {
++    viewController = InfiniteCanvasController(
++      canvasController: canvasController,
++      transform: transform,
++    );
++  }
++
++  final CanvasController canvasController = CanvasController();
++  late final InfiniteCanvasController viewController;
++
++  void dispose() {
++    viewController.dispose();
++    canvasController.dispose();
++  }
++}
+
+codex
+回归覆盖已补齐，包含源码中两次缩放参数化用例（实际生成两个 Widget 测试）以及三类完整交互用例。最后仅检查目标文件的行尾空白、UTF-8 可读性和作用域状态，不运行测试或分析。
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$path = '"'test\\infinite_canvas_text_editing_test.dart'
+"'$lines = Get-Content -LiteralPath $path -Encoding UTF8
+$trailing = for ($i = 0; $i -lt $lines.Count; $i++) {
+  if ($lines[$i] -match '"'[\\t ]+"'$'"') { "'$i + 1 }
+}
+Write-Output "lines=$($lines.Count)"
+Write-Output "trailing_whitespace_lines=$(@($trailing).Count)"
+Write-Output '"'--- scoped status ---'
+git status --short -- "'$path '"'docs/plan/plan_requirement_2_20260711-002820.md' 'lib/src/infinite_canvas/infinite_canvas_widget.dart'" in D:\project\GitHub\wenz_flutter\wenz_draw
+ succeeded in 917ms:
+lines=338
+trailing_whitespace_lines=0
+--- scoped status ---
+ M lib/src/infinite_canvas/infinite_canvas_widget.dart
+?? docs/plan/plan_requirement_2_20260711-002820.md
+?? test/infinite_canvas_text_editing_test.dart
+
+diff --git a/test/infinite_canvas_text_editing_test.dart b/test/infinite_canvas_text_editing_test.dart
+new file mode 100644
+index 0000000000000000000000000000000000000000..4fc990dc72d2856090fc60b043882418361b79a8
+--- /dev/null
++++ b/test/infinite_canvas_text_editing_test.dart
+@@ -0,0 +1,338 @@
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:wenz_draw/wenz_draw.dart';
++
++const _textId = 'editable-text';
++const _shapeId = 'editable-shape';
++const _red = Color(0xFFEF4444);
++const _blue = Color(0xFF3B82F6);
++
++void main() {
++  group('InfiniteCanvasWidget text editing toolbar', () {
++    for (final scale in [1.0, 1.75]) {
++      testWidgets(
++        'keeps narrow text editing active at ${scale}x toolbar edges',
++        (tester) async {
++          final harness = await _pumpEditingTarget(
++            tester,
++            TextElement(
++              id: _textId,
++              position: Offset(360 / scale, 250 / scale),
++              text: 'Narrow',
++              boxSize: const Size(24, 48),
++            ),
++            transform: CanvasTransform(scale: scale),
++          );
++
++          await tester.tap(_toolbarColor(_red));
++          await tester.pump();
++
++          expect(harness.canvasController.editingTextElementId, _textId);
++          expect(_textElement(harness).style.color, _red);
++
++          await _selectToolbarMenu(
++            tester,
++            tooltip: 'Font family',
++            option: 'Mono',
++          );
++
++          expect(harness.canvasController.editingTextElementId, _textId);
++          expect(_textElement(harness).style.fontFamily, 'Consolas');
++          expect(harness.canvasController.historyManager.undoStack, isEmpty);
++          _expectEditingFieldFocused(tester);
++          expect(tester.takeException(), isNull);
++        },
++      );
++    }
++
++    testWidgets(
++      'updates text styles continuously and restores focus after color dialogs',
++      (tester) async {
++        final harness = await _pumpEditingTarget(
++          tester,
++          TextElement(
++            id: _textId,
++            position: const Offset(340, 250),
++            text: 'Draft',
++            boxSize: const Size(120, 64),
++          ),
++        );
++
++        await tester.tap(_toolbarColor(_red));
++        await tester.pump();
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font size',
++          option: '32',
++        );
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        var element = _textElement(harness);
++        expect(element.style.color, _red);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(find.text('32'), findsOneWidget);
++        expect(find.text('Serif'), findsOneWidget);
++        expect(harness.canvasController.editingTextElementId, _textId);
++        _expectEditingFieldFocused(tester);
++
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Sans',
++        );
++        expect(_textElement(harness).style.fontFamily, isNull);
++        expect(find.text('Sans'), findsOneWidget);
++        _expectEditingFieldFocused(tester);
++
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        await tester.tap(find.byTooltip('Font size'));
++        await tester.pumpAndSettle();
++        await tester.tapAt(const Offset(40, 560));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(_textElement(harness).style.fontSize, 32);
++        _expectEditingFieldFocused(tester);
++
++        await tester.tap(find.byTooltip('Custom color'));
++        await tester.pumpAndSettle();
++        expect(find.text('Text color'), findsOneWidget);
++
++        await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(_textElement(harness).style.color, _red);
++        _expectEditingFieldFocused(tester);
++
++        await tester.tap(find.byTooltip('Custom color'));
++        await tester.pumpAndSettle();
++        await tester.enterText(find.byType(TextField).last, '112233');
++        await tester.pump();
++        await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
++        await tester.pumpAndSettle();
++
++        element = _textElement(harness);
++        expect(element.style.color?.toARGB32(), 0xFF112233);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(find.text('32'), findsOneWidget);
++        expect(find.text('Serif'), findsOneWidget);
++        _expectEditingFieldFocused(tester);
++
++        await tester.enterText(find.byType(TextField), 'Still editing');
++        await tester.pump();
++
++        expect(_textElement(harness).text, 'Still editing');
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(harness.canvasController.historyManager.undoStack, isEmpty);
++        expect(tester.takeException(), isNull);
++      },
++    );
++
++    testWidgets('uses the same live style controls for editable shape labels', (
++      tester,
++    ) async {
++      final harness = await _pumpEditingTarget(
++        tester,
++        const RectElement(
++          id: _shapeId,
++          rect: Rect.fromLTWH(300, 240, 180, 88),
++          label: 'Shape label',
++          labelStyle: TextStyle(
++            color: Colors.black,
++            fontSize: 14,
++            height: 1.2,
++          ),
++        ),
++      );
++
++      await tester.tap(_toolbarColor(_blue));
++      await tester.pump();
++      await _selectToolbarMenu(
++        tester,
++        tooltip: 'Font size',
++        option: '48',
++      );
++      await _selectToolbarMenu(
++        tester,
++        tooltip: 'Font family',
++        option: 'Mono',
++      );
++      await tester.enterText(find.byType(TextField), 'Updated label');
++      await tester.pump();
++
++      final element = _shapeElement(harness);
++      expect(element.label, 'Updated label');
++      expect(element.labelStyle.color, _blue);
++      expect(element.labelStyle.fontSize, 48);
++      expect(element.labelStyle.fontFamily, 'Consolas');
++      expect(harness.canvasController.editingShapeLabelElementId, _shapeId);
++      expect(harness.canvasController.historyManager.undoStack, isEmpty);
++      _expectEditingFieldFocused(tester);
++      expect(tester.takeException(), isNull);
++    });
++
++    testWidgets(
++      'outside click commits one undo entry and restores text and styles',
++      (tester) async {
++        final harness = await _pumpEditingTarget(
++          tester,
++          TextElement(
++            id: _textId,
++            position: const Offset(340, 250),
++            text: 'Before',
++            boxSize: const Size(120, 64),
++            style: const TextStyle(
++              color: Colors.black,
++              fontSize: 18,
++              height: 1.2,
++            ),
++          ),
++        );
++
++        await tester.enterText(find.byType(TextField), 'After');
++        await tester.pump();
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font size',
++          option: '32',
++        );
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        expect(harness.canvasController.historyManager.undoStack, isEmpty);
++
++        // Leave a pending post-frame focus restoration while ending editing.
++        // This exercises disposal of the editing overlay's FocusNode as well as
++        // the outside-pointer commit path.
++        await tester.tap(_toolbarColor(_red));
++        await tester.tapAt(const Offset(40, 560));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, isNull);
++        expect(find.byType(TextField), findsNothing);
++        expect(harness.canvasController.historyManager.undoStack, hasLength(1));
++
++        var element = _textElement(harness);
++        expect(element.text, 'After');
++        expect(element.style.color, _red);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(tester.takeException(), isNull);
++
++        harness.canvasController.undo();
++        await tester.pump();
++
++        element = _textElement(harness);
++        expect(element.text, 'Before');
++        expect(element.style.color, Colors.black);
++        expect(element.style.fontSize, 18);
++        expect(element.style.fontFamily, isNull);
++        expect(harness.canvasController.canUndo, isFalse);
++        expect(harness.canvasController.canRedo, isTrue);
++        expect(tester.takeException(), isNull);
++      },
++    );
++  });
++}
++
++Future<_CanvasHarness> _pumpEditingTarget(
++  WidgetTester tester,
++  CanvasElement element, {
++  CanvasTransform transform = CanvasTransform.identity,
++}) async {
++  final harness = _CanvasHarness(transform: transform);
++  addTearDown(harness.dispose);
++  harness.canvasController.addElement(element, record: false);
++  if (element is TextElement) {
++    harness.canvasController.beginTextEditing(element.id);
++  } else {
++    harness.canvasController.beginShapeLabelEditing(element.id);
++  }
++
++  await tester.pumpWidget(
++    MaterialApp(
++      home: Scaffold(
++        body: InfiniteCanvasWidget(
++          controller: harness.viewController,
++          config: const InfiniteCanvasConfig(gridType: GridType.none),
++        ),
++      ),
++    ),
++  );
++  await tester.pump();
++  return harness;
++}
++
++Future<void> _selectToolbarMenu(
++  WidgetTester tester, {
++  required String tooltip,
++  required String option,
++}) async {
++  await tester.tap(find.byTooltip(tooltip));
++  await tester.pumpAndSettle();
++  expect(find.text(option), findsWidgets);
++  await tester.tap(find.text(option).last);
++  await tester.pumpAndSettle();
++}
++
++Finder _toolbarColor(Color color) {
++  final dot = find.byWidgetPredicate((widget) {
++    if (widget is! DecoratedBox || widget.decoration is! BoxDecoration) {
++      return false;
++    }
++    final decoration = widget.decoration as BoxDecoration;
++    return decoration.shape == BoxShape.circle && decoration.color == color;
++  });
++  return find
++      .ancestor(of: dot, matching: find.byType(InkResponse))
++      .first;
++}
++
++void _expectEditingFieldFocused(WidgetTester tester) {
++  final fieldFinder = find.byType(TextField);
++  expect(fieldFinder, findsOneWidget);
++  final field = tester.widget<TextField>(fieldFinder);
++  expect(field.focusNode, isNotNull);
++  expect(field.focusNode!.hasFocus, isTrue);
++}
++
++TextElement _textElement(_CanvasHarness harness) {
++  return harness.canvasController.elementById(_textId)! as TextElement;
++}
++
++RectElement _shapeElement(_CanvasHarness harness) {
++  return harness.canvasController.elementById(_shapeId)! as RectElement;
++}
++
++class _CanvasHarness {
++  _CanvasHarness({required CanvasTransform transform}) {
++    viewController = InfiniteCanvasController(
++      canvasController: canvasController,
++      transform: transform,
++    );
++  }
++
++  final CanvasController canvasController = CanvasController();
++  late final InfiniteCanvasController viewController;
++
++  void dispose() {
++    viewController.dispose();
++    canvasController.dispose();
++  }
++}
+
+codex
+P002 已完成，仅新增 [infinite_canvas_text_editing_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/infinite_canvas_text_editing_test.dart:1)。
+
+覆盖内容：
+
+- 窄文字在 1.0x、1.75x 缩放下的工具栏边缘交互。
+- 预设颜色、字号、字体族及 Sans 恢复。
+- 字号菜单取消、自定义颜色取消与应用后的焦点恢复。
+- `TextElement` 与图形标签共享编辑覆盖层。
+- 外部点击仅提交一次历史记录，撤销恢复文字和全部样式。
+- 覆盖焦点恢复回调与 `FocusNode` 释放交错场景。
+
+plan 文件和 P001 业务文件均未改动。按要求未运行测试、构建、格式化或静态分析命令。
+diff --git a/test/infinite_canvas_text_editing_test.dart b/test/infinite_canvas_text_editing_test.dart
+new file mode 100644
+index 0000000000000000000000000000000000000000..4fc990dc72d2856090fc60b043882418361b79a8
+--- /dev/null
++++ b/test/infinite_canvas_text_editing_test.dart
+@@ -0,0 +1,338 @@
++import 'package:flutter/material.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:wenz_draw/wenz_draw.dart';
++
++const _textId = 'editable-text';
++const _shapeId = 'editable-shape';
++const _red = Color(0xFFEF4444);
++const _blue = Color(0xFF3B82F6);
++
++void main() {
++  group('InfiniteCanvasWidget text editing toolbar', () {
++    for (final scale in [1.0, 1.75]) {
++      testWidgets(
++        'keeps narrow text editing active at ${scale}x toolbar edges',
++        (tester) async {
++          final harness = await _pumpEditingTarget(
++            tester,
++            TextElement(
++              id: _textId,
++              position: Offset(360 / scale, 250 / scale),
++              text: 'Narrow',
++              boxSize: const Size(24, 48),
++            ),
++            transform: CanvasTransform(scale: scale),
++          );
++
++          await tester.tap(_toolbarColor(_red));
++          await tester.pump();
++
++          expect(harness.canvasController.editingTextElementId, _textId);
++          expect(_textElement(harness).style.color, _red);
++
++          await _selectToolbarMenu(
++            tester,
++            tooltip: 'Font family',
++            option: 'Mono',
++          );
++
++          expect(harness.canvasController.editingTextElementId, _textId);
++          expect(_textElement(harness).style.fontFamily, 'Consolas');
++          expect(harness.canvasController.historyManager.undoStack, isEmpty);
++          _expectEditingFieldFocused(tester);
++          expect(tester.takeException(), isNull);
++        },
++      );
++    }
++
++    testWidgets(
++      'updates text styles continuously and restores focus after color dialogs',
++      (tester) async {
++        final harness = await _pumpEditingTarget(
++          tester,
++          TextElement(
++            id: _textId,
++            position: const Offset(340, 250),
++            text: 'Draft',
++            boxSize: const Size(120, 64),
++          ),
++        );
++
++        await tester.tap(_toolbarColor(_red));
++        await tester.pump();
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font size',
++          option: '32',
++        );
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        var element = _textElement(harness);
++        expect(element.style.color, _red);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(find.text('32'), findsOneWidget);
++        expect(find.text('Serif'), findsOneWidget);
++        expect(harness.canvasController.editingTextElementId, _textId);
++        _expectEditingFieldFocused(tester);
++
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Sans',
++        );
++        expect(_textElement(harness).style.fontFamily, isNull);
++        expect(find.text('Sans'), findsOneWidget);
++        _expectEditingFieldFocused(tester);
++
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        await tester.tap(find.byTooltip('Font size'));
++        await tester.pumpAndSettle();
++        await tester.tapAt(const Offset(40, 560));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(_textElement(harness).style.fontSize, 32);
++        _expectEditingFieldFocused(tester);
++
++        await tester.tap(find.byTooltip('Custom color'));
++        await tester.pumpAndSettle();
++        expect(find.text('Text color'), findsOneWidget);
++
++        await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(_textElement(harness).style.color, _red);
++        _expectEditingFieldFocused(tester);
++
++        await tester.tap(find.byTooltip('Custom color'));
++        await tester.pumpAndSettle();
++        await tester.enterText(find.byType(TextField).last, '112233');
++        await tester.pump();
++        await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
++        await tester.pumpAndSettle();
++
++        element = _textElement(harness);
++        expect(element.style.color?.toARGB32(), 0xFF112233);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(find.text('32'), findsOneWidget);
++        expect(find.text('Serif'), findsOneWidget);
++        _expectEditingFieldFocused(tester);
++
++        await tester.enterText(find.byType(TextField), 'Still editing');
++        await tester.pump();
++
++        expect(_textElement(harness).text, 'Still editing');
++        expect(harness.canvasController.editingTextElementId, _textId);
++        expect(harness.canvasController.historyManager.undoStack, isEmpty);
++        expect(tester.takeException(), isNull);
++      },
++    );
++
++    testWidgets('uses the same live style controls for editable shape labels', (
++      tester,
++    ) async {
++      final harness = await _pumpEditingTarget(
++        tester,
++        const RectElement(
++          id: _shapeId,
++          rect: Rect.fromLTWH(300, 240, 180, 88),
++          label: 'Shape label',
++          labelStyle: TextStyle(
++            color: Colors.black,
++            fontSize: 14,
++            height: 1.2,
++          ),
++        ),
++      );
++
++      await tester.tap(_toolbarColor(_blue));
++      await tester.pump();
++      await _selectToolbarMenu(
++        tester,
++        tooltip: 'Font size',
++        option: '48',
++      );
++      await _selectToolbarMenu(
++        tester,
++        tooltip: 'Font family',
++        option: 'Mono',
++      );
++      await tester.enterText(find.byType(TextField), 'Updated label');
++      await tester.pump();
++
++      final element = _shapeElement(harness);
++      expect(element.label, 'Updated label');
++      expect(element.labelStyle.color, _blue);
++      expect(element.labelStyle.fontSize, 48);
++      expect(element.labelStyle.fontFamily, 'Consolas');
++      expect(harness.canvasController.editingShapeLabelElementId, _shapeId);
++      expect(harness.canvasController.historyManager.undoStack, isEmpty);
++      _expectEditingFieldFocused(tester);
++      expect(tester.takeException(), isNull);
++    });
++
++    testWidgets(
++      'outside click commits one undo entry and restores text and styles',
++      (tester) async {
++        final harness = await _pumpEditingTarget(
++          tester,
++          TextElement(
++            id: _textId,
++            position: const Offset(340, 250),
++            text: 'Before',
++            boxSize: const Size(120, 64),
++            style: const TextStyle(
++              color: Colors.black,
++              fontSize: 18,
++              height: 1.2,
++            ),
++          ),
++        );
++
++        await tester.enterText(find.byType(TextField), 'After');
++        await tester.pump();
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font size',
++          option: '32',
++        );
++        await _selectToolbarMenu(
++          tester,
++          tooltip: 'Font family',
++          option: 'Serif',
++        );
++
++        expect(harness.canvasController.historyManager.undoStack, isEmpty);
++
++        // Leave a pending post-frame focus restoration while ending editing.
++        // This exercises disposal of the editing overlay's FocusNode as well as
++        // the outside-pointer commit path.
++        await tester.tap(_toolbarColor(_red));
++        await tester.tapAt(const Offset(40, 560));
++        await tester.pumpAndSettle();
++
++        expect(harness.canvasController.editingTextElementId, isNull);
++        expect(find.byType(TextField), findsNothing);
++        expect(harness.canvasController.historyManager.undoStack, hasLength(1));
++
++        var element = _textElement(harness);
++        expect(element.text, 'After');
++        expect(element.style.color, _red);
++        expect(element.style.fontSize, 32);
++        expect(element.style.fontFamily, 'Times New Roman');
++        expect(tester.takeException(), isNull);
++
++        harness.canvasController.undo();
++        await tester.pump();
++
++        element = _textElement(harness);
++        expect(element.text, 'Before');
++        expect(element.style.color, Colors.black);
++        expect(element.style.fontSize, 18);
++        expect(element.style.fontFamily, isNull);
++        expect(harness.canvasController.canUndo, isFalse);
++        expect(harness.canvasController.canRedo, isTrue);
++        expect(tester.takeException(), isNull);
++      },
++    );
++  });
++}
++
++Future<_CanvasHarness> _pumpEditingTarget(
++  WidgetTester tester,
++  CanvasElement element, {
++  CanvasTransform transform = CanvasTransform.identity,
++}) async {
++  final harness = _CanvasHarness(transform: transform);
++  addTearDown(harness.dispose);
++  harness.canvasController.addElement(element, record: false);
++  if (element is TextElement) {
++    harness.canvasController.beginTextEditing(element.id);
++  } else {
++    harness.canvasController.beginShapeLabelEditing(element.id);
++  }
++
++  await tester.pumpWidget(
++    MaterialApp(
++      home: Scaffold(
++        body: InfiniteCanvasWidget(
++          controller: harness.viewController,
++          config: const InfiniteCanvasConfig(gridType: GridType.none),
++        ),
++      ),
++    ),
++  );
++  await tester.pump();
++  return harness;
++}
++
++Future<void> _selectToolbarMenu(
++  WidgetTester tester, {
++  required String tooltip,
++  required String option,
++}) async {
++  await tester.tap(find.byTooltip(tooltip));
++  await tester.pumpAndSettle();
++  expect(find.text(option), findsWidgets);
++  await tester.tap(find.text(option).last);
++  await tester.pumpAndSettle();
++}
++
++Finder _toolbarColor(Color color) {
++  final dot = find.byWidgetPredicate((widget) {
++    if (widget is! DecoratedBox || widget.decoration is! BoxDecoration) {
++      return false;
++    }
++    final decoration = widget.decoration as BoxDecoration;
++    return decoration.shape == BoxShape.circle && decoration.color == color;
++  });
++  return find
++      .ancestor(of: dot, matching: find.byType(InkResponse))
++      .first;
++}
++
++void _expectEditingFieldFocused(WidgetTester tester) {
++  final fieldFinder = find.byType(TextField);
++  expect(fieldFinder, findsOneWidget);
++  final field = tester.widget<TextField>(fieldFinder);
++  expect(field.focusNode, isNotNull);
++  expect(field.focusNode!.hasFocus, isTrue);
++}
++
++TextElement _textElement(_CanvasHarness harness) {
++  return harness.canvasController.elementById(_textId)! as TextElement;
++}
++
++RectElement _shapeElement(_CanvasHarness harness) {
++  return harness.canvasController.elementById(_shapeId)! as RectElement;
++}
++
++class _CanvasHarness {
++  _CanvasHarness({required CanvasTransform transform}) {
++    viewController = InfiniteCanvasController(
++      canvasController: canvasController,
++      transform: transform,
++    );
++  }
++
++  final CanvasController canvasController = CanvasController();
++  late final InfiniteCanvasController viewController;
++
++  void dispose() {
++    viewController.dispose();
++    canvasController.dispose();
++  }
++}
+
+tokens used
+165,718
+P002 已完成，仅新增 [infinite_canvas_text_editing_test.dart](D:/project/GitHub/wenz_flutter/wenz_draw/test/infinite_canvas_text_editing_test.dart:1)。
+
+覆盖内容：
+
+- 窄文字在 1.0x、1.75x 缩放下的工具栏边缘交互。
+- 预设颜色、字号、字体族及 Sans 恢复。
+- 字号菜单取消、自定义颜色取消与应用后的焦点恢复。
+- `TextElement` 与图形标签共享编辑覆盖层。
+- 外部点击仅提交一次历史记录，撤销恢复文字和全部样式。
+- 覆盖焦点恢复回调与 `FocusNode` 释放交错场景。
+
+plan 文件和 P001 业务文件均未改动。按要求未运行测试、构建、格式化或静态分析命令。

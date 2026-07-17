@@ -1,0 +1,5 @@
+已写入 PlanSpec JSON：
+
+[D:\project\GitHub\wenz_flutter\wenz_draw\docs\plan\plan_spec_feedback_50_20260710-001811.json](</D:/project/GitHub/wenz_flutter/wenz_draw/docs/plan/plan_spec_feedback_50_20260710-001811.json>)
+
+已用 `Get-Content -Encoding UTF8 | ConvertFrom-Json` 校验为合法 JSON。未生成 Markdown plan，未修改业务代码。

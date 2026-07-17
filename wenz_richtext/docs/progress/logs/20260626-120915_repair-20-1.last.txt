@@ -1,0 +1,5 @@
+已只修复验证错误。
+
+- 移除未使用常量 `_kBlockFloatingToolbarGap`：`lib/src/widgets/wenz_rich_text_editor.dart:122`
+- 未修改 plan 文件、checkbox 或进度区
+- 已复跑 `flutter analyze`，结果：`No issues found!`

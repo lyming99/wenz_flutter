@@ -1,0 +1,12 @@
+**完成**
+- 新增 `BlockDragHandleSpec` 交互规格，固定把手 gutter、命中尺寸、hover/focus opacity、拖拽阈值和首尾移动判定：`lib/src/widgets/block_renderer_registry.dart:99`
+- 明确 `BlockRenderContext` 只负责 block 内容渲染，把手属于 editor 顶层行 chrome：`lib/src/widgets/block_renderer_registry.dart:198`
+- 在虚拟列表 itemBuilder 处标明把手只能挂在顶层 `Document.blocks` 行外壳：`lib/src/widgets/wenz_rich_text_editor.dart:2606`
+- 更新选区文档，覆盖把手位置、尺寸、状态、菜单/拖拽阈值、排除区和禁用/no-op 规则：`docs/selection_engine.md:53`
+
+**验证**
+- 已运行 `dart format lib/src/widgets/block_renderer_registry.dart lib/src/widgets/wenz_rich_text_editor.dart`
+- 已运行 `dart analyze lib/src/widgets/block_renderer_registry.dart lib/src/widgets/wenz_rich_text_editor.dart`，无问题
+- 已运行 `git diff --check -- ...`，无 whitespace/error
+
+未修改 plan 文件，也未勾选 checkbox。工作区存在其它预先已有的未提交改动，我没有处理。

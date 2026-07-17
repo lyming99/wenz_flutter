@@ -1,0 +1,5 @@
+已只修复验证错误，未修改 plan 文件。
+
+- 修复：`lib/src/controller/slash_menu_controller.dart:403` 将 `List<InlineNode>` 转为 `String` 后传给 `CodeBlockNode.code`
+- 原因：`CodeBlockNode.code` 需要 `String`，而 slash 替换逻辑传入的是删除触发词后的内联节点列表
+- 验证：`flutter analyze` 已通过，结果为 `No issues found!`

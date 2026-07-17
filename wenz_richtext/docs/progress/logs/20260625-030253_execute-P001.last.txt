@@ -1,0 +1,13 @@
+已完成 P001，未修改 plan 文件、未勾选 checkbox。
+
+**变更**
+- 在 `lib/src/widgets/wenz_rich_text_editor.dart:72` 增加 `WenzRichTextDesignBaseline`，记录设计稿 token、默认 renderer 覆盖和当前差异基线。
+- 在 `test/widgets/editor_golden_test.dart:10` 增加最小测试，锁定默认 `BlockType` 覆盖、registry 扩展边界和关键 token。
+- 在 `docs/acceptance_manual_checklist.md:14` 增加设计稿样式映射、差异分类和协议边界验收记录。
+
+**验证**
+- 通过：`flutter test test/widgets/editor_golden_test.dart --plain-name "design baseline maps default renderer coverage and tokens"`
+- 通过：`flutter analyze lib/src/widgets/wenz_rich_text_editor.dart test/widgets/editor_golden_test.dart`
+- 确认：`docs/plan/plan_requirement_3_20260625-025750.md` 无修改。
+
+备注：仓库里已有其它未提交改动，我没有处理或回滚；本次只改了 P001 scope 内相关文件。

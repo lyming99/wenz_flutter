@@ -1,0 +1,448 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR, C:\Users\98000\.codex\memories]
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efec4-c06a-7031-9d29-348d2c0daade
+--------
+user
+你是开发执行者。
+请只执行指定任务 P001，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_feedback_7_20260625-202854.md
+指定任务：- [ ] P001: 修复 mention 后续文字选择 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,test/widgets/wenz_rich_text_editor_test.dart,test/core/selection_commands_test.dart -->
+任务 scope：lib/src/widgets/wenz_rich_text_editor.dart, test/widgets/wenz_rich_text_editor_test.dart, test/core/selection_commands_test.dart
+
+完成后必须：
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 如需测试，只运行与当前任务直接相关的最小测试集，不要运行全量测试或与本任务无关的测试
+- 只有当前任务本身明确要求全量验证时，才允许运行全量测试
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+**Inspecting selection issues**
+
+I need to look at the tests around lines 4170 for potential bugs in the inline surface selection. It's vital to understand the selection mapping, which might not be working right in the core selection commands. I should search for selection command tests and check if text selection is not working due to mentions being treated as 0-length. Additionally, I’ll inspect the code for inline embeds and selection coordinates to identify the root cause of the problem.
+**Investigating mention selection bug**
+
+It seems like the current bug only comes up when mentions are used after text selection in the editor widget's selection mapping. I might need to add a special case in the selection coordinates for mentions. To clarify how this should work, I plan to inspect the tests that outline the expected behavior. I will search in `selection_commands_test` for anything related to mentions. This should help me understand what's going wrong.
+codex
+我再看核心 selection 命令里是否已有 mention 特例。
+exec
+powershell.exe -Command "Select-String -Path 'test/core/selection_commands_test.dart' -Pattern 'mention|embedType|InlineEmbed' -Context 3,5" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 498ms:
+codex
+我先看核心里“跨内联块选择”的现有测试样式。
+exec
+powershell.exe -Command "Get-Content -Path 'test/core/selection_commands_test.dart' -TotalCount 400" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 498ms:
+import 'package:flutter_test/flutter_test.dart';
+import 'package:wenz_richtext/wenz_richtext.dart';
+
+import '../helpers/selection_test_helpers.dart';
+
+void main() {
+  test('move caret forward and backward within and across editable blocks', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Hi')],
+          ),
+          DividerBlockNode(id: 'd1'),
+          CodeBlockNode(id: 'c1', code: 'ok'),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 2),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const MoveCaretCommand(CaretMovementDirection.forward),
+    );
+
+    expect(session.selection?.extent.blockId, 'c1');
+    expect(session.selection?.extent.offset, 0);
+    expect(session.canUndo, isFalse);
+
+    executor.execute(
+      const MoveCaretCommand(CaretMovementDirection.backward),
+    );
+
+    expect(session.selection?.extent.blockId, 'p1');
+    expect(session.selection?.extent.offset, 2);
+    expect(session.canUndo, isFalse);
+  });
+
+  test('move caret collapses expanded selection without recording history', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Hello')],
+          ),
+        ],
+      ),
+      selection: DocumentSelection(
+        base: DocumentPosition(
+          blockId: 'p1',
+          blockIndex: 0,
+          path: PositionPath.blockText('p1'),
+          offset: 1,
+        ),
+        extent: DocumentPosition(
+          blockId: 'p1',
+          blockIndex: 0,
+          path: PositionPath.blockText('p1'),
+          offset: 4,
+        ),
+      ),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const MoveCaretCommand(CaretMovementDirection.backward),
+    );
+
+    expect(session.selection?.isCollapsed, isTrue);
+    expect(session.selection?.extent.offset, 1);
+    expect(session.canUndo, isFalse);
+  });
+
+  test('move caret expands selection from the extent side', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Hello')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 3),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const MoveCaretCommand(
+        CaretMovementDirection.backward,
+        expandSelection: true,
+      ),
+    );
+
+    expect(session.selection?.isCollapsed, isFalse);
+    expect(session.selection?.base.offset, 3);
+    expect(session.selection?.extent.offset, 2);
+    expect(session.canUndo, isFalse);
+  });
+
+  test('move caret creates selection at first editable block when missing', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          DividerBlockNode(id: 'd1'),
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Hello')],
+          ),
+        ],
+      ),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(
+      const MoveCaretCommand(CaretMovementDirection.forward),
+    );
+
+    expect(session.selection?.extent.blockId, 'p1');
+    expect(session.selection?.extent.offset, 0);
+    expect(session.canUndo, isFalse);
+  });
+
+  group('move caret by word', () {
+    test('forward skips a word run then following separators', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'foo bar')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveCaretByWordCommand(CaretMovementDirection.forward),
+      );
+      // Lands at the start of "bar" (skipped "foo" + the space).
+      expect(session.selection?.extent.offset, 4);
+
+      executor.execute(
+        const MoveCaretByWordCommand(CaretMovementDirection.forward),
+      );
+      // End of the block.
+      expect(session.selection?.extent.offset, 7);
+      expect(session.canUndo, isFalse);
+    });
+
+    test('backward skips preceding word run', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'foo bar')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 7),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveCaretByWordCommand(CaretMovementDirection.backward),
+      );
+      expect(session.selection?.extent.offset, 4);
+
+      executor.execute(
+        const MoveCaretByWordCommand(CaretMovementDirection.backward),
+      );
+      expect(session.selection?.extent.offset, 0);
+    });
+
+    test('expandSelection extends from a fixed base', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'foo bar')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 0),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveCaretByWordCommand(
+          CaretMovementDirection.forward,
+          expandSelection: true,
+        ),
+      );
+
+      expect(session.selection?.isCollapsed, isFalse);
+      expect(session.selection?.base.offset, 0);
+      expect(session.selection?.extent.offset, 4);
+    });
+  });
+
+  group('move caret to boundary', () {
+    test('block boundary home/end moves within the current block', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'abc')],
+            ),
+            TextBlockNode(
+              id: 'p2',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'def')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p2', 1, 1),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveCaretToBlockBoundaryCommand(CaretMovementDirection.backward),
+      );
+      expect(session.selection?.extent.blockId, 'p2');
+      expect(session.selection?.extent.offset, 0);
+
+      executor.execute(
+        const MoveCaretToBlockBoundaryCommand(CaretMovementDirection.forward),
+      );
+      expect(session.selection?.extent.offset, 3);
+    });
+
+    test('document boundary jumps across blocks', () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'abc')],
+            ),
+            TextBlockNode(
+              id: 'p2',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'def')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 1),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(
+        const MoveCaretToDocumentBoundaryCommand(
+          CaretMovementDirection.forward,
+        ),
+      );
+      expect(session.selection?.extent.blockId, 'p2');
+      expect(session.selection?.extent.offset, 3);
+
+      executor.execute(
+        const MoveCaretToDocumentBoundaryCommand(
+          CaretMovementDirection.backward,
+        ),
+      );
+      expect(session.selection?.extent.blockId, 'p1');
+      expect(session.selection?.extent.offset, 0);
+    });
+  });
+
+  test('select all spans first selectable start to last selectable end', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          DividerBlockNode(id: 'd1'),
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'abc')],
+          ),
+          TextBlockNode(
+            id: 'p2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'def')],
+          ),
+          DividerBlockNode(id: 'd2'),
+        ],
+      ),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const SelectAllCommand());
+
+    expect(session.selection, isNotNull);
+    expect(session.selection!.isCollapsed, isFalse);
+    expect(session.selection!.start.blockId, 'd1');
+    expect(session.selection!.start.path.isBlockObject, isTrue);
+    expect(session.selection!.start.offset, 0);
+    expect(session.selection!.end.blockId, 'd2');
+    expect(session.selection!.end.path.isBlockObject, isTrue);
+    expect(session.selection!.end.offset, 1);
+    expect(session.canUndo, isFalse);
+  });
+
+  test('select all includes image blocks at document edges', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          ImageBlockNode(id: 'img1', assetId: 'a1'),
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'abc')],
+          ),
+          ImageBlockNode(id: 'img2', assetId: 'a2'),
+        ],
+      ),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const SelectAllCommand());
+
+    expect(session.selection, isNotNull);
+    expect(session.selection!.isCollapsed, isFalse);
+    expect(session.selection!.start.blockId, 'img1');
+    expect(session.selection!.start.path.isBlockObject, isTrue);
+    expect(session.selection!.start.offset, 0);
+    expect(session.selection!.end.blockId, 'img2');
+    expect(session.selection!.end.path.isBlockObject, isTrue);
+    expect(session.selection!.end.offset, 1);
+  });
+
+  test('arrow navigation selects a video block as an atomic object', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'before')],
+          ),
+          VideoBlockNode(
+            id: 'video1',
+            assetId: 'clip',
+            playbackUrl: 'https://cdn.example.test/clip.mp4',
+          ),
+          TextBlockNode(
+            id: 'p2',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'after')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 6),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const MoveCaretCommand(CaretMovementDirection.forward));
+
+    expect(session.selection?.isCollapsed, isFalse);
+    expect(session.selection?.start.blockId, 'video1');
+    expect(session.selection?.start.path.isBlockObject, isTrue);
+    expect(session.selection?.start.offset, 0);
+    expect(session.selection?.end.blockId, 'video1');
+    expect(session.selection?.end.offset, 1);
+    expect(session.canUndo, isFalse);
+  });
+
+  test('arrow navigation selects previous video from following text', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          VideoBlockNode(id: 'video1', assetId: 'clip'),
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'after')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 1, 0),
+    );
+    final executor = CommandExecutor(session);
+
+    executor.execute(const MoveCaretCommand(CaretMovementDirection.backward));
+
+
+ERROR: Selected model is at capacity. Please try a different model.
+ERROR: Selected model is at capacity. Please try a different model.
+tokens used
+57,651

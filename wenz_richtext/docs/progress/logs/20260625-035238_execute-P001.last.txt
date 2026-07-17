@@ -1,0 +1,19 @@
+P001 已完成：只新增了事件穿透的最小复现/界定测试，未修改 plan 文件。
+
+**变更**
+- 在 `test/widgets/wenz_rich_text_editor_test.dart:1013` 新增 characterization 用例，复现点击可见表格工具栏按钮位置时：
+  - 命中测试链不包含工具栏 render object。
+  - 命中测试链仍包含编辑器级 `RenderPointerListener`。
+  - 表格行数不变，说明按钮未真正收到点击。
+  - 选区从 B2 跳到 A1，说明事件穿透到选区层。
+
+**界定结论**
+- 当前工具栏由表格内部 `Stack` 的负偏移子节点绘制，相关位置在 `lib/src/widgets/wenz_rich_text_editor.dart:3982` 和 `lib/src/widgets/wenz_rich_text_editor.dart:4026`。
+- 工具栏虽然通过 `clipBehavior: Clip.none` 可见，但位于父级表格区域命中范围外，导致可见但不可命中。
+- 编辑器级 `SelectionGestureOverlay` 使用 translucent `Listener`，见 `lib/src/widgets/selection_gesture_overlay.dart:110`，因此同一指针落入选区处理链路。
+- 本次未改表格命令、文档模型或序列化结构；问题范围限定为后续工具栏浮层、定位和事件拦截。
+
+**验证**
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "table floating toolbar pointer currently penetrates selection layer"` 通过。
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "table floating toolbar"` 通过。
+- 注意：工作区已有大量其它未提交改动，我没有处理或回退它们。

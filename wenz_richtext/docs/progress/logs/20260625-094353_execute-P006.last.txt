@@ -1,0 +1,14 @@
+完成 P006，未修改 plan 文件。
+
+**改动概览**
+- `lib/src/widgets/block_renderer_registry.dart:209` 为 `BlockRenderContext` 增加 `blockCount`，供自定义/内置 renderer 判断首尾边界。
+- `lib/src/widgets/wenz_rich_text_editor.dart:3275` 按 `BlockDragHandleSpec.railWidth` 预留左侧把手栏，修复把手遮挡对象块内置工具栏。
+- `lib/src/widgets/wenz_rich_text_editor.dart:7776` 让对象块 toolbar 复用统一边界判断，首行禁用上移、末行禁用下移。
+- `lib/src/widgets/wenz_rich_text_editor.dart:8176` 文件块动作菜单同步上/下移禁用状态，避免与左侧把手菜单状态不一致。
+- `test/widgets/wenz_rich_text_editor_test.dart:1214`、`test/widgets/wenz_rich_text_editor_test.dart:1392` 增加对象块边界与左侧菜单动作回归覆盖。
+
+**验证**
+- 已运行：`flutter test test/widgets/wenz_rich_text_editor_test.dart --name "object block controls disable boundary move actions|block drag handle menu routes object block actions|block drag handles open row action menu without selection|object block toolbar copies duplicates moves and deletes"`
+- 结果：通过。
+- 已运行：`git diff --check -- lib/src/widgets/block_renderer_registry.dart lib/src/widgets/wenz_rich_text_editor.dart test/widgets/wenz_rich_text_editor_test.dart`
+- 结果：通过，仅有 Git 行尾提示。

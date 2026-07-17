@@ -1,0 +1,7 @@
+完成 P001。
+
+- 在 `lib/src/core/model/block_node.dart:639` 明确提示块可编辑正文是 `content`，使用 `PositionPath.blockText`，元数据不属于正文删除范围，空正文合法。
+- 在 `lib/src/core/commands/text_commands.dart:168` 标注提示块正文选区不能落入整体对象块删除语义。
+- 在 `test/core/text_commands_test.dart:72` 新增语义边界契约测试，确认正文路径、元数据保留和空正文仍为 callout。
+- 已运行最小测试：`flutter test test/core/text_commands_test.dart --plain-name "callout deletion boundary is editable body content only"`，通过。
+- 未修改 plan 文件，未勾选 checkbox，未执行 P002+ 或其它任务。

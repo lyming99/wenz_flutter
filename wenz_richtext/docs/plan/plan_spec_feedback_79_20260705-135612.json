@@ -1,0 +1,61 @@
+{
+  "title": "优化默认工具栏块样式显示与插入入口位置",
+  "summary": "反馈 #79 要求默认工具栏不再以“块样式：正文”这类文案暴露块样式概念，而是直接显示“正文、H1、H2”等当前样式；默认状态为正文，当无法识别为具体标题或正文时仍以置灰的正文作为兜底提示；同时将“插入元素”入口移动到工具栏末尾。结合当前代码，影响主要集中在 WenzDefaultDesktopToolbar 的按钮顺序、_BlockStyleMenuButton 的展示/tooltip/禁用状态，以及依赖 tooltip 和顺序的默认工具栏 widget 测试。",
+  "tasks": [
+    {
+      "title": "调整默认工具栏控件顺序",
+      "scope": [
+        "lib/src/widgets/default_desktop_toolbar.dart",
+        "test/widgets/default_desktop_toolbar_test.dart"
+      ],
+      "acceptance": [
+        "默认工具栏中的“插入元素”按钮从当前文字格式组后方移动到主工具栏末尾。",
+        "块样式、引用、列表、对齐、表格上下文和插件/宿主扩展项的相对功能保持可用，不因插入按钮后移而丢失。",
+        "工具栏在窄宽度换行时仍不发生 Flutter overflow，末尾插入入口可见且可点击。"
+      ]
+    },
+    {
+      "title": "改造块样式按钮展示文案",
+      "scope": [
+        "lib/src/widgets/default_desktop_toolbar.dart"
+      ],
+      "acceptance": [
+        "块样式按钮主体直接显示“正文”或当前 heading 级别“H1”到“H6”，不再显示“块样式”或“块样式：正文”。",
+        "普通段落选区默认显示“正文”。",
+        "H1-H6 标题选区显示对应级别，点击下拉后仍能切换到正文或其他标题级别。",
+        "混合选区、无选区或无法识别为当前支持块样式时，按钮以“正文”作为兜底显示，并使用置灰状态表达非明确正文选择。"
+      ]
+    },
+    {
+      "title": "同步块样式状态与 tooltip 语义",
+      "scope": [
+        "lib/src/widgets/default_desktop_toolbar.dart"
+      ],
+      "acceptance": [
+        "块样式控件 tooltip 不再使用“块样式：正文”“块样式：H1”“块样式：混合”这类文案。",
+        "tooltip 或语义标签能直接表达当前选项，例如“正文”“H1”“H2”，混合或未知状态不再暴露“块样式”字样。",
+        "只读、评论权限或不可设置块类型时，块样式按钮仍按现有权限禁用，但兜底正文显示保持置灰可辨。"
+      ]
+    },
+    {
+      "title": "更新默认工具栏测试覆盖",
+      "scope": [
+        "test/widgets/default_desktop_toolbar_test.dart"
+      ],
+      "acceptance": [
+        "渲染测试改为查找“正文”“H1”等直接块样式 tooltip 或文案，不再依赖“块样式：正文”。",
+        "测试覆盖正文到 H1-H6、H1-H6 到正文的切换行为，确认底层 BlockType 和 heading level 仍正确更新。",
+        "测试覆盖混合或未知块样式状态显示为置灰正文兜底。",
+        "测试断言“插入元素”按钮位于默认工具栏末尾，并且展开后的链接、公式、结构块和资源动作仍按原有启用/禁用规则工作。"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter analyze",
+    "criteria": [
+      "命令退出码为 0，Flutter analyzer 不报告 error、warning 或 info 级别问题。",
+      "静态分析覆盖默认工具栏实现与更新后的 widget 测试，不出现未使用成员、不可达代码或类型不匹配。",
+      "最终实现满足反馈 #79：块样式控件直接显示正文/H1/H2 等，未知或混合状态以置灰正文兜底，插入元素入口移动到工具栏末尾。"
+    ]
+  }
+}

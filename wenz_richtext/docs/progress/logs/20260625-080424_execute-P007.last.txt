@@ -1,0 +1,10 @@
+**已完成**
+- `lib/src/widgets/wenz_rich_text_editor.dart:64`, `:4084`, `:4839`, `:5026`：表格外层加了圆角/阴影表面，统一成 `15px` 字号与 `10x14` 内边距，表头用 `surfaceContainer`，普通行做斑马纹，自定义单元格底色保留，边框改成更浅的表格边线。
+- `test/widgets/wenz_rich_text_editor_test.dart:2296`, `:6906`, `:7023`：新增 widget 测试和样例文档，覆盖表头背景、偶数行底色、custom 背景、padding 和 header 字体样式。
+- `test/widgets/editor_golden_test.dart:127`、`test/widgets/goldens/editor_merged_table.png`：更新表格 golden，加入表头、斑马纹和合并单元格组合。
+
+**验证**
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name table`
+- `flutter test test/widgets/editor_golden_test.dart --update-goldens`
+- `flutter test test/widgets/editor_golden_test.dart`
+

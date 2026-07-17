@@ -1,0 +1,12 @@
+P001 已完成，未修改 plan 文件、未勾选 checkbox。
+
+**变更概览**
+- 在 `lib/src/core/model/block_node.dart:395` 明确 `VideoBlockNode` 协议字段与兼容解析：`playbackUrl`、`file`、`coverUrl`、`title`、`description`、`aspectRatio`、`uploadStatus/uploadError`。
+- 在 `lib/src/core/schema/document_schema.dart:83` 增加视频 schema 归一化：修剪字段、过滤非法比例、无来源视频降级为 `BlockEmbedNode(embedType: 'video')`。
+- 在 `docs/schema_and_commands.md:44` 记录视频节点协议、旧字段 alias、默认值和兼容策略。
+- 在 `test/core/model_test.dart:78`、`test/core/document_schema_test.dart:130` 补充模型 round-trip、alias/default、schema 区分与降级测试。
+
+**验证**
+- 已运行 `dart format` 限定 scope 内 Dart 文件。
+- 已运行 `flutter test test/core/model_test.dart test/core/document_schema_test.dart`，全部通过。
+- 已运行 `git diff --check` 限定 scope 文件，无空白错误。

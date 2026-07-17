@@ -1,0 +1,19 @@
+已完成 P003，未修改 plan 文件、未勾选 checkbox。
+
+**完成内容**
+- 统一了 block/file/table/code/slash 菜单 popup 的圆角、阴影、背景、边框、padding、宽高约束。
+- 菜单项改为统一的图标 + 文案布局，支持 selected/disabled 状态和长文案省略。
+- 优化 slash 菜单在编辑器边缘/小空间下的宽高夹取。
+- 优化表格浮动工具条与更多菜单的视觉密度和边缘定位。
+- 增加 popup route 清理逻辑，避免切换编辑器内容时旧菜单残留遮挡新菜单。
+
+**涉及文件**
+- `lib/src/widgets/wenz_rich_text_editor.dart:157`
+- `lib/src/widgets/slash_menu_overlay.dart:7`
+- `lib/src/widgets/table_floating_toolbar_overlay.dart:457`
+
+**验证**
+- 已通过：`flutter test test/widgets/slash_menu_overlay_test.dart`
+- 已通过：相关最小 `wenz_rich_text_editor_test.dart --name ...` 子集（代码块菜单、块菜单、对象菜单、表格菜单定位/操作）
+- 后续补充复验时，当前 sandbox 限制读取 `C:\Users\98000\AppData\Local\Pub\Cache...`，且 `flutter.bat`/`dart.bat` 启动卡住；因此最后一次完整复跑未能完成。
+- 已通过：`git diff --check`（仅有 Git 的 CRLF/用户目录 ignore 权限 warning，无空白错误）。

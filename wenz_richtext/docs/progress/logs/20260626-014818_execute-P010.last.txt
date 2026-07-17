@@ -1,0 +1,15 @@
+P010 实现已完成，未修改 plan 文件、未勾选 checkbox。
+
+**改动概览**
+- `lib/src/widgets/wenz_rich_text_editor.dart:46` 新增行级格式类型与回调。
+- `lib/src/widgets/wenz_rich_text_editor.dart:1424` 实现普通文本、标题、代码块之间的行格式切换。
+- `lib/src/widgets/wenz_rich_text_editor.dart:3653` 将拖拽句柄改为行级 hover/focus 感知，整行 hover 或选区聚焦时显示左侧按钮。
+- `lib/src/widgets/wenz_rich_text_editor.dart:4223` 行菜单保留简约主菜单，并把格式切换折叠到“更多块操作”。
+- `test/widgets/wenz_rich_text_editor_test.dart:1867` 增加行菜单格式切换测试，覆盖普通文本/标题/代码块与 undo。
+
+**验证结果**
+- 通过：`dart analyze lib\src\widgets\wenz_rich_text_editor.dart`
+- 通过：`flutter test test\core\block_structure_commands_test.dart --plain-name MoveBlockCommand`
+- 通过：`flutter test test\widgets\editor_golden_test.dart --plain-name "golden: block drag shows reorder drop indicator"`
+- 阻塞：`flutter test test\widgets\wenz_rich_text_editor_test.dart --plain-name "block drag handle"` 因既有 `_caretRenderOffsetForLogicalOffset` 未定义失败，位置在 `test/widgets/wenz_rich_text_editor_test.dart:6267`。
+- 阻塞：行菜单 golden 基线仍有 4.25% 像素差异；未更新 golden 图片。

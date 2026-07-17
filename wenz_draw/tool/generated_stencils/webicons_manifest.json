@@ -1,0 +1,2894 @@
+{
+  "library": "webicons",
+  "group": "WebIcons",
+  "shapeCount": 176,
+  "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+  "sourceSizeBytes": 867459,
+  "generatedAt": "2026-06-13T16:53:13.266955Z",
+  "shapes": [
+    {
+      "key": "webicons.adfty",
+      "label": "Adfty",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "adfty"
+      ],
+      "aliases": [
+        "mxgraph.webicons.adfty",
+        "mxgraph.webicons.Adfty"
+      ]
+    },
+    {
+      "key": "webicons.adobePdf",
+      "label": "Adobe PDF",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "adobe",
+        "pdf"
+      ],
+      "aliases": [
+        "mxgraph.webicons.adobePdf",
+        "mxgraph.webicons.adobe_pdf",
+        "mxgraph.webicons.adobe-pdf",
+        "mxgraph.webicons.Adobe PDF"
+      ]
+    },
+    {
+      "key": "webicons.aim",
+      "label": "Aim",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "aim"
+      ],
+      "aliases": [
+        "mxgraph.webicons.aim",
+        "mxgraph.webicons.Aim"
+      ]
+    },
+    {
+      "key": "webicons.allvoices",
+      "label": "Allvoices",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "allvoices"
+      ],
+      "aliases": [
+        "mxgraph.webicons.allvoices",
+        "mxgraph.webicons.Allvoices"
+      ]
+    },
+    {
+      "key": "webicons.amazon",
+      "label": "Amazon",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "amazon"
+      ],
+      "aliases": [
+        "mxgraph.webicons.amazon",
+        "mxgraph.webicons.Amazon"
+      ]
+    },
+    {
+      "key": "webicons.amazon2",
+      "label": "Amazon 2",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "amazon",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.webicons.amazon2",
+        "mxgraph.webicons.amazon_2",
+        "mxgraph.webicons.amazon-2",
+        "mxgraph.webicons.Amazon 2"
+      ]
+    },
+    {
+      "key": "webicons.android",
+      "label": "Android",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "android"
+      ],
+      "aliases": [
+        "mxgraph.webicons.android",
+        "mxgraph.webicons.Android"
+      ]
+    },
+    {
+      "key": "webicons.apache",
+      "label": "Apache",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "apache"
+      ],
+      "aliases": [
+        "mxgraph.webicons.apache",
+        "mxgraph.webicons.Apache"
+      ]
+    },
+    {
+      "key": "webicons.apple",
+      "label": "Apple",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "apple"
+      ],
+      "aliases": [
+        "mxgraph.webicons.apple",
+        "mxgraph.webicons.Apple"
+      ]
+    },
+    {
+      "key": "webicons.appleClassic",
+      "label": "Apple classic",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "apple",
+        "classic"
+      ],
+      "aliases": [
+        "mxgraph.webicons.appleClassic",
+        "mxgraph.webicons.apple_classic",
+        "mxgraph.webicons.apple-classic",
+        "mxgraph.webicons.Apple classic"
+      ]
+    },
+    {
+      "key": "webicons.arduino",
+      "label": "Arduino",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "arduino"
+      ],
+      "aliases": [
+        "mxgraph.webicons.arduino",
+        "mxgraph.webicons.Arduino"
+      ]
+    },
+    {
+      "key": "webicons.ask",
+      "label": "Ask",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "ask"
+      ],
+      "aliases": [
+        "mxgraph.webicons.ask",
+        "mxgraph.webicons.Ask"
+      ]
+    },
+    {
+      "key": "webicons.atlassian",
+      "label": "Atlassian",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "atlassian"
+      ],
+      "aliases": [
+        "mxgraph.webicons.atlassian",
+        "mxgraph.webicons.Atlassian"
+      ]
+    },
+    {
+      "key": "webicons.audioboo",
+      "label": "Audioboo",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "audioboo"
+      ],
+      "aliases": [
+        "mxgraph.webicons.audioboo",
+        "mxgraph.webicons.Audioboo"
+      ]
+    },
+    {
+      "key": "webicons.aws",
+      "label": "AWS",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "aws"
+      ],
+      "aliases": [
+        "mxgraph.webicons.aws",
+        "mxgraph.webicons.AWS"
+      ]
+    },
+    {
+      "key": "webicons.awsS3",
+      "label": "AWS S3",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "aws",
+        "s3"
+      ],
+      "aliases": [
+        "mxgraph.webicons.awsS3",
+        "mxgraph.webicons.aws_s3",
+        "mxgraph.webicons.aws-s3",
+        "mxgraph.webicons.AWS S3"
+      ]
+    },
+    {
+      "key": "webicons.baidu",
+      "label": "Baidu",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "baidu"
+      ],
+      "aliases": [
+        "mxgraph.webicons.baidu",
+        "mxgraph.webicons.Baidu"
+      ]
+    },
+    {
+      "key": "webicons.bebo",
+      "label": "Bebo",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "bebo"
+      ],
+      "aliases": [
+        "mxgraph.webicons.bebo",
+        "mxgraph.webicons.Bebo"
+      ]
+    },
+    {
+      "key": "webicons.behance",
+      "label": "Behance",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "behance"
+      ],
+      "aliases": [
+        "mxgraph.webicons.behance",
+        "mxgraph.webicons.Behance"
+      ]
+    },
+    {
+      "key": "webicons.bing",
+      "label": "Bing",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "bing"
+      ],
+      "aliases": [
+        "mxgraph.webicons.bing",
+        "mxgraph.webicons.Bing"
+      ]
+    },
+    {
+      "key": "webicons.bitbucket",
+      "label": "Bitbucket",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "bitbucket"
+      ],
+      "aliases": [
+        "mxgraph.webicons.bitbucket",
+        "mxgraph.webicons.Bitbucket"
+      ]
+    },
+    {
+      "key": "webicons.blinklist",
+      "label": "Blinklist",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "blinklist"
+      ],
+      "aliases": [
+        "mxgraph.webicons.blinklist",
+        "mxgraph.webicons.Blinklist"
+      ]
+    },
+    {
+      "key": "webicons.blogger",
+      "label": "Blogger",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "blogger"
+      ],
+      "aliases": [
+        "mxgraph.webicons.blogger",
+        "mxgraph.webicons.Blogger"
+      ]
+    },
+    {
+      "key": "webicons.blogmarks",
+      "label": "Blogmarks",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "blogmarks"
+      ],
+      "aliases": [
+        "mxgraph.webicons.blogmarks",
+        "mxgraph.webicons.Blogmarks"
+      ]
+    },
+    {
+      "key": "webicons.bookmarksFr",
+      "label": "Bookmarks.fr",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "bookmarks",
+        "fr"
+      ],
+      "aliases": [
+        "mxgraph.webicons.bookmarksFr",
+        "mxgraph.webicons.bookmarks_fr",
+        "mxgraph.webicons.bookmarks-fr",
+        "mxgraph.webicons.Bookmarks.fr"
+      ]
+    },
+    {
+      "key": "webicons.box",
+      "label": "Box",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "box"
+      ],
+      "aliases": [
+        "mxgraph.webicons.box",
+        "mxgraph.webicons.Box"
+      ]
+    },
+    {
+      "key": "webicons.buddymarks",
+      "label": "Buddymarks",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "buddymarks"
+      ],
+      "aliases": [
+        "mxgraph.webicons.buddymarks",
+        "mxgraph.webicons.Buddymarks"
+      ]
+    },
+    {
+      "key": "webicons.buffer",
+      "label": "Buffer",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "buffer"
+      ],
+      "aliases": [
+        "mxgraph.webicons.buffer",
+        "mxgraph.webicons.Buffer"
+      ]
+    },
+    {
+      "key": "webicons.buzzfeed",
+      "label": "Buzzfeed",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "buzzfeed"
+      ],
+      "aliases": [
+        "mxgraph.webicons.buzzfeed",
+        "mxgraph.webicons.Buzzfeed"
+      ]
+    },
+    {
+      "key": "webicons.chrome",
+      "label": "Chrome",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "chrome"
+      ],
+      "aliases": [
+        "mxgraph.webicons.chrome",
+        "mxgraph.webicons.Chrome"
+      ]
+    },
+    {
+      "key": "webicons.citeulike",
+      "label": "Citeulike",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "citeulike"
+      ],
+      "aliases": [
+        "mxgraph.webicons.citeulike",
+        "mxgraph.webicons.Citeulike"
+      ]
+    },
+    {
+      "key": "webicons.confluence",
+      "label": "Confluence",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "confluence"
+      ],
+      "aliases": [
+        "mxgraph.webicons.confluence",
+        "mxgraph.webicons.Confluence"
+      ]
+    },
+    {
+      "key": "webicons.connotea",
+      "label": "Connotea",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "connotea"
+      ],
+      "aliases": [
+        "mxgraph.webicons.connotea",
+        "mxgraph.webicons.Connotea"
+      ]
+    },
+    {
+      "key": "webicons.dealsplus",
+      "label": "Dealsplus",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "dealsplus"
+      ],
+      "aliases": [
+        "mxgraph.webicons.dealsplus",
+        "mxgraph.webicons.Dealsplus"
+      ]
+    },
+    {
+      "key": "webicons.delicious",
+      "label": "Delicious",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.19,
+      "defaultHeight": 507.75,
+      "tags": [
+        "webicons",
+        "delicious"
+      ],
+      "aliases": [
+        "mxgraph.webicons.delicious",
+        "mxgraph.webicons.Delicious"
+      ]
+    },
+    {
+      "key": "webicons.designfloat",
+      "label": "Designfloat",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "designfloat"
+      ],
+      "aliases": [
+        "mxgraph.webicons.designfloat",
+        "mxgraph.webicons.Designfloat"
+      ]
+    },
+    {
+      "key": "webicons.deviantart",
+      "label": "Deviantart",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "deviantart"
+      ],
+      "aliases": [
+        "mxgraph.webicons.deviantart",
+        "mxgraph.webicons.Deviantart"
+      ]
+    },
+    {
+      "key": "webicons.digg",
+      "label": "Digg",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "digg"
+      ],
+      "aliases": [
+        "mxgraph.webicons.digg",
+        "mxgraph.webicons.Digg"
+      ]
+    },
+    {
+      "key": "webicons.diigo",
+      "label": "Diigo",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "diigo"
+      ],
+      "aliases": [
+        "mxgraph.webicons.diigo",
+        "mxgraph.webicons.Diigo"
+      ]
+    },
+    {
+      "key": "webicons.dopplr",
+      "label": "Dopplr",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "dopplr"
+      ],
+      "aliases": [
+        "mxgraph.webicons.dopplr",
+        "mxgraph.webicons.Dopplr"
+      ]
+    },
+    {
+      "key": "webicons.drawio1",
+      "label": "Drawio1",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "drawio1"
+      ],
+      "aliases": [
+        "mxgraph.webicons.drawio1",
+        "mxgraph.webicons.Drawio1"
+      ]
+    },
+    {
+      "key": "webicons.drawio2",
+      "label": "Drawio2",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "drawio2"
+      ],
+      "aliases": [
+        "mxgraph.webicons.drawio2",
+        "mxgraph.webicons.Drawio2"
+      ]
+    },
+    {
+      "key": "webicons.dribbble",
+      "label": "Dribbble",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "dribbble"
+      ],
+      "aliases": [
+        "mxgraph.webicons.dribbble",
+        "mxgraph.webicons.Dribbble"
+      ]
+    },
+    {
+      "key": "webicons.dropbox",
+      "label": "Dropbox",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "dropbox"
+      ],
+      "aliases": [
+        "mxgraph.webicons.dropbox",
+        "mxgraph.webicons.Dropbox"
+      ]
+    },
+    {
+      "key": "webicons.dropbox2",
+      "label": "Dropbox2",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "dropbox2"
+      ],
+      "aliases": [
+        "mxgraph.webicons.dropbox2",
+        "mxgraph.webicons.Dropbox2"
+      ]
+    },
+    {
+      "key": "webicons.drupal",
+      "label": "Drupal",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "drupal"
+      ],
+      "aliases": [
+        "mxgraph.webicons.drupal",
+        "mxgraph.webicons.Drupal"
+      ]
+    },
+    {
+      "key": "webicons.dzone",
+      "label": "Dzone",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "dzone"
+      ],
+      "aliases": [
+        "mxgraph.webicons.dzone",
+        "mxgraph.webicons.Dzone"
+      ]
+    },
+    {
+      "key": "webicons.ebay",
+      "label": "Ebay",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "ebay"
+      ],
+      "aliases": [
+        "mxgraph.webicons.ebay",
+        "mxgraph.webicons.Ebay"
+      ]
+    },
+    {
+      "key": "webicons.edmodo",
+      "label": "Edmodo",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "edmodo"
+      ],
+      "aliases": [
+        "mxgraph.webicons.edmodo",
+        "mxgraph.webicons.Edmodo"
+      ]
+    },
+    {
+      "key": "webicons.evernote",
+      "label": "Evernote",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "evernote"
+      ],
+      "aliases": [
+        "mxgraph.webicons.evernote",
+        "mxgraph.webicons.Evernote"
+      ]
+    },
+    {
+      "key": "webicons.facebook",
+      "label": "Facebook",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "facebook"
+      ],
+      "aliases": [
+        "mxgraph.webicons.facebook",
+        "mxgraph.webicons.Facebook"
+      ]
+    },
+    {
+      "key": "webicons.fancy",
+      "label": "Fancy",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "fancy"
+      ],
+      "aliases": [
+        "mxgraph.webicons.fancy",
+        "mxgraph.webicons.Fancy"
+      ]
+    },
+    {
+      "key": "webicons.fark",
+      "label": "Fark",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "fark"
+      ],
+      "aliases": [
+        "mxgraph.webicons.fark",
+        "mxgraph.webicons.Fark"
+      ]
+    },
+    {
+      "key": "webicons.fashiolista",
+      "label": "Fashiolista",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "fashiolista"
+      ],
+      "aliases": [
+        "mxgraph.webicons.fashiolista",
+        "mxgraph.webicons.Fashiolista"
+      ]
+    },
+    {
+      "key": "webicons.feed",
+      "label": "Feed",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "feed"
+      ],
+      "aliases": [
+        "mxgraph.webicons.feed",
+        "mxgraph.webicons.Feed"
+      ]
+    },
+    {
+      "key": "webicons.feedburner",
+      "label": "Feedburner",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "feedburner"
+      ],
+      "aliases": [
+        "mxgraph.webicons.feedburner",
+        "mxgraph.webicons.Feedburner"
+      ]
+    },
+    {
+      "key": "webicons.flickr",
+      "label": "Flickr",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "flickr"
+      ],
+      "aliases": [
+        "mxgraph.webicons.flickr",
+        "mxgraph.webicons.Flickr"
+      ]
+    },
+    {
+      "key": "webicons.folkd",
+      "label": "Folkd",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "folkd"
+      ],
+      "aliases": [
+        "mxgraph.webicons.folkd",
+        "mxgraph.webicons.Folkd"
+      ]
+    },
+    {
+      "key": "webicons.forrst",
+      "label": "Forrst",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "forrst"
+      ],
+      "aliases": [
+        "mxgraph.webicons.forrst",
+        "mxgraph.webicons.Forrst"
+      ]
+    },
+    {
+      "key": "webicons.fotolog",
+      "label": "Fotolog",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "fotolog"
+      ],
+      "aliases": [
+        "mxgraph.webicons.fotolog",
+        "mxgraph.webicons.Fotolog"
+      ]
+    },
+    {
+      "key": "webicons.freshbump",
+      "label": "Freshbump",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "freshbump"
+      ],
+      "aliases": [
+        "mxgraph.webicons.freshbump",
+        "mxgraph.webicons.Freshbump"
+      ]
+    },
+    {
+      "key": "webicons.fresqui",
+      "label": "Fresqui",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "fresqui"
+      ],
+      "aliases": [
+        "mxgraph.webicons.fresqui",
+        "mxgraph.webicons.Fresqui"
+      ]
+    },
+    {
+      "key": "webicons.friendfeed",
+      "label": "Friendfeed",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "friendfeed"
+      ],
+      "aliases": [
+        "mxgraph.webicons.friendfeed",
+        "mxgraph.webicons.Friendfeed"
+      ]
+    },
+    {
+      "key": "webicons.funp",
+      "label": "Funp",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "funp"
+      ],
+      "aliases": [
+        "mxgraph.webicons.funp",
+        "mxgraph.webicons.Funp"
+      ]
+    },
+    {
+      "key": "webicons.fwisp",
+      "label": "Fwisp",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "fwisp"
+      ],
+      "aliases": [
+        "mxgraph.webicons.fwisp",
+        "mxgraph.webicons.Fwisp"
+      ]
+    },
+    {
+      "key": "webicons.gabbr",
+      "label": "Gabbr",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "gabbr"
+      ],
+      "aliases": [
+        "mxgraph.webicons.gabbr",
+        "mxgraph.webicons.Gabbr"
+      ]
+    },
+    {
+      "key": "webicons.gamespot",
+      "label": "Gamespot",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "gamespot"
+      ],
+      "aliases": [
+        "mxgraph.webicons.gamespot",
+        "mxgraph.webicons.Gamespot"
+      ]
+    },
+    {
+      "key": "webicons.github",
+      "label": "Github",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "github"
+      ],
+      "aliases": [
+        "mxgraph.webicons.github",
+        "mxgraph.webicons.Github"
+      ]
+    },
+    {
+      "key": "webicons.gmail",
+      "label": "Gmail",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "gmail"
+      ],
+      "aliases": [
+        "mxgraph.webicons.gmail",
+        "mxgraph.webicons.Gmail"
+      ]
+    },
+    {
+      "key": "webicons.google",
+      "label": "Google",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "google"
+      ],
+      "aliases": [
+        "mxgraph.webicons.google",
+        "mxgraph.webicons.Google"
+      ]
+    },
+    {
+      "key": "webicons.googleDrive",
+      "label": "Google Drive",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "google",
+        "drive"
+      ],
+      "aliases": [
+        "mxgraph.webicons.googleDrive",
+        "mxgraph.webicons.google_drive",
+        "mxgraph.webicons.google-drive",
+        "mxgraph.webicons.Google Drive"
+      ]
+    },
+    {
+      "key": "webicons.googleHangout",
+      "label": "Google Hangout",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "google",
+        "hangout"
+      ],
+      "aliases": [
+        "mxgraph.webicons.googleHangout",
+        "mxgraph.webicons.google_hangout",
+        "mxgraph.webicons.google-hangout",
+        "mxgraph.webicons.Google Hangout"
+      ]
+    },
+    {
+      "key": "webicons.googlePhotos",
+      "label": "Google Photos",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "google",
+        "photos"
+      ],
+      "aliases": [
+        "mxgraph.webicons.googlePhotos",
+        "mxgraph.webicons.google_photos",
+        "mxgraph.webicons.google-photos",
+        "mxgraph.webicons.Google Photos"
+      ]
+    },
+    {
+      "key": "webicons.googlePlay",
+      "label": "Google Play",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 347.35,
+      "defaultHeight": 102.84,
+      "tags": [
+        "webicons",
+        "google",
+        "play"
+      ],
+      "aliases": [
+        "mxgraph.webicons.googlePlay",
+        "mxgraph.webicons.google_play",
+        "mxgraph.webicons.google-play",
+        "mxgraph.webicons.Google Play"
+      ]
+    },
+    {
+      "key": "webicons.googlePlayLight",
+      "label": "Google Play Light",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 299.58,
+      "defaultHeight": 52.57,
+      "tags": [
+        "webicons",
+        "google",
+        "play",
+        "light"
+      ],
+      "aliases": [
+        "mxgraph.webicons.googlePlayLight",
+        "mxgraph.webicons.google_play_light",
+        "mxgraph.webicons.google-play-light",
+        "mxgraph.webicons.Google Play Light"
+      ]
+    },
+    {
+      "key": "webicons.googlePlus",
+      "label": "Google Plus",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "google",
+        "plus"
+      ],
+      "aliases": [
+        "mxgraph.webicons.googlePlus",
+        "mxgraph.webicons.google_plus",
+        "mxgraph.webicons.google-plus",
+        "mxgraph.webicons.Google Plus"
+      ]
+    },
+    {
+      "key": "webicons.grooveshark",
+      "label": "Grooveshark",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "grooveshark"
+      ],
+      "aliases": [
+        "mxgraph.webicons.grooveshark",
+        "mxgraph.webicons.Grooveshark"
+      ]
+    },
+    {
+      "key": "webicons.hatena",
+      "label": "Hatena",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "hatena"
+      ],
+      "aliases": [
+        "mxgraph.webicons.hatena",
+        "mxgraph.webicons.Hatena"
+      ]
+    },
+    {
+      "key": "webicons.html5",
+      "label": "HTML5",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "html5"
+      ],
+      "aliases": [
+        "mxgraph.webicons.html5",
+        "mxgraph.webicons.HTML5"
+      ]
+    },
+    {
+      "key": "webicons.identiCa",
+      "label": "Identi.ca",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "identi",
+        "ca"
+      ],
+      "aliases": [
+        "mxgraph.webicons.identiCa",
+        "mxgraph.webicons.identi_ca",
+        "mxgraph.webicons.identi-ca",
+        "mxgraph.webicons.Identi.ca"
+      ]
+    },
+    {
+      "key": "webicons.instagram",
+      "label": "Instagram",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "instagram"
+      ],
+      "aliases": [
+        "mxgraph.webicons.instagram",
+        "mxgraph.webicons.Instagram"
+      ]
+    },
+    {
+      "key": "webicons.instapaper",
+      "label": "Instapaper",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "instapaper"
+      ],
+      "aliases": [
+        "mxgraph.webicons.instapaper",
+        "mxgraph.webicons.Instapaper"
+      ]
+    },
+    {
+      "key": "webicons.ios",
+      "label": "iOS",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "ios"
+      ],
+      "aliases": [
+        "mxgraph.webicons.ios",
+        "mxgraph.webicons.iOS"
+      ]
+    },
+    {
+      "key": "webicons.jamespot",
+      "label": "Jamespot",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "jamespot"
+      ],
+      "aliases": [
+        "mxgraph.webicons.jamespot",
+        "mxgraph.webicons.Jamespot"
+      ]
+    },
+    {
+      "key": "webicons.java",
+      "label": "Java",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "java"
+      ],
+      "aliases": [
+        "mxgraph.webicons.java",
+        "mxgraph.webicons.Java"
+      ]
+    },
+    {
+      "key": "webicons.joomla",
+      "label": "Joomla",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "joomla"
+      ],
+      "aliases": [
+        "mxgraph.webicons.joomla",
+        "mxgraph.webicons.Joomla"
+      ]
+    },
+    {
+      "key": "webicons.jquery",
+      "label": "Jquery",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "jquery"
+      ],
+      "aliases": [
+        "mxgraph.webicons.jquery",
+        "mxgraph.webicons.Jquery"
+      ]
+    },
+    {
+      "key": "webicons.json",
+      "label": "JSON",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "json"
+      ],
+      "aliases": [
+        "mxgraph.webicons.json",
+        "mxgraph.webicons.JSON"
+      ]
+    },
+    {
+      "key": "webicons.json2",
+      "label": "JSON 2",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "json",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.webicons.json2",
+        "mxgraph.webicons.json_2",
+        "mxgraph.webicons.json-2",
+        "mxgraph.webicons.JSON 2"
+      ]
+    },
+    {
+      "key": "webicons.lastFm",
+      "label": "Last.fm",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "last",
+        "fm"
+      ],
+      "aliases": [
+        "mxgraph.webicons.lastFm",
+        "mxgraph.webicons.last_fm",
+        "mxgraph.webicons.last-fm",
+        "mxgraph.webicons.Last.fm"
+      ]
+    },
+    {
+      "key": "webicons.linkagogo",
+      "label": "Linkagogo",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.39,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "linkagogo"
+      ],
+      "aliases": [
+        "mxgraph.webicons.linkagogo",
+        "mxgraph.webicons.Linkagogo"
+      ]
+    },
+    {
+      "key": "webicons.linkedin",
+      "label": "LinkedIn",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "linkedin"
+      ],
+      "aliases": [
+        "mxgraph.webicons.linkedin",
+        "mxgraph.webicons.LinkedIn"
+      ]
+    },
+    {
+      "key": "webicons.livejournal",
+      "label": "Livejournal",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "livejournal"
+      ],
+      "aliases": [
+        "mxgraph.webicons.livejournal",
+        "mxgraph.webicons.Livejournal"
+      ]
+    },
+    {
+      "key": "webicons.mailRu",
+      "label": "Mail.ru",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "mail",
+        "ru"
+      ],
+      "aliases": [
+        "mxgraph.webicons.mailRu",
+        "mxgraph.webicons.mail_ru",
+        "mxgraph.webicons.mail-ru",
+        "mxgraph.webicons.Mail.ru"
+      ]
+    },
+    {
+      "key": "webicons.meetup",
+      "label": "Meetup",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "meetup"
+      ],
+      "aliases": [
+        "mxgraph.webicons.meetup",
+        "mxgraph.webicons.Meetup"
+      ]
+    },
+    {
+      "key": "webicons.meneame",
+      "label": "Meneame",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "meneame"
+      ],
+      "aliases": [
+        "mxgraph.webicons.meneame",
+        "mxgraph.webicons.Meneame"
+      ]
+    },
+    {
+      "key": "webicons.messenger",
+      "label": "Messenger",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "messenger"
+      ],
+      "aliases": [
+        "mxgraph.webicons.messenger",
+        "mxgraph.webicons.Messenger"
+      ]
+    },
+    {
+      "key": "webicons.messenger2",
+      "label": "Messenger 2",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "messenger",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.webicons.messenger2",
+        "mxgraph.webicons.messenger_2",
+        "mxgraph.webicons.messenger-2",
+        "mxgraph.webicons.Messenger 2"
+      ]
+    },
+    {
+      "key": "webicons.messenger3",
+      "label": "Messenger 3",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "messenger",
+        "3"
+      ],
+      "aliases": [
+        "mxgraph.webicons.messenger3",
+        "mxgraph.webicons.messenger_3",
+        "mxgraph.webicons.messenger-3",
+        "mxgraph.webicons.Messenger 3"
+      ]
+    },
+    {
+      "key": "webicons.mindBodyGreen",
+      "label": "Mind Body Green",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "mind",
+        "body",
+        "green"
+      ],
+      "aliases": [
+        "mxgraph.webicons.mindBodyGreen",
+        "mxgraph.webicons.mind_body_green",
+        "mxgraph.webicons.mind-body-green",
+        "mxgraph.webicons.Mind Body Green"
+      ]
+    },
+    {
+      "key": "webicons.mongodb",
+      "label": "MongoDb",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "mongodb"
+      ],
+      "aliases": [
+        "mxgraph.webicons.mongodb",
+        "mxgraph.webicons.MongoDb"
+      ]
+    },
+    {
+      "key": "webicons.myspace",
+      "label": "MySpace",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "myspace"
+      ],
+      "aliases": [
+        "mxgraph.webicons.myspace",
+        "mxgraph.webicons.MySpace"
+      ]
+    },
+    {
+      "key": "webicons.n4g",
+      "label": "N4g",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "n4g"
+      ],
+      "aliases": [
+        "mxgraph.webicons.n4g",
+        "mxgraph.webicons.N4g"
+      ]
+    },
+    {
+      "key": "webicons.netlog",
+      "label": "Netlog",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "netlog"
+      ],
+      "aliases": [
+        "mxgraph.webicons.netlog",
+        "mxgraph.webicons.Netlog"
+      ]
+    },
+    {
+      "key": "webicons.netvibes",
+      "label": "Netvibes",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "netvibes"
+      ],
+      "aliases": [
+        "mxgraph.webicons.netvibes",
+        "mxgraph.webicons.Netvibes"
+      ]
+    },
+    {
+      "key": "webicons.netvouz",
+      "label": "Netvouz",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "netvouz"
+      ],
+      "aliases": [
+        "mxgraph.webicons.netvouz",
+        "mxgraph.webicons.Netvouz"
+      ]
+    },
+    {
+      "key": "webicons.networkedblogs",
+      "label": "Networkedblogs",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "networkedblogs"
+      ],
+      "aliases": [
+        "mxgraph.webicons.networkedblogs",
+        "mxgraph.webicons.Networkedblogs"
+      ]
+    },
+    {
+      "key": "webicons.newsvine",
+      "label": "Newsvine",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "newsvine"
+      ],
+      "aliases": [
+        "mxgraph.webicons.newsvine",
+        "mxgraph.webicons.Newsvine"
+      ]
+    },
+    {
+      "key": "webicons.odnoklassniki",
+      "label": "Odnoklassniki",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "odnoklassniki"
+      ],
+      "aliases": [
+        "mxgraph.webicons.odnoklassniki",
+        "mxgraph.webicons.Odnoklassniki"
+      ]
+    },
+    {
+      "key": "webicons.oknotizie",
+      "label": "Oknotizie",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "oknotizie"
+      ],
+      "aliases": [
+        "mxgraph.webicons.oknotizie",
+        "mxgraph.webicons.Oknotizie"
+      ]
+    },
+    {
+      "key": "webicons.onedrive",
+      "label": "OneDrive",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "onedrive"
+      ],
+      "aliases": [
+        "mxgraph.webicons.onedrive",
+        "mxgraph.webicons.OneDrive"
+      ]
+    },
+    {
+      "key": "webicons.oracle",
+      "label": "Oracle",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "oracle"
+      ],
+      "aliases": [
+        "mxgraph.webicons.oracle",
+        "mxgraph.webicons.Oracle"
+      ]
+    },
+    {
+      "key": "webicons.paypal",
+      "label": "Paypal",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "paypal"
+      ],
+      "aliases": [
+        "mxgraph.webicons.paypal",
+        "mxgraph.webicons.Paypal"
+      ]
+    },
+    {
+      "key": "webicons.phone",
+      "label": "Phone",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "phone"
+      ],
+      "aliases": [
+        "mxgraph.webicons.phone",
+        "mxgraph.webicons.Phone"
+      ]
+    },
+    {
+      "key": "webicons.phonefavs",
+      "label": "Phonefavs",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "phonefavs"
+      ],
+      "aliases": [
+        "mxgraph.webicons.phonefavs",
+        "mxgraph.webicons.Phonefavs"
+      ]
+    },
+    {
+      "key": "webicons.pinterest",
+      "label": "Pinterest",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "pinterest"
+      ],
+      "aliases": [
+        "mxgraph.webicons.pinterest",
+        "mxgraph.webicons.Pinterest"
+      ]
+    },
+    {
+      "key": "webicons.plaxo",
+      "label": "Plaxo",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "plaxo"
+      ],
+      "aliases": [
+        "mxgraph.webicons.plaxo",
+        "mxgraph.webicons.Plaxo"
+      ]
+    },
+    {
+      "key": "webicons.playfire",
+      "label": "Playfire",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "playfire"
+      ],
+      "aliases": [
+        "mxgraph.webicons.playfire",
+        "mxgraph.webicons.Playfire"
+      ]
+    },
+    {
+      "key": "webicons.plurk",
+      "label": "Plurk",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "plurk"
+      ],
+      "aliases": [
+        "mxgraph.webicons.plurk",
+        "mxgraph.webicons.Plurk"
+      ]
+    },
+    {
+      "key": "webicons.pocket",
+      "label": "Pocket",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "pocket"
+      ],
+      "aliases": [
+        "mxgraph.webicons.pocket",
+        "mxgraph.webicons.Pocket"
+      ]
+    },
+    {
+      "key": "webicons.protopage",
+      "label": "Protopage",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "protopage"
+      ],
+      "aliases": [
+        "mxgraph.webicons.protopage",
+        "mxgraph.webicons.Protopage"
+      ]
+    },
+    {
+      "key": "webicons.readernaut",
+      "label": "Readernaut",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "readernaut"
+      ],
+      "aliases": [
+        "mxgraph.webicons.readernaut",
+        "mxgraph.webicons.Readernaut"
+      ]
+    },
+    {
+      "key": "webicons.reddit",
+      "label": "Reddit",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "reddit"
+      ],
+      "aliases": [
+        "mxgraph.webicons.reddit",
+        "mxgraph.webicons.Reddit"
+      ]
+    },
+    {
+      "key": "webicons.rss",
+      "label": "RSS",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "rss"
+      ],
+      "aliases": [
+        "mxgraph.webicons.rss",
+        "mxgraph.webicons.RSS"
+      ]
+    },
+    {
+      "key": "webicons.scoopit",
+      "label": "Scoopit",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "scoopit"
+      ],
+      "aliases": [
+        "mxgraph.webicons.scoopit",
+        "mxgraph.webicons.Scoopit"
+      ]
+    },
+    {
+      "key": "webicons.scribd",
+      "label": "Scribd",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.15,
+      "defaultHeight": 507.71,
+      "tags": [
+        "webicons",
+        "scribd"
+      ],
+      "aliases": [
+        "mxgraph.webicons.scribd",
+        "mxgraph.webicons.Scribd"
+      ]
+    },
+    {
+      "key": "webicons.segnalo",
+      "label": "Segnalo",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "segnalo"
+      ],
+      "aliases": [
+        "mxgraph.webicons.segnalo",
+        "mxgraph.webicons.Segnalo"
+      ]
+    },
+    {
+      "key": "webicons.sina",
+      "label": "Sina",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "sina"
+      ],
+      "aliases": [
+        "mxgraph.webicons.sina",
+        "mxgraph.webicons.Sina"
+      ]
+    },
+    {
+      "key": "webicons.sitejot",
+      "label": "Sitejot",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "sitejot"
+      ],
+      "aliases": [
+        "mxgraph.webicons.sitejot",
+        "mxgraph.webicons.Sitejot"
+      ]
+    },
+    {
+      "key": "webicons.skype",
+      "label": "Skype",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "skype"
+      ],
+      "aliases": [
+        "mxgraph.webicons.skype",
+        "mxgraph.webicons.Skype"
+      ]
+    },
+    {
+      "key": "webicons.skyrock",
+      "label": "Skyrock",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "skyrock"
+      ],
+      "aliases": [
+        "mxgraph.webicons.skyrock",
+        "mxgraph.webicons.Skyrock"
+      ]
+    },
+    {
+      "key": "webicons.slashdot",
+      "label": "Slashdot",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "slashdot"
+      ],
+      "aliases": [
+        "mxgraph.webicons.slashdot",
+        "mxgraph.webicons.Slashdot"
+      ]
+    },
+    {
+      "key": "webicons.sms",
+      "label": "SMS",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "sms"
+      ],
+      "aliases": [
+        "mxgraph.webicons.sms",
+        "mxgraph.webicons.SMS"
+      ]
+    },
+    {
+      "key": "webicons.socialvibe",
+      "label": "Socialvibe",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "socialvibe"
+      ],
+      "aliases": [
+        "mxgraph.webicons.socialvibe",
+        "mxgraph.webicons.Socialvibe"
+      ]
+    },
+    {
+      "key": "webicons.society6",
+      "label": "Society6",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "society6"
+      ],
+      "aliases": [
+        "mxgraph.webicons.society6",
+        "mxgraph.webicons.Society6"
+      ]
+    },
+    {
+      "key": "webicons.sonico",
+      "label": "Sonico",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "sonico"
+      ],
+      "aliases": [
+        "mxgraph.webicons.sonico",
+        "mxgraph.webicons.Sonico"
+      ]
+    },
+    {
+      "key": "webicons.soundcloud",
+      "label": "Soundcloud",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "soundcloud"
+      ],
+      "aliases": [
+        "mxgraph.webicons.soundcloud",
+        "mxgraph.webicons.Soundcloud"
+      ]
+    },
+    {
+      "key": "webicons.sourceforge",
+      "label": "Sourceforge",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "sourceforge"
+      ],
+      "aliases": [
+        "mxgraph.webicons.sourceforge",
+        "mxgraph.webicons.Sourceforge"
+      ]
+    },
+    {
+      "key": "webicons.sourceforge2",
+      "label": "Sourceforge 2",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "sourceforge",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.webicons.sourceforge2",
+        "mxgraph.webicons.sourceforge_2",
+        "mxgraph.webicons.sourceforge-2",
+        "mxgraph.webicons.Sourceforge 2"
+      ]
+    },
+    {
+      "key": "webicons.springMe",
+      "label": "Spring.me",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "spring",
+        "me"
+      ],
+      "aliases": [
+        "mxgraph.webicons.springMe",
+        "mxgraph.webicons.spring_me",
+        "mxgraph.webicons.spring-me",
+        "mxgraph.webicons.Spring.me"
+      ]
+    },
+    {
+      "key": "webicons.stackexchange",
+      "label": "Stackexchange",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "stackexchange"
+      ],
+      "aliases": [
+        "mxgraph.webicons.stackexchange",
+        "mxgraph.webicons.Stackexchange"
+      ]
+    },
+    {
+      "key": "webicons.stackoverflow",
+      "label": "StackOverflow",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "stackoverflow"
+      ],
+      "aliases": [
+        "mxgraph.webicons.stackoverflow",
+        "mxgraph.webicons.StackOverflow"
+      ]
+    },
+    {
+      "key": "webicons.startaid",
+      "label": "Startaid",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "startaid"
+      ],
+      "aliases": [
+        "mxgraph.webicons.startaid",
+        "mxgraph.webicons.Startaid"
+      ]
+    },
+    {
+      "key": "webicons.startlap",
+      "label": "Startlap",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "startlap"
+      ],
+      "aliases": [
+        "mxgraph.webicons.startlap",
+        "mxgraph.webicons.Startlap"
+      ]
+    },
+    {
+      "key": "webicons.steam",
+      "label": "Steam",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "steam"
+      ],
+      "aliases": [
+        "mxgraph.webicons.steam",
+        "mxgraph.webicons.Steam"
+      ]
+    },
+    {
+      "key": "webicons.stumbleupon",
+      "label": "StumbleUpon",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "stumbleupon"
+      ],
+      "aliases": [
+        "mxgraph.webicons.stumbleupon",
+        "mxgraph.webicons.StumbleUpon"
+      ]
+    },
+    {
+      "key": "webicons.stumpedia",
+      "label": "Stumpedia",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "stumpedia"
+      ],
+      "aliases": [
+        "mxgraph.webicons.stumpedia",
+        "mxgraph.webicons.Stumpedia"
+      ]
+    },
+    {
+      "key": "webicons.technorati",
+      "label": "Technorati",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.74,
+      "tags": [
+        "webicons",
+        "technorati"
+      ],
+      "aliases": [
+        "mxgraph.webicons.technorati",
+        "mxgraph.webicons.Technorati"
+      ]
+    },
+    {
+      "key": "webicons.translate",
+      "label": "Translate",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "translate"
+      ],
+      "aliases": [
+        "mxgraph.webicons.translate",
+        "mxgraph.webicons.Translate"
+      ]
+    },
+    {
+      "key": "webicons.tumblr",
+      "label": "Tumblr",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "tumblr"
+      ],
+      "aliases": [
+        "mxgraph.webicons.tumblr",
+        "mxgraph.webicons.Tumblr"
+      ]
+    },
+    {
+      "key": "webicons.tunein",
+      "label": "Tunein",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "tunein"
+      ],
+      "aliases": [
+        "mxgraph.webicons.tunein",
+        "mxgraph.webicons.Tunein"
+      ]
+    },
+    {
+      "key": "webicons.twitter",
+      "label": "Twitter",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "twitter"
+      ],
+      "aliases": [
+        "mxgraph.webicons.twitter",
+        "mxgraph.webicons.Twitter"
+      ]
+    },
+    {
+      "key": "webicons.two",
+      "label": "Two",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "two"
+      ],
+      "aliases": [
+        "mxgraph.webicons.two",
+        "mxgraph.webicons.Two"
+      ]
+    },
+    {
+      "key": "webicons.typepad",
+      "label": "Typepad",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.06,
+      "defaultHeight": 507.78,
+      "tags": [
+        "webicons",
+        "typepad"
+      ],
+      "aliases": [
+        "mxgraph.webicons.typepad",
+        "mxgraph.webicons.Typepad"
+      ]
+    },
+    {
+      "key": "webicons.viadeo",
+      "label": "Viadeo",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "viadeo"
+      ],
+      "aliases": [
+        "mxgraph.webicons.viadeo",
+        "mxgraph.webicons.Viadeo"
+      ]
+    },
+    {
+      "key": "webicons.viber",
+      "label": "Viber",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "viber"
+      ],
+      "aliases": [
+        "mxgraph.webicons.viber",
+        "mxgraph.webicons.Viber"
+      ]
+    },
+    {
+      "key": "webicons.viddler",
+      "label": "Viddler",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "viddler"
+      ],
+      "aliases": [
+        "mxgraph.webicons.viddler",
+        "mxgraph.webicons.Viddler"
+      ]
+    },
+    {
+      "key": "webicons.vimeo",
+      "label": "Vimeo",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "vimeo"
+      ],
+      "aliases": [
+        "mxgraph.webicons.vimeo",
+        "mxgraph.webicons.Vimeo"
+      ]
+    },
+    {
+      "key": "webicons.virb",
+      "label": "Virb",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "virb"
+      ],
+      "aliases": [
+        "mxgraph.webicons.virb",
+        "mxgraph.webicons.Virb"
+      ]
+    },
+    {
+      "key": "webicons.vkontakte",
+      "label": "Vkontakte",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "vkontakte"
+      ],
+      "aliases": [
+        "mxgraph.webicons.vkontakte",
+        "mxgraph.webicons.Vkontakte"
+      ]
+    },
+    {
+      "key": "webicons.wakoopa",
+      "label": "Wakoopa",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "wakoopa"
+      ],
+      "aliases": [
+        "mxgraph.webicons.wakoopa",
+        "mxgraph.webicons.Wakoopa"
+      ]
+    },
+    {
+      "key": "webicons.weheartit",
+      "label": "Weheartit",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "weheartit"
+      ],
+      "aliases": [
+        "mxgraph.webicons.weheartit",
+        "mxgraph.webicons.Weheartit"
+      ]
+    },
+    {
+      "key": "webicons.whatsapp",
+      "label": "Whatsapp",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "whatsapp"
+      ],
+      "aliases": [
+        "mxgraph.webicons.whatsapp",
+        "mxgraph.webicons.Whatsapp"
+      ]
+    },
+    {
+      "key": "webicons.wix",
+      "label": "Wix",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "wix"
+      ],
+      "aliases": [
+        "mxgraph.webicons.wix",
+        "mxgraph.webicons.Wix"
+      ]
+    },
+    {
+      "key": "webicons.wordpress",
+      "label": "Wordpress",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "wordpress"
+      ],
+      "aliases": [
+        "mxgraph.webicons.wordpress",
+        "mxgraph.webicons.Wordpress"
+      ]
+    },
+    {
+      "key": "webicons.wordpress2",
+      "label": "Wordpress 2",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "wordpress",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.webicons.wordpress2",
+        "mxgraph.webicons.wordpress_2",
+        "mxgraph.webicons.wordpress-2",
+        "mxgraph.webicons.Wordpress 2"
+      ]
+    },
+    {
+      "key": "webicons.xanga",
+      "label": "Xanga",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "xanga"
+      ],
+      "aliases": [
+        "mxgraph.webicons.xanga",
+        "mxgraph.webicons.Xanga"
+      ]
+    },
+    {
+      "key": "webicons.xerpi",
+      "label": "Xerpi",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "xerpi"
+      ],
+      "aliases": [
+        "mxgraph.webicons.xerpi",
+        "mxgraph.webicons.Xerpi"
+      ]
+    },
+    {
+      "key": "webicons.xing",
+      "label": "Xing",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "xing"
+      ],
+      "aliases": [
+        "mxgraph.webicons.xing",
+        "mxgraph.webicons.Xing"
+      ]
+    },
+    {
+      "key": "webicons.yahoo",
+      "label": "Yahoo",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "yahoo"
+      ],
+      "aliases": [
+        "mxgraph.webicons.yahoo",
+        "mxgraph.webicons.Yahoo"
+      ]
+    },
+    {
+      "key": "webicons.yahoo2",
+      "label": "Yahoo 2",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "yahoo",
+        "2"
+      ],
+      "aliases": [
+        "mxgraph.webicons.yahoo2",
+        "mxgraph.webicons.yahoo_2",
+        "mxgraph.webicons.yahoo-2",
+        "mxgraph.webicons.Yahoo 2"
+      ]
+    },
+    {
+      "key": "webicons.yammer",
+      "label": "Yammer",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "yammer"
+      ],
+      "aliases": [
+        "mxgraph.webicons.yammer",
+        "mxgraph.webicons.Yammer"
+      ]
+    },
+    {
+      "key": "webicons.yandex",
+      "label": "Yandex",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "yandex"
+      ],
+      "aliases": [
+        "mxgraph.webicons.yandex",
+        "mxgraph.webicons.Yandex"
+      ]
+    },
+    {
+      "key": "webicons.yelp",
+      "label": "Yelp",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "yelp"
+      ],
+      "aliases": [
+        "mxgraph.webicons.yelp",
+        "mxgraph.webicons.Yelp"
+      ]
+    },
+    {
+      "key": "webicons.yoolink",
+      "label": "Yoolink",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "yoolink"
+      ],
+      "aliases": [
+        "mxgraph.webicons.yoolink",
+        "mxgraph.webicons.Yoolink"
+      ]
+    },
+    {
+      "key": "webicons.youmob",
+      "label": "Youmob",
+      "group": "WebIcons",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\webicons.xml",
+      "defaultWidth": 511.13,
+      "defaultHeight": 507.7,
+      "tags": [
+        "webicons",
+        "youmob"
+      ],
+      "aliases": [
+        "mxgraph.webicons.youmob",
+        "mxgraph.webicons.Youmob"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+完成 P004，未修改 plan 文件或勾选 checkbox。
+
+- 在 `lib/src/widgets/wenz_rich_text_editor.dart:5110` 渲染标题左侧折叠按钮，并保留 `lib/src/widgets/wenz_rich_text_editor.dart:5151` 的点击、键盘、hover/focus/disabled 反馈。
+- `lib/src/widgets/block_renderer_registry.dart:335` 提供 `HeadingCollapseState` 给 block renderer 使用。
+- `test/widgets/wenz_rich_text_editor_test.dart:465` 覆盖按钮渲染、叶子标题禁用、点击/键盘切换和隐藏内容。
+- 已同步 `test/widgets/goldens/editor_blocks.png`，对应 `test/widgets/editor_golden_test.dart:269`。
+
+验证通过：
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "renders heading collapse affordance and toggles by keyboard"`
+- `flutter test test/widgets/editor_golden_test.dart --plain-name "golden: paragraph code and image placeholder"`

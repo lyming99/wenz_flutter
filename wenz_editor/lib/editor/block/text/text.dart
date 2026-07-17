@@ -1015,7 +1015,7 @@ class TextBlock extends WenzBlock {
     return TextSpan(
       children: [span],
       style: textStyle.copyWith(
-        fontWeight: textElement.level == 0 ? null : FontWeight.bold,
+        fontWeight: textElement.level == 0 ? null : FontWeight.w600,
         fontSize: fontSize,
         color: fontColor,
         height: textElement.level == 0 ? 1.5 : 1.2,
@@ -1062,7 +1062,7 @@ class TextBlock extends WenzBlock {
     return TextSpan(
       children: [span],
       style: textStyle.copyWith(
-        fontWeight: textElement.level == 0 ? null : FontWeight.bold,
+        fontWeight: textElement.level == 0 ? null : FontWeight.w600,
         fontSize: fontSize,
         color: fontColor,
         height: textElement.level == 0 ? 1.5 : 1.2,

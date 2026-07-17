@@ -1,0 +1,210 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efd2d-5dc0-70f0-a535-2ab994ce9978
+--------
+user
+你是开发执行者。
+请只执行指定任务 P005，不要提前执行其它任务，也不要顺手处理其它 checkbox。
+
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_requirement_10_20260625-034349.md
+指定任务：
+- [ ] P005: 处理折叠状态下的编辑与导航 <!-- scope: lib/src/controller/wenz_rich_text_controller.dart,lib/src/controller/find_replace_controller.dart,lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/controller_test.dart,test/controller/find_replace_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+任务 scope：lib/src/controller/wenz_rich_text_controller.dart, lib/src/controller/find_replace_controller.dart, lib/src/controller/outline_controller.dart, lib/src/widgets/wenz_rich_text_editor.dart, test/core/controller_test.dart, test/controller/find_replace_controller_test.dart, test/widgets/wenz_rich_text_editor_test.dart
+
+完成后必须：
+- plan 文件是只读上下文：不要修改 plan 文件，不要勾选 checkbox，不要更新 plan 进度区
+- AutoPlan 会在任务成功后统一写回数据库、checkbox 和进度区
+- 只修改当前任务 scope 直接相关的业务文件
+- 如需测试，只运行与当前任务直接相关的最小测试集，不要运行全量测试或与本任务无关的测试
+- 只有当前任务本身明确要求全量验证时，才允许运行全量测试
+- 不输出完整 diff、源码全文或长文件列表
+- 中文文件读写使用 UTF-8
+codex
+我会先只读检查计划与相关文件说明，确认 P005 的边界。
+  → 确认 P005 需求边界
+  • 梳理折叠相关逻辑
+  • 实现编辑导航处理
+  • 补充最小相关测试
+  • 运行聚焦测试验证
+exec
+powershell.exe -Command "Get-ChildItem -Path . -Filter AGENTS.md -Recurse -Force | Select-Object -ExpandProperty FullName; Write-Host '---PLAN---'; Get-Content -LiteralPath 'D:\\project\\GitHub\\wenz_flutter\\wenz_richtext\\docs\\plan\\plan_requirement_10_20260625-034349.md' -Encoding UTF8" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 324ms:
+---PLAN---
+# 需求开发计划：大纲折叠功能
+
+## 来源
+- 类型：需求
+- 编号：10
+- 生成时间：2026-06-25 03:43:49
+
+## 原始内容
+增加大纲折叠功能，如果行内容是大纲标题，则支持折叠内容；
+
+## 需求理解
+- 当顶层 block 是大纲标题（`BlockType.heading`）时，该行应展示可折叠入口，并支持折叠/展开其下属内容。
+- 折叠范围按标题层级计算：从当前标题之后开始，直到遇到下一个同级或更高级标题为止；低级标题及普通 block 均属于当前标题的可折叠内容。
+- 折叠是编辑器视图状态，不应删除或改写文档内容；导入导出、历史记录、协作数据和大纲条目生成应保持原文档结构。
+- 折叠后隐藏的 block 不参与屏幕渲染和普通鼠标命中，但仍需保证选区、搜索、撤销/重做、滚动定位和程序化跳转有明确行为。
+
+## 任务计划
+- [x] P001: 明确标题折叠交互规则 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,docs/acceptance_manual_checklist.md -->
+  - 验收要点：明确只有顶层 `heading` block 显示折叠入口，段落、引用、列表、代码、表格、媒体和对象块不显示入口。
+  - 验收要点：明确折叠范围按标题 level 计算，`H2` 折叠到下一个 `H1/H2` 前，`H3` 折叠到下一个 `H1/H2/H3` 前，空标题或无子内容标题不可折叠或显示禁用态。
+  - 验收要点：明确只读模式下可展开/折叠但不可改变文档内容，编辑模式下折叠状态不进入撤销/重做历史。
+
+- [x] P002: 扩展大纲折叠状态模型 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/controller/wenz_rich_text_controller.dart,test/controller/outline_controller_test.dart,test/core/controller_test.dart -->
+  - 验收要点：为标题条目提供是否可折叠、是否已折叠、折叠覆盖的 block id/index 范围等只读信息，并在文档变化后自动重算。
+  - 验收要点：提供按 blockId/anchor/OutlineItem 折叠、展开、切换、全部展开和查询折叠状态的 API；无效 block、非标题 block 和无子内容标题返回安全 no-op。
+  - 验收要点：折叠状态以标题 block id 为主键维护；标题删除、类型变更、层级变更、block 移动或文档替换后会清理无效状态并通知监听者。
+
+- [x] P003: 构建可见 block 投影视图 <!-- scope: lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_geometry_registry.dart,test/controller/outline_controller_test.dart,test/widgets/block_geometry_registry_test.dart -->
+  - 验收要点：编辑器渲染可根据折叠状态过滤被隐藏的顶层 block，同时保留原始 document.blocks 顺序、blockIndex 语义和文档 JSON 不变。
+  - 验收要点：隐藏 block 的几何缓存、命中测试、滚动定位和选择覆盖层不会残留旧位置；展开后几何信息能重新注册并用于选区/滚动。
+  - 验收要点：嵌套折叠时父标题折叠优先隐藏所有后代内容，展开父标题后子标题自身的折叠状态仍可继续生效。
+
+- [x] P004: 渲染标题折叠入口与状态反馈 <!-- scope: lib/src/widgets/wenz_rich_text_editor.dart,lib/src/widgets/block_renderer_registry.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png -->
+  - 验收要点：可折叠标题左侧或标题内容起始处显示稳定的展开/收起图标，hover/focus/pressed/disabled 状态清晰，且不挤压标题文本布局。
+  - 验收要点：点击或键盘激活图标可切换折叠状态；图标命中区域不触发文本选区、输入法组合、链接点击或 block 拖拽菜单。
+  - 验收要点：折叠标题可显示子内容数量、轻量提示或视觉标识，便于用户判断标题下存在被隐藏内容。
+
+- [ ] P005: 处理折叠状态下的编辑与导航 <!-- scope: lib/src/controller/wenz_rich_text_controller.dart,lib/src/controller/find_replace_controller.dart,lib/src/controller/outline_controller.dart,lib/src/widgets/wenz_rich_text_editor.dart,test/core/controller_test.dart,test/controller/find_replace_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart -->
+  - 验收要点：当当前选区或程序化跳转目标位于隐藏 block 内时，编辑器会先展开相关标题或将光标安全移动到折叠标题处，避免不可见光标。
+  - 验收要点：查找替换、大纲跳转、锚点跳转和滚动到选区在命中隐藏内容时有一致策略，并能让目标内容重新可见。
+  - 验收要点：在折叠状态下插入、删除、粘贴、撤销/重做、修改标题层级和移动 block 后，隐藏范围、选区和滚动位置保持可恢复且不丢内容。
+
+- [ ] P006: 兼容导入导出与外部扩展 <!-- scope: lib/src/codecs/rich_text_json_codec.dart,lib/src/codecs/html_codec.dart,lib/src/codecs/markdown_codec.dart,lib/src/widgets/block_renderer_registry.dart,test/codecs/rich_text_json_codec_test.dart,test/codecs/html_codec_test.dart,test/codecs/markdown_codec_test.dart,test/plugins/editor_plugin_test.dart -->
+  - 验收要点：折叠状态默认不写入文档 JSON、HTML、Markdown 或纯文本导出，导入已有文档后默认全部展开且内容完整。
+  - 验收要点：自定义 block renderer、插件和媒体 resolver 在隐藏 block 不渲染时不收到多余构建/几何事件，展开后行为与普通 block 一致。
+  - 验收要点：如果后续需要业务侧持久化折叠状态，应通过独立 UI 状态或 metadata 扩展点实现，不污染现有内容模型。
+
+- [ ] P007: 补充自动化与视觉回归测试 <!-- scope: test/controller/outline_controller_test.dart,test/widgets/wenz_rich_text_editor_test.dart,test/widgets/editor_golden_test.dart,test/widgets/goldens/editor_blocks.png,test/widgets/goldens/editor_advanced_blocks.png,docs/plan/plan_requirement_10_20260625-034349.md -->
+  - 验收要点：覆盖 H1-H6、多级嵌套、连续标题、空标题、无子内容标题、父子同时折叠、标题删除/改级/移动后的范围重算。
+  - 验收要点：覆盖折叠图标点击、键盘访问、隐藏 block 不命中、展开后选区恢复、查找命中隐藏内容和大纲跳转隐藏标题等 widget 行为。
+  - 验收要点：更新或新增 golden 展示展开态、折叠态、禁用态和嵌套标题场景；记录 `flutter analyze` 与相关测试执行结果。
+
+## 总体验收标准
+- 所有任务 checkbox 均完成，且每个任务的验收要点都有明确结论或验证记录。
+- 标题折叠仅改变编辑器视图状态，不删除、不移动、不改写任何 block 内容或导入导出数据结构。
+- 折叠范围按标题层级稳定计算，覆盖多级标题嵌套、连续标题、空内容、文档首尾和动态编辑后的边界场景。
+- 折叠/展开交互可被鼠标、触控和键盘可靠触发，并不影响文本编辑、选区、IME、链接、表格、媒体块和对象块既有交互。
+- 隐藏内容在查找、大纲跳转、锚点跳转、选区恢复和滚动定位时有一致可见性策略，不出现不可见光标或无法定位目标。
+- 相关 controller、widget、codec、plugin 和 golden 测试通过；若存在既有失败，需在进度区记录命令、失败原因判断和后续建议。
+
+## 进度区
+- 当前状态：计划已创建，P001-P007 待开发执行。
+- 当前负责人：待分配。
+- 下一步：从 P001 开始确认折叠范围、入口位置、只读模式和隐藏内容导航策略。
+- 验证记录：本次仅生成计划文件，未修改业务代码，未执行自动化测试或手工验收。
+- 风险记录：编辑器当前渲染、选区和几何命中集中在大型 widget 中，过滤隐藏 block 可能影响 blockIndex、滚动定位和 selection overlay；需要优先通过测试约束行为再实现。
+- P001 AutoPlan 完成：2026-06-24T19:50:35.751Z；日志：docs/progress/logs/20260625-034550_execute-P001.log
+- P002 AutoPlan 完成：2026-06-25T02:57:51.543Z；日志：docs/progress/logs/20260625-104955_execute-P002.log
+- P003 AutoPlan 完成：2026-06-25T03:33:19.947Z；日志：docs/progress/logs/20260625-112518_execute-P003.log
+- P004 AutoPlan 完成：2026-06-25T04:36:47.833Z；日志：docs/progress/logs/20260625-123230_execute-P004.log
+
+codex
+已确认计划只读；接下来只看 P005 scope 内的折叠逻辑。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+codex
+我需要更具体的函数体来改动，继续定位隐藏块与跳转入口。
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+codex
+定位到 `setSelection` 和滚动函数；现在查看控制器的折叠 API。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+codex
+折叠 API 已列出；我会读取具体方法体和编辑器调用点。
+mcp: codegraph/codegraph_explore started
+mcp: codegraph/codegraph_explore (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+codex
+我已看到投影是只读视图；下一步查看选择、查找、滚动的入口。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+codex
+选择入口很集中；我现在检查查找替换和编辑器滚动相关方法。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+codex
+查找替换目前直接选中目标；我会找出编辑器滚动/选择监听如何处理隐藏块。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+codex
+继续追踪 `_scrollCaretIntoView`，确定不可见光标的修复点。
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+**Considering selection handling**
+
+I'm thinking about how to handle hidden selections. It seems like the outline controller might need some kind of helper function to select safe options when something is hidden. I should search for methods on handling selection changes, as that could provide some insights. It’s interesting to see how I can ensure users have a safe and smooth experience even when options aren’t visible. Let’s figure this out!
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+**Searching for outline controller use**
+
+I need to search for how to use the outline controller in the editor, considering both hidden and visible aspects. I'll look into using something like codegraph_search for this. It's important to gather clear information about how the outline controller functions, so I can effectively utilize it. Let’s see what I find when I dig into the specifics of outline controller usage and any coding references related to it!
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+**Searching for outline controller**
+
+I’m looking to find the outline controller that was passed to the editor. I’ll try using the name "outlineController" in my search. It feels pretty straightforward, but I wonder if there are specific contexts or parameters I should keep in mind? Hopefully, it will lead me right where I need to go, so I can better understand how it's being utilized in the editor. I’ll get started on this now!
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+**Exploring search options**
+
+I’m wondering why I’m only getting one result – maybe it’s due to how I'm searching for symbols. I think it might help to do a file search using something like "codegraph_explore" within the editor, particularly focusing on “visibleBlockProjectionFor.” I’m curious if that will yield more results or if I need to rethink my approach. Let’s see what insights I can find!
+codex
+编辑器里应该已有可见块投影接口；我继续查看渲染与跳转辅助。
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+mcp: codegraph/codegraph_node started
+mcp: codegraph/codegraph_node (completed)
+**Exploring geometry block issues**
+
+I need to inspect the build, especially focusing on the geometry registry, but the task scope is limited to specific files. It seems like WenzRichTextController might have programmatic jump methods that I need to explore. I'll search for selection setters or how insert handling works, particularly when the selection or target is hidden. Using codegraph_search could help me find relevant methods like "replaceDocument" or "setSelection." I also want to look at existing tests for this behavior.
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+**Evaluating testing methods**
+
+I'm considering whether to use shell rg for the tests, but I wonder if it would be easier to use codegraph to search for relevant phrases. I could start by searching for "collapse" in the tests, which might yield useful insights. It's important to find the most efficient method, so checking both options seems wise, but I can't help feeling a bit uncertain about the best approach. Let's see what the results show!
+mcp: codegraph/codegraph_search started
+mcp: codegraph/codegraph_search (completed)
+ERROR: Selected model is at capacity. Please try a different model.
+ERROR: Selected model is at capacity. Please try a different model.
+tokens used
+188,633

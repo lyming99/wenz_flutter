@@ -1,0 +1,13 @@
+已完成 P001，未修改 plan 文件、未勾选 checkbox、未更新进度区。
+
+**变更摘要**
+- 明确控制器触发规则：仅可编辑、折叠文本选区、有效 `/` 边界才触发；结构变化/光标移动会关闭：`lib/src/controller/slash_menu_controller.dart:171`
+- 阻止控制器在非编辑权限下触发：`lib/src/controller/slash_menu_controller.dart:456`
+- 编辑器只读态隐藏并关闭斜杆菜单，键盘处理也跳过只读态：`lib/src/widgets/wenz_rich_text_editor.dart:755`、`lib/src/widgets/wenz_rich_text_editor.dart:2104`
+- 增加外部点击关闭支持：`lib/src/widgets/wenz_rich_text_editor.dart:1151`
+- 补充 P001 相关测试：`test/controller/slash_menu_controller_test.dart:7`、`test/controller/slash_menu_controller_test.dart:110`、`test/controller/slash_menu_controller_test.dart:152`、`test/widgets/slash_menu_overlay_test.dart:83`、`test/widgets/slash_menu_overlay_test.dart:125`、`test/widgets/slash_menu_overlay_test.dart:182`
+
+**验证**
+- 已运行最小相关测试集：`flutter test test/controller/slash_menu_controller_test.dart test/widgets/slash_menu_overlay_test.dart`
+- 结果：`All tests passed!`
+- 未运行全量测试。

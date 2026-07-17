@@ -1,0 +1,73 @@
+{
+  "title": "默认工具栏图标替换为本地 Lucide SVG 图标",
+  "summary": "当前项目是 Flutter/Dart 包，`pubspec.yaml` 已包含 `flutter_svg` 依赖，但桌面和移动默认工具栏仍大量使用 `Material Icons` 的 `IconData`，插件/宿主扩展按钮也通过字符串映射到 Material 图标。需求希望从 https://lucide.dev/icons/ 下载更精致的图标，因此计划采用本地 Lucide SVG 资产方案：按工具栏实际动作下载必要 SVG，注册为 Flutter package assets，封装统一的 Lucide 图标渲染组件，并替换桌面、移动默认工具栏及扩展按钮图标映射，同时更新相关 widget 测试断言。",
+  "tasks": [
+    {
+      "title": "引入 Lucide SVG 图标资产与统一渲染封装",
+      "scope": [
+        "pubspec.yaml",
+        "assets/lucide/*.svg",
+        "lib/src/widgets/lucide_toolbar_icons.dart"
+      ],
+      "acceptance": [
+        "从 lucide.dev/icons 下载默认工具栏实际需要的 SVG 图标，并按稳定的 kebab-case 文件名保存到本地资产目录，不在运行时联网加载图标",
+        "pubspec.yaml 正确声明 Lucide 图标资产，使 package 内部 widget 与宿主应用都能解析这些 SVG",
+        "新增统一渲染封装，支持指定图标名称、尺寸、颜色和禁用态颜色，并通过 `flutter_svg` 让图标颜色跟随当前按钮前景色",
+        "封装保留未知图标名称的 fallback，避免插件或宿主传入未识别 `WenzToolbarItem.icon` 时渲染失败",
+        "Lucide 资产只覆盖工具栏所需图标集合，不引入整站或无关大批量资源"
+      ]
+    },
+    {
+      "title": "替换桌面默认工具栏的 Material 图标",
+      "scope": [
+        "lib/src/widgets/default_desktop_toolbar.dart",
+        "lib/src/widgets/lucide_toolbar_icons.dart"
+      ],
+      "acceptance": [
+        "桌面工具栏的加粗、斜体、下划线、删除线、清除样式、引用、todo、有序/无序列表、表格结构、对齐、插入菜单等按钮使用 Lucide SVG 图标渲染",
+        "桌面工具栏菜单项中的链接、公式、代码块、标注、表格、图片、视频、文件、业务嵌入等图标统一使用 Lucide 图标",
+        "块样式下拉、对齐下拉、颜色菜单、选中勾选和展开箭头等辅助图标视觉统一，且不会破坏现有按钮尺寸、间距、tooltip、enabled/disabled、selected 状态",
+        "`WenzToolbarItem.icon` 的字符串映射从返回 `IconData` 调整为返回 Lucide 图标名称或图标 widget，并保留 account_tree、extension、badge、code、table、image、video、file、link、formula、emoji、callout 等现有 token 兼容",
+        "桌面工具栏现有水平滚动、插入菜单、表格上下文按钮和资源动作按钮的显示条件与交互行为保持不变"
+      ]
+    },
+    {
+      "title": "替换移动默认工具栏的 Material 图标",
+      "scope": [
+        "lib/src/widgets/default_mobile_toolbar.dart",
+        "lib/src/widgets/lucide_toolbar_icons.dart"
+      ],
+      "acceptance": [
+        "移动端主工具栏的常用格式按钮、列表按钮、撤销/重做和更多/收起按钮全部使用 Lucide SVG 图标",
+        "移动端展开面板中的对齐、段落、插入资源和插件/宿主扩展按钮复用同一套 Lucide 图标映射",
+        "移动端按钮保持现有 40dp 触控尺寸、图标尺寸、选中态、禁用态、横向滚动和展开面板换行布局",
+        "移动端 `WenzToolbarItem.icon` 字符串映射与桌面端保持一致，同一 registry item 在桌面和移动端显示同一语义图标",
+        "图片选择 pending 状态仍显示进度指示，不被 Lucide 替换逻辑破坏"
+      ]
+    },
+    {
+      "title": "更新默认工具栏图标测试断言",
+      "scope": [
+        "test/widgets/default_desktop_toolbar_test.dart",
+        "test/widgets/default_mobile_toolbar_test.dart"
+      ],
+      "acceptance": [
+        "移除或改写依赖 `find.byIcon(Icons.*)` 的断言，改为验证 Lucide 图标 widget、资产名称或稳定语义标记",
+        "覆盖桌面和移动端核心按钮仍按 tooltip 可查找，并保持 enabled、disabled、selected 状态切换正确",
+        "覆盖插件/宿主扩展按钮的 icon token 映射，包括已知 token、别名 token 和未知 token fallback",
+        "覆盖窄宽度场景中 Lucide SVG 替换后仍无 overflow，桌面工具栏可水平滚动，移动主轨道和展开面板布局稳定",
+        "覆盖插入菜单和资源动作按钮在无回调、禁用、pending、可用状态下图标存在且交互行为不变"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "dart format --set-exit-if-changed lib/src/widgets test/widgets; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; flutter test test/widgets/default_desktop_toolbar_test.dart test/widgets/default_mobile_toolbar_test.dart test/controller/toolbar_controller_test.dart; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; flutter analyze",
+    "criteria": [
+      "Plan 覆盖范围内的 Dart 文件格式化检查通过，无未格式化代码",
+      "桌面默认工具栏和移动默认工具栏相关 widget 测试全部通过，覆盖核心按钮、扩展按钮、菜单按钮、资源按钮、窄宽度布局和状态切换",
+      "默认工具栏运行时不依赖网络加载图标，Lucide SVG 资产能够通过 Flutter package assets 正常解析",
+      "桌面和移动端同一工具栏动作使用一致的 Lucide 语义图标，插件/宿主传入的既有 icon token 继续兼容，未知 token 有稳定 fallback",
+      "flutter analyze 成功退出，无新增 analyzer error、warning 或 lint 问题"
+    ]
+  }
+}

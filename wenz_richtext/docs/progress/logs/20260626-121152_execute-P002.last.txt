@@ -1,0 +1,15 @@
+已完成指定任务 P002，未修改 plan 文件、未勾选 checkbox。
+
+**变更概览**
+- `lib/src/controller/slash_menu_controller.dart:175`：刷新时区分 composition-only 通知，组合态结束后可重新检测并打开菜单。
+- `lib/src/controller/slash_menu_controller.dart:238`：激活菜单项前重新检测触发范围，避免 stale trigger 执行。
+- `lib/src/controller/slash_menu_controller.dart:465`：IME composing 期间不触发斜杆菜单。
+- `lib/src/controller/wenz_rich_text_controller.dart:154`：增加 composing 输入标记与 composition-only 状态。
+- `lib/src/input/editor_text_input_client.dart:300`：delta composing 输入包裹为 composing text input，供菜单检测抑制。
+
+**测试**
+- 新增覆盖：触发 block/range/query/highlight、stale selection、undo/redo/cut/paste/批量删除、IME composing 提交后触发。
+- 已运行最小相关测试：`flutter test test/controller/slash_menu_controller_test.dart test/input/editor_text_input_client_test.dart`
+- 结果：通过，`39` 个测试全部 passed。
+
+注意：工作区已有大量本任务 scope 外的未提交改动，我没有处理或回退它们。

@@ -1,0 +1,66 @@
+{
+  "title": "修复 Callout 块正文无法直接输入",
+  "summary": "反馈 #73 指出 callout 内不能像代码块一样输入。项目中 CalloutBlockNode 的正文已经使用 PositionPath.blockText 和 _TextSelectionSurface，但部分通用插入/聚焦路径仍可能把 callout 当作对象块处理，且 EditorTextInputClient 通过 block.plainText 生成平台输入缓冲时会把 callout 标题混入正文偏移。计划修正 callout 正文的选择落点与输入缓冲，使插入后、点击后和 IME 输入都写入 content，并保留 title/icon/variant 等元数据。",
+  "tasks": [
+    {
+      "title": "修正 callout 插入与聚焦的默认选择落点",
+      "scope": [
+        "lib/src/core/commands/block_commands.dart",
+        "lib/src/widgets/wenz_rich_text_editor.dart",
+        "lib/src/controller/wenz_rich_text_controller.dart"
+      ],
+      "acceptance": [
+        "通过工具栏、上下文菜单或通用 insertBlocks 插入空 CalloutBlockNode 后，默认 selection 落在 PositionPath.blockText(calloutId) 的 offset 0，而不是 blockObject。",
+        "点击已有 callout 正文或空正文区域后，caret 能进入 callout.content，后续键盘输入写入正文。",
+        "Callout 的 title、icon、variant 控件仍可操作，不被正文点击区域或 selection exclusion 破坏。"
+      ]
+    },
+    {
+      "title": "修正 callout 正文的平台文本输入缓冲",
+      "scope": [
+        "lib/src/input/editor_text_input_client.dart"
+      ],
+      "acceptance": [
+        "当 selection 位于 CalloutBlockNode 正文时，TextInput buffer 只暴露 callout.content 的纯文本，不包含 title 或 effectiveTitle。",
+        "在 callout 正文中使用普通输入、删除、替换和 IME composing 时，偏移按正文长度映射，更新 CalloutBlockNode.content。",
+        "Paragraph、CodeBlockNode、table cell 的现有输入缓冲行为保持不变。"
+      ]
+    },
+    {
+      "title": "保持 callout 正文编辑命令与元数据边界一致",
+      "scope": [
+        "lib/src/core/commands/text_commands.dart",
+        "lib/src/core/commands/selection_commands.dart",
+        "lib/src/core/commands/block_commands.dart"
+      ],
+      "acceptance": [
+        "在 callout 正文内插入文本、删除选区、Backspace/Delete 不会清空或改写 title、icon、variant、attributes。",
+        "从相邻文本块移动到 callout 正文、以及跨 callout 正文边界的选择/删除，仍按正文边界处理。",
+        "空 callout 可作为合法可编辑正文块保留，不会被误判为不可编辑对象块。"
+      ]
+    },
+    {
+      "title": "补充 callout 可输入回归覆盖",
+      "scope": [
+        "test/input/editor_text_input_client_test.dart",
+        "test/widgets/wenz_rich_text_editor_test.dart",
+        "test/core/text_commands_test.dart",
+        "test/core/block_commands_test.dart"
+      ],
+      "acceptance": [
+        "覆盖 callout 正文的 TextInput buffer 不包含标题且 offset 与 content 对齐。",
+        "覆盖点击空或非空 callout 后输入文本，content 更新并显示文本，行为与代码块可输入路径一致。",
+        "覆盖通用插入路径的 callout 默认 selection 是 blockText，以及正文编辑保留 callout 元数据。"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter analyze",
+    "criteria": [
+      "命令退出码为 0，没有新增 analyzer error 或 warning。",
+      "最终实现范围仅涉及 callout 输入、选择、命令与对应测试文件，不引入无关业务改动。",
+      "Callout 正文可通过插入后直接输入、点击后输入、IME composing 输入写入 content，并保持 title、icon、variant、attributes 不变。",
+      "代码块、普通文本块、表格单元格输入路径保持现有行为。"
+    ]
+  }
+}

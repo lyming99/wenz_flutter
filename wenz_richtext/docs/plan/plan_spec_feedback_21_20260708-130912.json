@@ -1,0 +1,84 @@
+{
+  "title": "新增可配置的快速添加文本块快捷键",
+  "summary": "根据反馈 #21，为编辑器补齐快速添加空文本块的键盘入口：Ctrl+Enter 在当前块下方新增文本块，Ctrl+Shift+Enter 在当前块上方新增文本块，并复用现有 EditorShortcutConfiguration 体系，使宿主可以像其它快捷键一样覆盖、禁用或透传该快捷键。现有代码中快捷键解析集中在 lib/src/input/shortcut_manager.dart，执行分发集中在 lib/src/widgets/wenz_rich_text_editor.dart，块插入能力已有 InsertBlocksCommand 和 WenzRichTextController.insertBlocks，可在此基础上增加定向插入文本块的命令/控制器入口与回归测试。",
+  "tasks": [
+    {
+      "title": "扩展快捷键意图与默认 Ctrl+Enter 映射",
+      "scope": [
+        "lib/src/input/shortcut_manager.dart"
+      ],
+      "acceptance": [
+        "EditorShortcutIntent 新增用于在当前块上方和下方快速添加文本块的两个独立意图，命名能清晰表达插入方向。",
+        "默认快捷键将 Ctrl+Enter 解析为下方添加文本块，将 Ctrl+Shift+Enter 解析为上方添加文本块，并与现有 Ctrl 数字、Ctrl+Shift+T/L 等富文本快捷键写法保持一致。",
+        "主键盘 Enter 与小键盘 Enter 在该快捷键场景下行为一致，避免普通 Enter 现有拆分文本块语义被误改。",
+        "两个新增意图纳入写操作只读守卫，readOnly 下返回 ignored，不产生文档变更。",
+        "现有 EditorShortcutConfiguration 仍优先于内置 keymap，宿主可以通过 handled 覆盖、ignored 禁用、passThrough 交给外层处理，也可以通过 disabledIntents 禁用新增意图。"
+      ]
+    },
+    {
+      "title": "新增按当前选择上方或下方插入空文本块的控制器入口",
+      "scope": [
+        "lib/src/core/commands/block_commands.dart",
+        "lib/src/controller/wenz_rich_text_controller.dart"
+      ],
+      "acceptance": [
+        "新增空文本块时生成 BlockType.paragraph 的 TextBlockNode，不复制当前块的标题、列表、引用、代码或媒体类型。",
+        "当前选择位于普通文本块、代码块、媒体/对象块或表格单元格内时，都能按所在顶层块计算上方或下方插入位置。",
+        "选择跨多个顶层块时，上方插入到 selection.start 所在块之前，下方插入到 selection.end 所在块之后。",
+        "插入后选区折叠到新文本块开头，方便用户立即输入内容，并且该变更进入 undo/redo 历史。",
+        "无有效选择、空文档、越界 blockIndex 或只读权限受限时不抛异常，按现有命令风格返回 no-op 或 permission blocked。"
+      ]
+    },
+    {
+      "title": "将新增快捷键接入编辑器执行分发",
+      "scope": [
+        "lib/src/widgets/wenz_rich_text_editor.dart"
+      ],
+      "acceptance": [
+        "_performShortcut 能处理新增的上方/下方添加文本块意图，并通过控制器入口提交变更。",
+        "快捷键执行前后保留现有隐藏内容展开、焦点、输入法同步、selection changed 回调和 lastChangedBlockIds 通知语义。",
+        "Ctrl+Enter 不再落入普通 Enter 拆分文本块路径，Ctrl+Shift+Enter 不触发选择扩展或段落拆分。",
+        "斜杠菜单、mention 搜索、公式编辑弹窗、代码块 Tab 和表格 Tab 等已有键盘拦截优先级不受影响。",
+        "宿主通过 shortcutConfiguration 覆盖或 passThrough 新增组合时，编辑器不会再执行内置添加文本块动作。"
+      ]
+    },
+    {
+      "title": "补充快捷键解析与插入命令回归测试",
+      "scope": [
+        "test/input/shortcut_manager_test.dart",
+        "test/core/block_commands_test.dart",
+        "test/core/controller_test.dart"
+      ],
+      "acceptance": [
+        "shortcut_manager 测试覆盖 Ctrl+Enter、Ctrl+Shift+Enter、小键盘 Enter、readOnly 守卫、disabledIntents、配置覆盖、ignored 和 passThrough 场景。",
+        "命令或控制器测试覆盖在文本块上方和下方插入空段落，并验证插入位置、块类型、选区位置和 undo/redo 行为。",
+        "控制器测试覆盖跨块选择、对象块选择、代码块选择和表格单元格内选择时的插入位置。",
+        "测试确认普通 Enter 仍按原有规则拆分文本块、标题末尾新建段落、列表延续或代码块插入换行，不被 Ctrl+Enter 改动影响。"
+      ]
+    },
+    {
+      "title": "补充编辑器级快捷键行为与文档说明",
+      "scope": [
+        "test/widgets/wenz_rich_text_editor_test.dart",
+        "docs/input_system.md",
+        "docs/api_reference.md"
+      ],
+      "acceptance": [
+        "widget 测试覆盖在编辑器中按 Ctrl+Enter 后于当前块下方出现空文本块，并且光标进入新块。",
+        "widget 测试覆盖按 Ctrl+Shift+Enter 后于当前块上方出现空文本块，并且光标进入新块。",
+        "widget 测试覆盖宿主配置覆盖、禁用或透传新增快捷键时，内置插入动作不会执行。",
+        "文档说明新增默认快捷键、两个新增 EditorShortcutIntent 的用途，以及通过 EditorShortcutConfiguration 覆盖、禁用、透传的方式。"
+      ]
+    }
+  ],
+  "finalValidation": {
+    "command": "flutter analyze; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; flutter test",
+    "criteria": [
+      "静态分析通过，没有新增 analyzer error 或 warning。",
+      "全量 Flutter 测试通过，没有新增失败、超时或 golden 断言失败。",
+      "Ctrl+Enter 在当前顶层块下方新增空 paragraph 文本块，Ctrl+Shift+Enter 在当前顶层块上方新增空 paragraph 文本块，并将光标放入新块。",
+      "新增快捷键可通过 EditorShortcutConfiguration 覆盖、禁用或透传，readOnly 下不会修改文档。",
+      "普通 Enter、Ctrl/Cmd 复制粘贴撤销重做、既有富文本快捷键、表格/代码块键盘处理和 IME 输入路径保持原有行为。"
+    ]
+  }
+}

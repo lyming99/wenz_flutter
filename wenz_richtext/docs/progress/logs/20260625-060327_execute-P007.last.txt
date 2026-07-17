@@ -1,0 +1,15 @@
+**完成内容**
+- 在 `example/integration_test/editor_richtext_test.dart:146` 新增视频端到端回归：插入、点击选中、`Ctrl+C/V` 复制粘贴、JSON/Markdown/HTML 导入导出回归。
+- 在 `example/integration_test/editor_richtext_test.dart:225` 增加视频 block finder 与元数据断言 helper。
+- 未修改 plan 文件，未勾选 checkbox，未更新进度区。
+
+**验证结果**
+- 通过：`dart format example/integration_test/editor_richtext_test.dart`
+- 通过：P007 根包定向测试 6 个 scope 文件 `flutter test ...`
+- 通过：`cd example && flutter test -d windows integration_test/editor_richtext_test.dart`
+- 通过：`cd example && flutter analyze integration_test/editor_richtext_test.dart`
+
+**阻塞记录**
+- `flutter analyze` 根包失败：`lib/wenz_richtext.dart:156` 既有 `invalid_export_of_internal_element` 警告，非 P007 scope，未修改。
+- `flutter test` 根包全量失败 5 个非 scope 用例：3 个 `test/widgets/editor_golden_test.dart` golden 像素差异；2 个 `test/widgets/import_export_demo_test.dart` 因 `example/lib/main.dart:75` 视频渲染 `RenderFlex overflowed by 64 pixels`。
+- 建议后续单独任务处理：修复 public API 导出警告、更新/稳定 golden 基线、修复示例视频卡片垂直溢出。

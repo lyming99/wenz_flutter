@@ -34,16 +34,19 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  wenz_ui:
-    path: ../wenz_ui
-  wenz_editor:
-    path: ../wenz_editor
   uuid: ^4.5.1
   bot_toast: ^4.1.3
   pasteboard: ^0.4.0
   file_picker: ^10.3.2
   screenshot: ^3.0.0
-
+  wenz_editor:
+    git:
+      url: https://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@github.com/lyming99/wenz_flutter.git
+      path: wenz_editor
+  wenz_ui:
+    git:
+      url: https://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@github.com/lyming99/wenz_flutter.git
+      path: wenz_ui
 
 dev_dependencies:
   flutter_test:

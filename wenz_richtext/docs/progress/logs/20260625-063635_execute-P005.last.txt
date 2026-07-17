@@ -1,0 +1,12 @@
+**完成**
+- 已补 P005 视觉回归 widget 用例：`test/widgets/wenz_rich_text_editor_test.dart:2045`
+- 已追加 P005 验证记录、未覆盖风险与后续建议：`docs/acceptance_manual_checklist.md:14`
+- 未修改 plan 文件，未勾选 checkbox，未更新计划进度区；未更新 golden 图片。
+
+**验证**
+- `dart format --output=none --set-exit-if-changed test/widgets/wenz_rich_text_editor_test.dart`：通过
+- `flutter analyze`：通过，`No issues found!`
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --plain-name "feedback #4 visual regressions keep formula todo and toolbar metrics"`：通过
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --name "(table floating toolbar (sits above|keeps compact|clamps)|keeps inline formulas centered|aligns todo checkbox|feedback #4 visual regressions)"`：通过，`+6`
+
+备注：工作树里已有的 `test/widgets/goldens/...` 与 plan 文件状态保持原样，未在本任务中处理。

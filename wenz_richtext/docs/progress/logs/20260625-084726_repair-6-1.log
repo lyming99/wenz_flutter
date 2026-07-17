@@ -1,0 +1,2120 @@
+OpenAI Codex v0.121.0 (research preview)
+--------
+workdir: D:\project\GitHub\wenz_flutter\wenz_richtext
+model: gpt-5.5
+provider: custom
+approval: never
+sandbox: danger-full-access
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019efc3e-fe4c-7a71-b7e9-893ffa3a93a1
+--------
+user
+plan 已完成，但宿主项目验收失败。请只修复验证错误。
+plan 文件（只读）：D:\project\GitHub\wenz_flutter\wenz_richtext\docs\plan\plan_requirement_3_20260625-025750.md
+不要修改 plan 文件、checkbox 或进度区。
+失败命令：flutter analyze
+失败输出摘要：
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+Analyzing wenz_richtext...                                      
+
+   info - Use 'const' with the constructor to improve performance - lib\src\widgets\wenz_rich_text_editor.dart:6377:26 - prefer_const_constructors
+warning - A value for optional parameter 'strokeWidth' isn't ever given - lib\src\widgets\wenz_rich_text_editor.dart:6943:10 - unused_element_parameter
+warning - A value for optional parameter 'dashLength' isn't ever given - lib\src\widgets\wenz_rich_text_editor.dart:6944:10 - unused_element_parameter
+warning - A value for optional parameter 'gapLength' isn't ever given - lib\src\widgets\wenz_rich_text_editor.dart:6945:10 - unused_element_parameter
+warning - A value for optional parameter 'dense' isn't ever given - lib\src\widgets\wenz_rich_text_editor.dart:6997:10 - unused_element_parameter
+   info - Use 'const' with the constructor to improve performance - lib\src\widgets\wenz_rich_text_editor.dart:7564:18 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\src\widgets\wenz_rich_text_editor.dart:8486:10 - prefer_const_constructors
+
+7 issues found. (ran in 1.9s)
+
+**Considering code inspection tools**
+
+I'm weighing whether to use shell or codegraph for local code; shell seems fine for now. I need to be careful with AGENTS, likely only using root. I can inspect files with `rg` and maybe open specific segments. Using PowerShell's `Get-Content` might work too, particularly with `Select-Object`. I could run `rg -n "..." file` for line numbers and adjust the ranges. If the file's large, using `Get-Content` with skip/take might be the best path forward.
+codex
+I’m checking the flagged lines and will patch only those analyzer warnings.
+exec
+powershell.exe -Command '$path='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content $path; foreach($n in 6377,6943,6944,6945,6997,7564,8486){ $start=[Math]::Max(1,$n-3); $end=[Math]::Min($lines.Length,$n+3); "`n--- $n ---"; for($i=$start; $i -le $end; $i++){ '"'{0,6}: {1}' -f "'$i, $lines[$i-1] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 219ms:
+
+--- 6377 ---
+  6374:                       ),
+  6375:                     ],
+  6376:                   ),
+  6377:                   child: SizedBox.square(
+  6378:                     dimension: _kVideoPlayButtonSize,
+  6379:                     child: const Icon(
+  6380:                       Icons.play_arrow_rounded,
+
+--- 6943 ---
+  6940:   const _DashedRRectBorderPainter({
+  6941:     required this.color,
+  6942:     required this.radius,
+  6943:     this.strokeWidth = 1,
+  6944:     this.dashLength = 7,
+  6945:     this.gapLength = 4,
+  6946:   });
+
+--- 6944 ---
+  6941:     required this.color,
+  6942:     required this.radius,
+  6943:     this.strokeWidth = 1,
+  6944:     this.dashLength = 7,
+  6945:     this.gapLength = 4,
+  6946:   });
+  6947: 
+
+--- 6945 ---
+  6942:     required this.radius,
+  6943:     this.strokeWidth = 1,
+  6944:     this.dashLength = 7,
+  6945:     this.gapLength = 4,
+  6946:   });
+  6947: 
+  6948:   final Color color;
+
+--- 6997 ---
+  6994:     required this.child,
+  6995:     this.subtitle,
+  6996:     this.onAction,
+  6997:     this.dense = false,
+  6998:   });
+  6999: 
+  7000:   final IconData icon;
+
+--- 7564 ---
+  7561:     return KeyedSubtree(
+  7562:       key: ValueKey<String>('wenz-richtext-image-block-${block.id}'),
+  7563:       child: Padding(
+  7564:         padding: EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
+  7565:         child: LayoutBuilder(
+  7566:           builder: (context, constraints) {
+  7567:             final maxWidth = constraints.maxWidth.isFinite
+
+--- 8486 ---
+  8483: }
+  8484: 
+  8485: CodeSyntaxPalette _darkCodeSyntaxPalette() {
+  8486:   return CodeSyntaxPalette(
+  8487:     keyword: const Color(_kCodeKeywordColor),
+  8488:     type: const Color(_kCodeTypeColor),
+  8489:     string: const Color(_kCodeStringColor),
+
+codex
+I found the exact spots; now I’m checking the related constructors and widget trees.
+exec
+powershell.exe -Command '$path='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content $path; $patterns=@('"'_DashedRRectBorderPainter','dense','CodeSyntaxPalette','SizedBox.square','EdgeInsets.symmetric'); foreach("'$p in $patterns){"`n=== $p ==="; Select-String -Path $path -Pattern $p -Context 4,8 | ForEach-Object { $_.Context.PreContext; $_.Line; $_.Context.PostContext; '"'' } }" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 278ms:
+
+=== _DashedRRectBorderPainter ===
+        selected ? theme.colorScheme.primary : borderColor;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: CustomPaint(
+        foregroundPainter: _DashedRRectBorderPainter(
+          color: resolvedBorderColor,
+          radius: _kMediaCornerRadius,
+        ),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(_kMediaCornerRadius),
+          ),
+
+    );
+  }
+}
+
+class _DashedRRectBorderPainter extends CustomPainter {
+  const _DashedRRectBorderPainter({
+    required this.color,
+    required this.radius,
+    this.strokeWidth = 1,
+    this.dashLength = 7,
+    this.gapLength = 4,
+  });
+
+
+  }
+}
+
+class _DashedRRectBorderPainter extends CustomPainter {
+  const _DashedRRectBorderPainter({
+    required this.color,
+    required this.radius,
+    this.strokeWidth = 1,
+    this.dashLength = 7,
+    this.gapLength = 4,
+  });
+
+  final Color color;
+
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedRRectBorderPainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.radius != radius ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.dashLength != dashLength ||
+        oldDelegate.gapLength != gapLength;
+  }
+}
+
+
+
+=== dense ===
+          const SizedBox(width: 6),
+          DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: value,
+              isDense: true,
+              borderRadius: BorderRadius.circular(8),
+              dropdownColor: const Color(0xFF2A2A3E),
+              style: labelStyle,
+              iconSize: 18,
+              iconEnabledColor: tagColor,
+              iconDisabledColor: tagColor.withAlpha(96),
+              onChanged: onLanguageChanged == null
+                  ? null
+
+    required this.canEdit,
+    required this.child,
+    this.subtitle,
+    this.onAction,
+    this.dense = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final int blockIndex;
+  final bool selected;
+  final bool canEdit;
+
+  final bool selected;
+  final bool canEdit;
+  final Widget child;
+  final ObjectBlockActionHandler? onAction;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final borderColor =
+        selected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+
+        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(dense ? 8 : 10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+                const SizedBox(width: 8),
+
+                  onAction: onAction,
+                ),
+              ),
+            ],
+            SizedBox(height: dense ? 8 : 10),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+        message: '提示块类型',
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: widget.variant,
+            isDense: true,
+            borderRadius: BorderRadius.circular(8),
+            iconSize: 18,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: widget.foreground,
+                      fontWeight: FontWeight.w600,
+                    ) ??
+                TextStyle(
+                  color: widget.foreground,
+
+
+=== CodeSyntaxPalette ===
+) {
+  return CodeSyntaxHighlighter(
+    language: language,
+    baseStyle: codeStyle,
+    palette: _darkCodeSyntaxPalette(),
+    compositionStart: compositionRange?.start,
+    compositionEnd: compositionRange?.end,
+  ).highlight(code);
+}
+
+CodeSyntaxPalette _darkCodeSyntaxPalette() {
+  return CodeSyntaxPalette(
+    keyword: const Color(_kCodeKeywordColor),
+
+    compositionEnd: compositionRange?.end,
+  ).highlight(code);
+}
+
+CodeSyntaxPalette _darkCodeSyntaxPalette() {
+  return CodeSyntaxPalette(
+    keyword: const Color(_kCodeKeywordColor),
+    type: const Color(_kCodeTypeColor),
+    string: const Color(_kCodeStringColor),
+    comment: const Color(_kCodeCommentColor),
+    number: const Color(_kCodeNumberColor),
+    marker: const Color(_kCodeKeywordColor),
+  );
+
+  ).highlight(code);
+}
+
+CodeSyntaxPalette _darkCodeSyntaxPalette() {
+  return CodeSyntaxPalette(
+    keyword: const Color(_kCodeKeywordColor),
+    type: const Color(_kCodeTypeColor),
+    string: const Color(_kCodeStringColor),
+    comment: const Color(_kCodeCommentColor),
+    number: const Color(_kCodeNumberColor),
+    marker: const Color(_kCodeKeywordColor),
+  );
+}
+
+
+=== SizedBox.square ===
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: SizedBox.square(
+                    dimension: _kVideoPlayButtonSize,
+                    child: const Icon(
+                      Icons.play_arrow_rounded,
+                      color: Colors.black87,
+                      size: _kVideoPlayIconSize,
+                    ),
+                  ),
+                ),
+
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox.square(
+                      dimension: _kDividerDotSize,
+                      child: DecoratedBox(
+                        key: ValueKey<String>(
+                          'wenz-richtext-divider-dot-$blockId',
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary,
+                          shape: BoxShape.circle,
+
+        ? theme.colorScheme.errorContainer
+        : theme.colorScheme.primaryContainer;
+    final foregroundColor =
+        failed ? theme.colorScheme.onErrorContainer : theme.colorScheme.primary;
+    return SizedBox.square(
+      dimension: _kFileIconSize,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Center(
+          child: Text(
+
+
+=== EdgeInsets.symmetric ===
+const double _kTableFloatingToolbarEstimatedHeight = 56.0;
+const int _kTableToolbarBackgroundColor = 0xFFFFF3CD;
+const double _kTableSurfaceRadius = 8.0;
+const double _kTableCellFontSize = 15.0;
+const EdgeInsets _kTableCellPadding = EdgeInsets.symmetric(
+  horizontal: 14,
+  vertical: 10,
+);
+const Color _kTableBorderColor = Color(0xFFECE9F5);
+const Color _kTableEvenRowBackgroundColor = Color(0xFFFAFAFF);
+const double _kImageFloatingToolbarGap = 6.0;
+
+/// Minimum block height multiplier applied to the block's font size, ensuring
+
+              : null,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: _kCodeBlockPaddingHorizontal,
+            vertical: _kCodeBlockPaddingVertical,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              _CodeBlockToolbar(
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.errorContainer.withAlpha(220),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        '#$blockIndex ${blockId.isEmpty ? "<blockId>" : blockId}\n'
+        '${path.toString()}\n'
+        'offset=${offset ?? "-"}',
+
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withAlpha(60)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+
+              color: theme.colorScheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Center(
+                  child: _FormulaMathView(
+                    formula: formula,
+                    textStyle: style,
+                    displayMode: true,
+                  ),
+
+            borderRadius: BorderRadius.circular(8),
+          )
+        : const BoxDecoration();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: _kDividerMarginVertical),
+      child: DecoratedBox(
+        key: ValueKey<String>('wenz-richtext-divider-shell-$blockId'),
+        decoration: shellDecoration,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: selected ? 8 : 0,
+            vertical: selected ? 8 : 0,
+          ),
+
+      child: DecoratedBox(
+        key: ValueKey<String>('wenz-richtext-divider-shell-$blockId'),
+        decoration: shellDecoration,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: selected ? 8 : 0,
+            vertical: selected ? 8 : 0,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              if (selected) ...<Widget>[
+
+                border: Border.all(color: theme.colorScheme.outlineVariant),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Text(
+                  entry,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
+
+    final theme = Theme.of(context);
+    final resolvedBorderColor =
+        selected ? theme.colorScheme.primary : borderColor;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: CustomPaint(
+        foregroundPainter: _DashedRRectBorderPainter(
+          color: resolvedBorderColor,
+          radius: _kMediaCornerRadius,
+        ),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: backgroundColor,
+
+        color: theme.colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        child: Text(
+          label.toUpperCase(),
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.6,
+          ),
+        ),
+
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: _ObjectBlockToolbar(
+          blockIndex: blockIndex,
+          canEdit: canEdit,
+          imageActions: imageActions,
+          fileActions: fileActions,
+          onAction: onAction,
+        ),
+      ),
+
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: _hovered || _focused ? _kSurfaceBoxShadow : null,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              _FileTypeBadge(
+                label: _fileTypeLabel(block),
+                failed: failed,
+              ),
+              const SizedBox(width: _kFileCardGap),
+
+    final caption = block.caption.trim();
+    return KeyedSubtree(
+      key: ValueKey<String>('wenz-richtext-image-block-${block.id}'),
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final maxWidth = constraints.maxWidth.isFinite
+                ? constraints.maxWidth
+                : double.infinity;
+            return Align(
+              alignment: AlignmentDirectional.center,
+              child: Column(
+
+          border: Border.all(color: borderColor, width: borderWidth),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _CalloutIcon(icon: widget.block.effectiveIcon, color: foreground),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+
+                  bottom: BorderSide(color: textStyle.color ?? scheme.primary))
+              : null,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.center,
+            child: _FormulaMathView(
+              formula: formula,
+              textStyle: textStyle,
+              displayMode: false,
+            ),
+
+
+**Evaluating parameter usage**
+
+I'm noticing that the output has a lot of repeated context due to Select-String. I need to focus on specific classes, so I'll search for `dense ?`. The analyzer indicates that an optional parameter isn't being provided at call sites. This warning suggests that the default constructor parameter is either unnecessary or should be removed. Since it's not in use but controls padding, I might consider making it non-optional or removing it altogether. However, it could be useful in the future, so I'll need to fix the warning. Maybe adding a constant would help.
+**Resolving parameter warnings**
+
+I'm considering if I can resolve the warnings by marking the constructor parameter as required. However, the warning occurs when there's a default but no call sites using it. To fix this, I could either remove the parameter or make it required, which would mean updating call sites. Alternatively, if the parameter influences the build, it might be worth keeping it for justification. I should inspect the class name and usages by searching for `_ObjectBlockFrame` or `dense`, starting with line 6997 to gather more context.
+**Inspecting code usage**
+
+I'm wondering if I should use Codegraph, but it might not be necessary for this context. Instead, I might try using `rg` on `dense:` and the class name `_ObjectBlockCard`. I think it would be more efficient to inspect the lines between 6980 and 7055 to see the relevant code and how everything interacts. This should help clarify whether I need to make adjustments or if everything looks good as is.
+codex
+I’ve got the warning sources; next I’m reading the owning classes and call sites.
+exec
+powershell.exe -Command '$path='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content $path; $ranges=@(@(6970,7045),@(6358,6392),@(7556,7572),@(8480,8496)); foreach($r in $ranges){"`n=== $($r[0])-$($r[1]) ==="; for($i=$r[0]; $i -le $r[1]; $i++){ '"'{0,6}: {1}' -f "'$i, $lines[$i-1] } }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 211ms:
+
+=== 6970-7045 ===
+  6970:         final end = math.min(distance + dashLength, metric.length);
+  6971:         canvas.drawPath(metric.extractPath(distance, end), paint);
+  6972:         distance += dashLength + gapLength;
+  6973:       }
+  6974:     }
+  6975:   }
+  6976: 
+  6977:   @override
+  6978:   bool shouldRepaint(covariant _DashedRRectBorderPainter oldDelegate) {
+  6979:     return oldDelegate.color != color ||
+  6980:         oldDelegate.radius != radius ||
+  6981:         oldDelegate.strokeWidth != strokeWidth ||
+  6982:         oldDelegate.dashLength != dashLength ||
+  6983:         oldDelegate.gapLength != gapLength;
+  6984:   }
+  6985: }
+  6986: 
+  6987: class _ObjectBlockCard extends StatelessWidget {
+  6988:   const _ObjectBlockCard({
+  6989:     required this.icon,
+  6990:     required this.title,
+  6991:     required this.blockIndex,
+  6992:     required this.selected,
+  6993:     required this.canEdit,
+  6994:     required this.child,
+  6995:     this.subtitle,
+  6996:     this.onAction,
+  6997:     this.dense = false,
+  6998:   });
+  6999: 
+  7000:   final IconData icon;
+  7001:   final String title;
+  7002:   final String? subtitle;
+  7003:   final int blockIndex;
+  7004:   final bool selected;
+  7005:   final bool canEdit;
+  7006:   final Widget child;
+  7007:   final ObjectBlockActionHandler? onAction;
+  7008:   final bool dense;
+  7009: 
+  7010:   @override
+  7011:   Widget build(BuildContext context) {
+  7012:     final theme = Theme.of(context);
+  7013:     final borderColor =
+  7014:         selected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant;
+  7015:     return DecoratedBox(
+  7016:       decoration: BoxDecoration(
+  7017:         color: theme.colorScheme.surfaceContainerHighest.withAlpha(80),
+  7018:         border: Border.all(color: borderColor),
+  7019:         borderRadius: BorderRadius.circular(8),
+  7020:       ),
+  7021:       child: Padding(
+  7022:         padding: EdgeInsets.all(dense ? 8 : 10),
+  7023:         child: Column(
+  7024:           mainAxisSize: MainAxisSize.min,
+  7025:           crossAxisAlignment: CrossAxisAlignment.stretch,
+  7026:           children: <Widget>[
+  7027:             Row(
+  7028:               children: <Widget>[
+  7029:                 Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+  7030:                 const SizedBox(width: 8),
+  7031:                 Expanded(
+  7032:                   child: Column(
+  7033:                     crossAxisAlignment: CrossAxisAlignment.start,
+  7034:                     mainAxisSize: MainAxisSize.min,
+  7035:                     children: <Widget>[
+  7036:                       Text(
+  7037:                         title,
+  7038:                         maxLines: 1,
+  7039:                         overflow: TextOverflow.ellipsis,
+  7040:                         style: theme.textTheme.labelLarge?.copyWith(
+  7041:                           fontWeight: FontWeight.w700,
+  7042:                         ),
+  7043:                       ),
+  7044:                       if (subtitle?.isNotEmpty == true)
+  7045:                         Text(
+
+=== 6358-6392 ===
+  6358:               if (coverUrl.isNotEmpty)
+  6359:                 PositionedDirectional(
+  6360:                   top: 12,
+  6361:                   start: 12,
+  6362:                   child: _VideoCoverChip(label: _videoCoverLabel(coverUrl)),
+  6363:                 ),
+  6364:               Center(
+  6365:                 child: DecoratedBox(
+  6366:                   decoration: BoxDecoration(
+  6367:                     color: Colors.white.withAlpha(230),
+  6368:                     shape: BoxShape.circle,
+  6369:                     boxShadow: <BoxShadow>[
+  6370:                       BoxShadow(
+  6371:                         color: Colors.black.withAlpha(76),
+  6372:                         blurRadius: 20,
+  6373:                         offset: const Offset(0, 6),
+  6374:                       ),
+  6375:                     ],
+  6376:                   ),
+  6377:                   child: SizedBox.square(
+  6378:                     dimension: _kVideoPlayButtonSize,
+  6379:                     child: const Icon(
+  6380:                       Icons.play_arrow_rounded,
+  6381:                       color: Colors.black87,
+  6382:                       size: _kVideoPlayIconSize,
+  6383:                     ),
+  6384:                   ),
+  6385:                 ),
+  6386:               ),
+  6387:               PositionedDirectional(
+  6388:                 start: 12,
+  6389:                 end: 12,
+  6390:                 bottom: 12,
+  6391:                 child: Column(
+  6392:                   mainAxisSize: MainAxisSize.min,
+
+=== 7556-7572 ===
+  7556:         height: block.showHeight,
+  7557:         child: child,
+  7558:       );
+  7559:     }
+  7560:     final caption = block.caption.trim();
+  7561:     return KeyedSubtree(
+  7562:       key: ValueKey<String>('wenz-richtext-image-block-${block.id}'),
+  7563:       child: Padding(
+  7564:         padding: EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
+  7565:         child: LayoutBuilder(
+  7566:           builder: (context, constraints) {
+  7567:             final maxWidth = constraints.maxWidth.isFinite
+  7568:                 ? constraints.maxWidth
+  7569:                 : double.infinity;
+  7570:             return Align(
+  7571:               alignment: AlignmentDirectional.center,
+  7572:               child: Column(
+
+=== 8480-8496 ===
+  8480:     compositionStart: compositionRange?.start,
+  8481:     compositionEnd: compositionRange?.end,
+  8482:   ).highlight(code);
+  8483: }
+  8484: 
+  8485: CodeSyntaxPalette _darkCodeSyntaxPalette() {
+  8486:   return CodeSyntaxPalette(
+  8487:     keyword: const Color(_kCodeKeywordColor),
+  8488:     type: const Color(_kCodeTypeColor),
+  8489:     string: const Color(_kCodeStringColor),
+  8490:     comment: const Color(_kCodeCommentColor),
+  8491:     number: const Color(_kCodeNumberColor),
+  8492:     marker: const Color(_kCodeKeywordColor),
+  8493:   );
+  8494: }
+  8495: 
+  8496: const List<String> _kDefaultCodeLanguages = <String>[
+
+**Evaluating const usage**
+
+I need to consider whether I should use `const` for `SizedBox.square` and `Padding`, particularly at line 6377 where a `const` child icon seems applicable as only dimensions are constant. There may also be `const` potential in `EdgeInsets.symmetric` at line 7564 and within the `CodeSyntaxPalette` constructor at line 8486 after inspecting the class definitions. I see three info warnings to address but also have unused parameter warnings from the custom painter constructor. I need to check if parameters are actually utilized within the class.
+**Analyzing parameter usage**
+
+I’m considering why the analyzer warning says an optional parameter isn’t used—it might be because no call site includes it rather than the parameter itself being unused in the class. Since this is a custom painter internal API, maybe the easiest solution is to remove those parameters and hardcode values if they aren’t meant to be configurable. I also need to confirm if `shouldRepaint` and `paint` still use these parameters. Let's inspect the full body of the painter class.
+codex
+I’ve confirmed the three const opportunities; now I’m tracing the two dead optional parameters.
+exec
+powershell.exe -Command '$path='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content $path; for($i=6928; $i -le 6985; $i++){ '"'{0,6}: {1}' -f "'$i, $lines[$i-1] }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 209ms:
+  6928:           style: theme.textTheme.labelSmall?.copyWith(
+  6929:             color: theme.colorScheme.primary,
+  6930:             fontWeight: FontWeight.w700,
+  6931:             letterSpacing: 0.6,
+  6932:           ),
+  6933:         ),
+  6934:       ),
+  6935:     );
+  6936:   }
+  6937: }
+  6938: 
+  6939: class _DashedRRectBorderPainter extends CustomPainter {
+  6940:   const _DashedRRectBorderPainter({
+  6941:     required this.color,
+  6942:     required this.radius,
+  6943:     this.strokeWidth = 1,
+  6944:     this.dashLength = 7,
+  6945:     this.gapLength = 4,
+  6946:   });
+  6947: 
+  6948:   final Color color;
+  6949:   final double radius;
+  6950:   final double strokeWidth;
+  6951:   final double dashLength;
+  6952:   final double gapLength;
+  6953: 
+  6954:   @override
+  6955:   void paint(Canvas canvas, Size size) {
+  6956:     final paint = Paint()
+  6957:       ..color = color
+  6958:       ..style = PaintingStyle.stroke
+  6959:       ..strokeWidth = strokeWidth;
+  6960:     final path = Path()
+  6961:       ..addRRect(
+  6962:         RRect.fromRectAndRadius(
+  6963:           Offset.zero & size,
+  6964:           Radius.circular(radius),
+  6965:         ).deflate(strokeWidth / 2),
+  6966:       );
+  6967:     for (final metric in path.computeMetrics()) {
+  6968:       var distance = 0.0;
+  6969:       while (distance < metric.length) {
+  6970:         final end = math.min(distance + dashLength, metric.length);
+  6971:         canvas.drawPath(metric.extractPath(distance, end), paint);
+  6972:         distance += dashLength + gapLength;
+  6973:       }
+  6974:     }
+  6975:   }
+  6976: 
+  6977:   @override
+  6978:   bool shouldRepaint(covariant _DashedRRectBorderPainter oldDelegate) {
+  6979:     return oldDelegate.color != color ||
+  6980:         oldDelegate.radius != radius ||
+  6981:         oldDelegate.strokeWidth != strokeWidth ||
+  6982:         oldDelegate.dashLength != dashLength ||
+  6983:         oldDelegate.gapLength != gapLength;
+  6984:   }
+  6985: }
+
+codex
+I’m checking whether those optional knobs are supposed to be used at call sites.
+exec
+powershell.exe -Command "rg -n \"_ObjectBlockCard\\(\" lib/src/widgets/wenz_rich_text_editor.dart" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 153ms:
+6654:      child: _ObjectBlockCard(
+6988:  const _ObjectBlockCard({
+
+exec
+powershell.exe -Command '$path='"'lib/src/widgets/wenz_rich_text_editor.dart'; "'$lines=Get-Content $path; for($i=6636; $i -le 6676; $i++){ '"'{0,6}: {1}' -f "'$i, $lines[$i-1] }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 219ms:
+  6636:     required this.canEdit,
+  6637:     required this.child,
+  6638:     this.onAction,
+  6639:   });
+  6640: 
+  6641:   final VideoBlockNode block;
+  6642:   final int blockIndex;
+  6643:   final bool selected;
+  6644:   final bool canEdit;
+  6645:   final Widget child;
+  6646:   final ObjectBlockActionHandler? onAction;
+  6647: 
+  6648:   @override
+  6649:   Widget build(BuildContext context) {
+  6650:     final theme = Theme.of(context);
+  6651:     final description = block.description.trim();
+  6652:     return KeyedSubtree(
+  6653:       key: ValueKey<String>('wenz-richtext-video-block-${block.id}'),
+  6654:       child: _ObjectBlockCard(
+  6655:         icon: Icons.smart_display_outlined,
+  6656:         title: _videoCardTitle(block),
+  6657:         subtitle: _videoCardSubtitle(block),
+  6658:         blockIndex: blockIndex,
+  6659:         selected: selected,
+  6660:         canEdit: canEdit,
+  6661:         onAction: onAction,
+  6662:         child: Column(
+  6663:           mainAxisSize: MainAxisSize.min,
+  6664:           crossAxisAlignment: CrossAxisAlignment.stretch,
+  6665:           children: <Widget>[
+  6666:             DecoratedBox(
+  6667:               key: ValueKey<String>('wenz-richtext-video-frame-${block.id}'),
+  6668:               decoration: BoxDecoration(
+  6669:                 color: Colors.black,
+  6670:                 borderRadius: BorderRadius.circular(_kMediaCornerRadius),
+  6671:                 boxShadow: _kSurfaceBoxShadow,
+  6672:               ),
+  6673:               child: ClipRRect(
+  6674:                 borderRadius: BorderRadius.circular(_kMediaCornerRadius),
+  6675:                 child: AspectRatio(
+  6676:                   key: ValueKey<String>(
+
+**Evaluating _ObjectBlockCard usage**
+
+I need to inspect the usage of _ObjectBlockCard, particularly looking at the dense property. It seems like there’s no dense parameter in the constructor call, although adding `dense: true` might help reduce padding. But, I really need to understand the design intentions behind it. The warning points to fixing the analyzer rather than using the parameter. I’m wondering if this parameter was meant for a future use or another branch. I might have to search for its usage in other files too.
+**Assessing dense parameter removal**
+
+I’m thinking it might be safe to remove the `dense` parameter entirely and set a constant for padding. The user prefers minimal changes and only wants to fix verification errors, so maybe a local computed property for `dense` could work, but since it’s not used, it might be better to eliminate it completely. However, this change would impact the structure. For `_DashedRRectBorderPainter`, I could remove optional parameters or pass explicit values at the call site, which seems like an easy solution. If I pass a value for `dense`, the warning might also go away.
+**Considering dense parameter handling**
+
+I’m thinking if there’s only one call site and I pass `dense: false`, the warning should go away because a value is being provided. The analyzer states that the optional parameter isn’t given at any call site, so passing `dense:` would satisfy that. The field defaults to false, but since we’re providing an explicit value, it should clear the warning. I’ll need to check if warnings relate to whether the optional parameter is ever called anywhere. Adding `dense: false` might feel redundant, but it could be acceptable, even if it looks a bit odd.
+**Evaluating parameter issues**
+
+I’m considering the situation with the length and potential warnings in my code. The analyzer warning about optional parameters not being given occurs because call sites don’t provide them. By adding explicit arguments, I can keep the API unchanged. I doubt this will trigger other warnings like "unnecessary const." As for `dense`, I can pass it as `dense: false` at the call site, but since it's already defaulting to false, explicitly adding it seems fine. However, I should keep in mind there may still be warnings.
+**Analyzing constructor warnings**
+
+I realize the warning is specifically about the optional parameter not being provided in the constructor. By passing `dense: false` explicitly, that should make the warning go away, while still keeping the parameter. I should check for other calls to the constructors in tests or elsewhere in the repository. I'll search for `_DashedRRectBorderPainter(` and `_ObjectBlockCard(`, since they’re private to the same file, so I can pass explicit arguments. I found a couple of call sites I'm planning to patch. Also considering marking `SizedBox.square` and `CodeSyntaxPalette` as const for efficiency.
+**Verifying const usage**
+
+I think making `SizedBox.square` a const is definitely a good idea. Similarly, since `EdgeInsets.symmetric` uses constant values, it can also be const. For `CodeSyntaxPalette`, I should check if its constructor allows for const usage; if it doesn’t, I can't use const. However, I suspect it does, since if it were not const, there would be a compile error from the analyzer. It might be worth inspecting the package to confirm.
+**Searching for class definition**
+
+I need to confirm that using `const` with the constructor will cause a compilation failure. I should search for the definition of `CodeSyntaxPalette`. It might be located in the same repository or within a package dependency. I'll use the command `rg -n "class CodeSyntaxPalette"` to look through `.dart` files. This should help me locate the relevant code and clarify the situation. Let's see what I can find!
+codex
+I’ve got the fix strategy; I’m confirming the `CodeSyntaxPalette` constructor before patching.
+exec
+powershell.exe -Command "rg -n \"class CodeSyntaxPalette|const CodeSyntaxPalette\\(\" -g \"*.dart\"" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 160ms:
+lib\src\widgets\code_syntax_highlighter.dart:5:final class CodeSyntaxPalette {
+lib\src\widgets\code_syntax_highlighter.dart:6:  const CodeSyntaxPalette({
+
+codex
+I’m patching the analyzer fixes now, keeping the change narrowly scoped.
+2026-06-25T00:49:22.291594Z ERROR codex_core::tools::router: error=apply_patch verification failed: Failed to find expected lines in D:\project\GitHub\wenz_flutter\wenz_richtext\lib\src\widgets\wenz_rich_text_editor.dart:
+                  child: SizedBox.square(
+                    dimension: _kVideoPlayButtonSize,
+                    child: const Icon(
+                      Icons.play_arrow_rounded,
+                      color: Colors.black87,
+                      size: _kVideoPlayIconSize,
+                    ),
+codex
+The first patch missed the exact formatting; I’m reapplying with tighter context.
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_richtext\lib\src\widgets\wenz_rich_text_editor.dart
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 8bc7b0e0f59f6c7e97bb514c6a47056e3d6a5f77..b1fa9979020af61c7371c889b71f5df62133333d
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -6374,13 +6374,13 @@
+                       ),
+                     ],
+                   ),
+-                  child: SizedBox.square(
+-                    dimension: _kVideoPlayButtonSize,
+-                    child: const Icon(
+-                      Icons.play_arrow_rounded,
+-                      color: Colors.black87,
+-                      size: _kVideoPlayIconSize,
+-                    ),
++                  child: const SizedBox.square(
++                    dimension: _kVideoPlayButtonSize,
++                    child: Icon(
++                      Icons.play_arrow_rounded,
++                      color: Colors.black87,
++                      size: _kVideoPlayIconSize,
++                    ),
+                   ),
+                 ),
+               ),
+@@ -6656,10 +6656,11 @@
+         title: _videoCardTitle(block),
+         subtitle: _videoCardSubtitle(block),
+         blockIndex: blockIndex,
+-        selected: selected,
+-        canEdit: canEdit,
+-        onAction: onAction,
+-        child: Column(
++        selected: selected,
++        canEdit: canEdit,
++        onAction: onAction,
++        dense: false,
++        child: Column(
+           mainAxisSize: MainAxisSize.min,
+           crossAxisAlignment: CrossAxisAlignment.stretch,
+           children: <Widget>[
+@@ -7561,7 +7562,7 @@
+     return KeyedSubtree(
+       key: ValueKey<String>('wenz-richtext-image-block-${block.id}'),
+       child: Padding(
+-        padding: EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
++        padding: const EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
+         child: LayoutBuilder(
+           builder: (context, constraints) {
+             final maxWidth = constraints.maxWidth.isFinite
+@@ -8482,11 +8483,11 @@
+   ).highlight(code);
+ }
+ 
+-CodeSyntaxPalette _darkCodeSyntaxPalette() {
+-  return CodeSyntaxPalette(
+-    keyword: const Color(_kCodeKeywordColor),
+-    type: const Color(_kCodeTypeColor),
+-    string: const Color(_kCodeStringColor),
++CodeSyntaxPalette _darkCodeSyntaxPalette() {
++  return const CodeSyntaxPalette(
++    keyword: const Color(_kCodeKeywordColor),
++    type: const Color(_kCodeTypeColor),
++    string: const Color(_kCodeStringColor),
+     comment: const Color(_kCodeCommentColor),
+     number: const Color(_kCodeNumberColor),
+     marker: const Color(_kCodeKeywordColor),
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 8bc7b0e0f59f6c7e97bb514c6a47056e3d6a5f77..b1fa9979020af61c7371c889b71f5df62133333d
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -6374,13 +6374,13 @@
+                       ),
+                     ],
+                   ),
+-                  child: SizedBox.square(
+-                    dimension: _kVideoPlayButtonSize,
+-                    child: const Icon(
+-                      Icons.play_arrow_rounded,
+-                      color: Colors.black87,
+-                      size: _kVideoPlayIconSize,
+-                    ),
++                  child: const SizedBox.square(
++                    dimension: _kVideoPlayButtonSize,
++                    child: Icon(
++                      Icons.play_arrow_rounded,
++                      color: Colors.black87,
++                      size: _kVideoPlayIconSize,
++                    ),
+                   ),
+                 ),
+               ),
+@@ -6656,10 +6656,11 @@
+         title: _videoCardTitle(block),
+         subtitle: _videoCardSubtitle(block),
+         blockIndex: blockIndex,
+-        selected: selected,
+-        canEdit: canEdit,
+-        onAction: onAction,
+-        child: Column(
++        selected: selected,
++        canEdit: canEdit,
++        onAction: onAction,
++        dense: false,
++        child: Column(
+           mainAxisSize: MainAxisSize.min,
+           crossAxisAlignment: CrossAxisAlignment.stretch,
+           children: <Widget>[
+@@ -7561,7 +7562,7 @@
+     return KeyedSubtree(
+       key: ValueKey<String>('wenz-richtext-image-block-${block.id}'),
+       child: Padding(
+-        padding: EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
++        padding: const EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
+         child: LayoutBuilder(
+           builder: (context, constraints) {
+             final maxWidth = constraints.maxWidth.isFinite
+@@ -8482,11 +8483,11 @@
+   ).highlight(code);
+ }
+ 
+-CodeSyntaxPalette _darkCodeSyntaxPalette() {
+-  return CodeSyntaxPalette(
+-    keyword: const Color(_kCodeKeywordColor),
+-    type: const Color(_kCodeTypeColor),
+-    string: const Color(_kCodeStringColor),
++CodeSyntaxPalette _darkCodeSyntaxPalette() {
++  return const CodeSyntaxPalette(
++    keyword: const Color(_kCodeKeywordColor),
++    type: const Color(_kCodeTypeColor),
++    string: const Color(_kCodeStringColor),
+     comment: const Color(_kCodeCommentColor),
+     number: const Color(_kCodeNumberColor),
+     marker: const Color(_kCodeKeywordColor),
+
+**Evaluating code structure**
+
+I'm noticing that using `const CodeSyntaxPalette` alongside `const Color(...)` might be a bit redundant. Perhaps I should consider removing the inner const? Although, I'm not sure if the analyzer flagged that before. Since the `Color` constructors are already const, it could be fine to keep it. Maybe I need to check if `padding: const EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2)` is correct since `_kMediaBlockMarginVertical` is a const double. It seems okay!
+**Analyzing Dart parameters**
+
+I think I need to address a warning about the optional parameter 'dense' not being assigned when it seems it should be. Adding `dense: false` may be enough since the call site is in the same file. However, I'm questioning whether `const SizedBox.square` with `child: Icon(` can actually be const, even though Icon's constructor is. In Dart, unnamed constructors aren't implicitly const unless in a const context. It looks like the analyzer might allow certain const constructor calls without needing the `const` keyword explicitly.
+**Reassessing const usage**
+
+To be cautious, it might be a good idea to reintroduce `const Icon` or use `child: const Icon`. Inside the const constructor call of `const SizedBox.square`, it's clear that `child: const Icon(...)` works well. I had removed `const` from Icon for a specific reason, but now I could add it back for clarity. I wonder if this would cause a compile issue, but since the Icon constructor is const, it shouldn’t. I should probably check for any linter warnings about using explicit constants, especially since the analyzer might be lenient in this const context.
+**Patching const usage**
+
+To be safe, I think it’s okay to explicitly use const on the Icon. I’m remembering that I removed it due to the patch context, but now I can reintroduce it with `child: const Icon(` and possibly also with `const SizedBox.square`. It's fine to have `child: const Icon` inside `const SizedBox.square`. So, it makes sense to patch the Icon to be const again. Plus, using `const` for `SizedBox.square` while keeping `child` as `const Icon` feels right. Let’s go ahead and patch that.
+**Evaluating code constants**
+
+I’m working through some code, and I noticed there are redundant inner constants, but they aren’t a big deal. I might see a `prefer_const_constructors` issue and check if `EdgeInsets.symmetric` can be constant with arithmetic expressions. If `_kMediaBlockMarginVertical` is a constant double, then using it should be fine for a `const EdgeInsets.symmetric(...)`. If it’s just final, though, it won't work. I need to inspect the constant definition more closely.
+codex
+I’ve patched the flagged sites; now I’m sanity-checking the constant expressions and constructor usage.
+exec
+powershell.exe -Command '$path='"'lib/src/widgets/wenz_rich_text_editor.dart'; rg -n \"_kMediaBlockMarginVertical|_kVideoPlayButtonSize|_kVideoPlayIconSize\" "'$path' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 160ms:
+115:const double _kMediaBlockMarginVertical = _kRichTextBodyFontSize * 1.2;
+118:const double _kVideoPlayButtonSize = 64.0;
+119:const double _kVideoPlayIconSize = 24.0;
+6378:                    dimension: _kVideoPlayButtonSize,
+6382:                      size: _kVideoPlayIconSize,
+7565:        padding: const EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 8bc7b0e0f59f6c7e97bb514c6a47056e3d6a5f77..b1fa9979020af61c7371c889b71f5df62133333d
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -6374,13 +6374,13 @@
+                       ),
+                     ],
+                   ),
+-                  child: SizedBox.square(
+-                    dimension: _kVideoPlayButtonSize,
+-                    child: const Icon(
+-                      Icons.play_arrow_rounded,
+-                      color: Colors.black87,
+-                      size: _kVideoPlayIconSize,
+-                    ),
++                  child: const SizedBox.square(
++                    dimension: _kVideoPlayButtonSize,
++                    child: Icon(
++                      Icons.play_arrow_rounded,
++                      color: Colors.black87,
++                      size: _kVideoPlayIconSize,
++                    ),
+                   ),
+                 ),
+               ),
+@@ -6656,10 +6656,11 @@
+         title: _videoCardTitle(block),
+         subtitle: _videoCardSubtitle(block),
+         blockIndex: blockIndex,
+-        selected: selected,
+-        canEdit: canEdit,
+-        onAction: onAction,
+-        child: Column(
++        selected: selected,
++        canEdit: canEdit,
++        onAction: onAction,
++        dense: false,
++        child: Column(
+           mainAxisSize: MainAxisSize.min,
+           crossAxisAlignment: CrossAxisAlignment.stretch,
+           children: <Widget>[
+@@ -7561,7 +7562,7 @@
+     return KeyedSubtree(
+       key: ValueKey<String>('wenz-richtext-image-block-${block.id}'),
+       child: Padding(
+-        padding: EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
++        padding: const EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
+         child: LayoutBuilder(
+           builder: (context, constraints) {
+             final maxWidth = constraints.maxWidth.isFinite
+@@ -8482,11 +8483,11 @@
+   ).highlight(code);
+ }
+ 
+-CodeSyntaxPalette _darkCodeSyntaxPalette() {
+-  return CodeSyntaxPalette(
+-    keyword: const Color(_kCodeKeywordColor),
+-    type: const Color(_kCodeTypeColor),
+-    string: const Color(_kCodeStringColor),
++CodeSyntaxPalette _darkCodeSyntaxPalette() {
++  return const CodeSyntaxPalette(
++    keyword: const Color(_kCodeKeywordColor),
++    type: const Color(_kCodeTypeColor),
++    string: const Color(_kCodeStringColor),
+     comment: const Color(_kCodeCommentColor),
+     number: const Color(_kCodeNumberColor),
+     marker: const Color(_kCodeKeywordColor),
+
+**Checking code expression**
+
+I think I’ve got a good constant expression. I should check the exact lines that were inserted to be sure. I noticed there’s possibly a line 6654 with `dense: false,`, which seems good. I’m also wondering if there’s another call site for `_DashedRRectBorderPainter`. We passed the arguments at one site, but there might be another caller out there. I’ll need to search for that to be certain.
+codex
+I’ve confirmed the constants; next I’m checking the final edit set and rerunning analysis.
+exec
+powershell.exe -Command "rg -n \"_DashedRRectBorderPainter\\(|_ObjectBlockCard\\(|SizedBox.square\\(|EdgeInsets.symmetric\\(|CodeSyntaxPalette\\(\" lib/src/widgets/wenz_rich_text_editor.dart" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 153ms:
+66:const EdgeInsets _kTableCellPadding = EdgeInsets.symmetric(
+3926:          padding: const EdgeInsets.symmetric(
+5922:      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+6377:                  child: const SizedBox.square(
+6480:        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+6612:              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+6654:      child: _ObjectBlockCard(
+6727:      padding: const EdgeInsets.symmetric(vertical: _kDividerMarginVertical),
+6732:          padding: EdgeInsets.symmetric(
+6774:                    SizedBox.square(
+6822:                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+6865:      padding: const EdgeInsets.symmetric(vertical: 8),
+6867:        foregroundPainter: _DashedRRectBorderPainter(
+6926:        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+6941:  const _DashedRRectBorderPainter({
+6989:  const _ObjectBlockCard({
+7195:        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+7351:          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+7447:    return SizedBox.square(
+7565:        padding: const EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
+7736:          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+8250:          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+8480:    palette: _darkCodeSyntaxPalette(),
+8486:CodeSyntaxPalette _darkCodeSyntaxPalette() {
+8487:  return const CodeSyntaxPalette(
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 8bc7b0e0f59f6c7e97bb514c6a47056e3d6a5f77..b1fa9979020af61c7371c889b71f5df62133333d
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -6374,13 +6374,13 @@
+                       ),
+                     ],
+                   ),
+-                  child: SizedBox.square(
+-                    dimension: _kVideoPlayButtonSize,
+-                    child: const Icon(
+-                      Icons.play_arrow_rounded,
+-                      color: Colors.black87,
+-                      size: _kVideoPlayIconSize,
+-                    ),
++                  child: const SizedBox.square(
++                    dimension: _kVideoPlayButtonSize,
++                    child: Icon(
++                      Icons.play_arrow_rounded,
++                      color: Colors.black87,
++                      size: _kVideoPlayIconSize,
++                    ),
+                   ),
+                 ),
+               ),
+@@ -6656,10 +6656,11 @@
+         title: _videoCardTitle(block),
+         subtitle: _videoCardSubtitle(block),
+         blockIndex: blockIndex,
+-        selected: selected,
+-        canEdit: canEdit,
+-        onAction: onAction,
+-        child: Column(
++        selected: selected,
++        canEdit: canEdit,
++        onAction: onAction,
++        dense: false,
++        child: Column(
+           mainAxisSize: MainAxisSize.min,
+           crossAxisAlignment: CrossAxisAlignment.stretch,
+           children: <Widget>[
+@@ -7561,7 +7562,7 @@
+     return KeyedSubtree(
+       key: ValueKey<String>('wenz-richtext-image-block-${block.id}'),
+       child: Padding(
+-        padding: EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
++        padding: const EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
+         child: LayoutBuilder(
+           builder: (context, constraints) {
+             final maxWidth = constraints.maxWidth.isFinite
+@@ -8482,11 +8483,11 @@
+   ).highlight(code);
+ }
+ 
+-CodeSyntaxPalette _darkCodeSyntaxPalette() {
+-  return CodeSyntaxPalette(
+-    keyword: const Color(_kCodeKeywordColor),
+-    type: const Color(_kCodeTypeColor),
+-    string: const Color(_kCodeStringColor),
++CodeSyntaxPalette _darkCodeSyntaxPalette() {
++  return const CodeSyntaxPalette(
++    keyword: const Color(_kCodeKeywordColor),
++    type: const Color(_kCodeTypeColor),
++    string: const Color(_kCodeStringColor),
+     comment: const Color(_kCodeCommentColor),
+     number: const Color(_kCodeNumberColor),
+     marker: const Color(_kCodeKeywordColor),
+
+**Adjusting search results**
+
+I think I need to adjust the `Icon` constant. The search results are not showing up because the pattern is just `SizedBox.square(`. I’ll inspect line 6377 to see if there’s a child constant that might not be explicitly defined. It seems like the next step is to open those lines of code and take a closer look at what’s happening there. Let’s see what I can uncover!
+exec
+powershell.exe -Command '$path='"'lib/src/widgets/wenz_rich_text_editor.dart'; for("'$i=6374; $i -le 6384; $i++){ '"'{0,6}: {1}' -f "'$i, (Get-Content $path)[$i-1] }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 522ms:
+  6374:                       ),
+  6375:                     ],
+  6376:                   ),
+  6377:                   child: const SizedBox.square(
+  6378:                     dimension: _kVideoPlayButtonSize,
+  6379:                     child: Icon(
+  6380:                       Icons.play_arrow_rounded,
+  6381:                       color: Colors.black87,
+  6382:                       size: _kVideoPlayIconSize,
+  6383:                     ),
+  6384:                   ),
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 8bc7b0e0f59f6c7e97bb514c6a47056e3d6a5f77..b1fa9979020af61c7371c889b71f5df62133333d
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -6374,13 +6374,13 @@
+                       ),
+                     ],
+                   ),
+-                  child: SizedBox.square(
+-                    dimension: _kVideoPlayButtonSize,
+-                    child: const Icon(
+-                      Icons.play_arrow_rounded,
+-                      color: Colors.black87,
+-                      size: _kVideoPlayIconSize,
+-                    ),
++                  child: const SizedBox.square(
++                    dimension: _kVideoPlayButtonSize,
++                    child: Icon(
++                      Icons.play_arrow_rounded,
++                      color: Colors.black87,
++                      size: _kVideoPlayIconSize,
++                    ),
+                   ),
+                 ),
+               ),
+@@ -6656,10 +6656,11 @@
+         title: _videoCardTitle(block),
+         subtitle: _videoCardSubtitle(block),
+         blockIndex: blockIndex,
+-        selected: selected,
+-        canEdit: canEdit,
+-        onAction: onAction,
+-        child: Column(
++        selected: selected,
++        canEdit: canEdit,
++        onAction: onAction,
++        dense: false,
++        child: Column(
+           mainAxisSize: MainAxisSize.min,
+           crossAxisAlignment: CrossAxisAlignment.stretch,
+           children: <Widget>[
+@@ -7561,7 +7562,7 @@
+     return KeyedSubtree(
+       key: ValueKey<String>('wenz-richtext-image-block-${block.id}'),
+       child: Padding(
+-        padding: EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
++        padding: const EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
+         child: LayoutBuilder(
+           builder: (context, constraints) {
+             final maxWidth = constraints.maxWidth.isFinite
+@@ -8482,11 +8483,11 @@
+   ).highlight(code);
+ }
+ 
+-CodeSyntaxPalette _darkCodeSyntaxPalette() {
+-  return CodeSyntaxPalette(
+-    keyword: const Color(_kCodeKeywordColor),
+-    type: const Color(_kCodeTypeColor),
+-    string: const Color(_kCodeStringColor),
++CodeSyntaxPalette _darkCodeSyntaxPalette() {
++  return const CodeSyntaxPalette(
++    keyword: const Color(_kCodeKeywordColor),
++    type: const Color(_kCodeTypeColor),
++    string: const Color(_kCodeStringColor),
+     comment: const Color(_kCodeCommentColor),
+     number: const Color(_kCodeNumberColor),
+     marker: const Color(_kCodeKeywordColor),
+
+**Analyzing const context issues**
+
+I'm considering if the analyzer will raise concerns due to the const context. It seems to prefer `const` on `SizedBox.square` at line 6377, which we fixed. The `Icon` isn't flagged, possibly because of being in the const context. However, there could still be a compile error from the non-const `Icon`. I think it's smart to run an analysis proactively since this is a verification task. I might also convert `child: Icon` to `const Icon` for clarity, though it might not be necessary.
+**Considering const context warnings**
+
+I'm thinking about why the `prefer_const_constructors` lint might only pop up at line 6377. The `Icon` doesn't show a warning because it’s under const parent. But I wonder if that const context is sufficient for the lint. The hint encourages using `const` whenever possible, and if the parent is const, the child might not trigger a warning. I should adjust the `CodeSyntaxPalette` to use `const` too. I also need to check if any other instances of `prefer_const_constructors` need fixing before running `flutter analyze`.
+codex
+I’m running `flutter analyze` again to verify the warning list is clean.
+exec
+powershell.exe -Command 'flutter analyze' in D:\project\GitHub\wenz_flutter\wenz_richtext
+2026-06-25T00:50:46.828674Z ERROR codex_core::tools::router: error={"output":"Analyzing wenz_richtext...                                      \n\nwarning - A value for optional parameter 'strokeWidth' isn't ever given - lib\\src\\widgets\\wenz_rich_text_editor.dart:6944:10 - unused_element_parameter\nwarning - A value for optional parameter 'dashLength' isn't ever given - lib\\src\\widgets\\wenz_rich_text_editor.dart:6945:10 - unused_element_parameter\nwarning - A value for optional parameter 'gapLength' isn't ever given - lib\\src\\widgets\\wenz_rich_text_editor.dart:6946:10 - unused_element_parameter\n   info - Unnecessary 'const' keyword - lib\\src\\widgets\\wenz_rich_text_editor.dart:8488:14 - unnecessary_const\n   info - Unnecessary 'const' keyword - lib\\src\\widgets\\wenz_rich_text_editor.dart:8489:11 - unnecessary_const\n   info - Unnecessary 'const' keyword - lib\\src\\widgets\\wenz_rich_text_editor.dart:8490:13 - unnecessary_const\n   info - Unnecessary 'const' keyword - lib\\src\\widgets\\wenz_rich_text_editor.dart:8491:14 - unnecessary_const\n   info - Unnecessary 'const' keyword - lib\\src\\widgets\\wenz_rich_text_editor.dart:8492:13 - unnecessary_const\n   info - Unnecessary 'const' keyword - lib\\src\\widgets\\wenz_rich_text_editor.dart:8493:13 - unnecessary_const\n\nFlutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!\n9 issues found. (ran in 2.0s)\n","metadata":{"exit_code":1,"duration_seconds":3.9}}
+ exited 1 in 3850ms:
+Analyzing wenz_richtext...                                      
+
+warning - A value for optional parameter 'strokeWidth' isn't ever given - lib\src\widgets\wenz_rich_text_editor.dart:6944:10 - unused_element_parameter
+warning - A value for optional parameter 'dashLength' isn't ever given - lib\src\widgets\wenz_rich_text_editor.dart:6945:10 - unused_element_parameter
+warning - A value for optional parameter 'gapLength' isn't ever given - lib\src\widgets\wenz_rich_text_editor.dart:6946:10 - unused_element_parameter
+   info - Unnecessary 'const' keyword - lib\src\widgets\wenz_rich_text_editor.dart:8488:14 - unnecessary_const
+   info - Unnecessary 'const' keyword - lib\src\widgets\wenz_rich_text_editor.dart:8489:11 - unnecessary_const
+   info - Unnecessary 'const' keyword - lib\src\widgets\wenz_rich_text_editor.dart:8490:13 - unnecessary_const
+   info - Unnecessary 'const' keyword - lib\src\widgets\wenz_rich_text_editor.dart:8491:14 - unnecessary_const
+   info - Unnecessary 'const' keyword - lib\src\widgets\wenz_rich_text_editor.dart:8492:13 - unnecessary_const
+   info - Unnecessary 'const' keyword - lib\src\widgets\wenz_rich_text_editor.dart:8493:13 - unnecessary_const
+
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+9 issues found. (ran in 2.0s)
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 8bc7b0e0f59f6c7e97bb514c6a47056e3d6a5f77..b1fa9979020af61c7371c889b71f5df62133333d
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -6374,13 +6374,13 @@
+                       ),
+                     ],
+                   ),
+-                  child: SizedBox.square(
+-                    dimension: _kVideoPlayButtonSize,
+-                    child: const Icon(
+-                      Icons.play_arrow_rounded,
+-                      color: Colors.black87,
+-                      size: _kVideoPlayIconSize,
+-                    ),
++                  child: const SizedBox.square(
++                    dimension: _kVideoPlayButtonSize,
++                    child: Icon(
++                      Icons.play_arrow_rounded,
++                      color: Colors.black87,
++                      size: _kVideoPlayIconSize,
++                    ),
+                   ),
+                 ),
+               ),
+@@ -6656,10 +6656,11 @@
+         title: _videoCardTitle(block),
+         subtitle: _videoCardSubtitle(block),
+         blockIndex: blockIndex,
+-        selected: selected,
+-        canEdit: canEdit,
+-        onAction: onAction,
+-        child: Column(
++        selected: selected,
++        canEdit: canEdit,
++        onAction: onAction,
++        dense: false,
++        child: Column(
+           mainAxisSize: MainAxisSize.min,
+           crossAxisAlignment: CrossAxisAlignment.stretch,
+           children: <Widget>[
+@@ -7561,7 +7562,7 @@
+     return KeyedSubtree(
+       key: ValueKey<String>('wenz-richtext-image-block-${block.id}'),
+       child: Padding(
+-        padding: EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
++        padding: const EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
+         child: LayoutBuilder(
+           builder: (context, constraints) {
+             final maxWidth = constraints.maxWidth.isFinite
+@@ -8482,11 +8483,11 @@
+   ).highlight(code);
+ }
+ 
+-CodeSyntaxPalette _darkCodeSyntaxPalette() {
+-  return CodeSyntaxPalette(
+-    keyword: const Color(_kCodeKeywordColor),
+-    type: const Color(_kCodeTypeColor),
+-    string: const Color(_kCodeStringColor),
++CodeSyntaxPalette _darkCodeSyntaxPalette() {
++  return const CodeSyntaxPalette(
++    keyword: const Color(_kCodeKeywordColor),
++    type: const Color(_kCodeTypeColor),
++    string: const Color(_kCodeStringColor),
+     comment: const Color(_kCodeCommentColor),
+     number: const Color(_kCodeNumberColor),
+     marker: const Color(_kCodeKeywordColor),
+
+codex
+The optional-parameter warning is still active, so I’m checking the exact call site and the palette consts.
+exec
+powershell.exe -Command '$path='"'lib/src/widgets/wenz_rich_text_editor.dart'; for("'$i=6862; $i -le 6876; $i++){ '"'{0,6}: {1}' -f "'$i, (Get-Content $path)[$i-1] }; '"''; for("'$i=8485; $i -le 8494; $i++){ '"'{0,6}: {1}' -f "'$i, (Get-Content $path)[$i-1] }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 897ms:
+  6862:     final resolvedBorderColor =
+  6863:         selected ? theme.colorScheme.primary : borderColor;
+  6864:     return Padding(
+  6865:       padding: const EdgeInsets.symmetric(vertical: 8),
+  6866:       child: CustomPaint(
+  6867:         foregroundPainter: _DashedRRectBorderPainter(
+  6868:           color: resolvedBorderColor,
+  6869:           radius: _kMediaCornerRadius,
+  6870:         ),
+  6871:         child: DecoratedBox(
+  6872:           decoration: BoxDecoration(
+  6873:             color: backgroundColor,
+  6874:             borderRadius: BorderRadius.circular(_kMediaCornerRadius),
+  6875:           ),
+  6876:           child: Padding(
+
+  8485: 
+  8486: CodeSyntaxPalette _darkCodeSyntaxPalette() {
+  8487:   return const CodeSyntaxPalette(
+  8488:     keyword: const Color(_kCodeKeywordColor),
+  8489:     type: const Color(_kCodeTypeColor),
+  8490:     string: const Color(_kCodeStringColor),
+  8491:     comment: const Color(_kCodeCommentColor),
+  8492:     number: const Color(_kCodeNumberColor),
+  8493:     marker: const Color(_kCodeKeywordColor),
+  8494:   );
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 8bc7b0e0f59f6c7e97bb514c6a47056e3d6a5f77..b1fa9979020af61c7371c889b71f5df62133333d
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -6374,13 +6374,13 @@
+                       ),
+                     ],
+                   ),
+-                  child: SizedBox.square(
+-                    dimension: _kVideoPlayButtonSize,
+-                    child: const Icon(
+-                      Icons.play_arrow_rounded,
+-                      color: Colors.black87,
+-                      size: _kVideoPlayIconSize,
+-                    ),
++                  child: const SizedBox.square(
++                    dimension: _kVideoPlayButtonSize,
++                    child: Icon(
++                      Icons.play_arrow_rounded,
++                      color: Colors.black87,
++                      size: _kVideoPlayIconSize,
++                    ),
+                   ),
+                 ),
+               ),
+@@ -6656,10 +6656,11 @@
+         title: _videoCardTitle(block),
+         subtitle: _videoCardSubtitle(block),
+         blockIndex: blockIndex,
+-        selected: selected,
+-        canEdit: canEdit,
+-        onAction: onAction,
+-        child: Column(
++        selected: selected,
++        canEdit: canEdit,
++        onAction: onAction,
++        dense: false,
++        child: Column(
+           mainAxisSize: MainAxisSize.min,
+           crossAxisAlignment: CrossAxisAlignment.stretch,
+           children: <Widget>[
+@@ -7561,7 +7562,7 @@
+     return KeyedSubtree(
+       key: ValueKey<String>('wenz-richtext-image-block-${block.id}'),
+       child: Padding(
+-        padding: EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
++        padding: const EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
+         child: LayoutBuilder(
+           builder: (context, constraints) {
+             final maxWidth = constraints.maxWidth.isFinite
+@@ -8482,11 +8483,11 @@
+   ).highlight(code);
+ }
+ 
+-CodeSyntaxPalette _darkCodeSyntaxPalette() {
+-  return CodeSyntaxPalette(
+-    keyword: const Color(_kCodeKeywordColor),
+-    type: const Color(_kCodeTypeColor),
+-    string: const Color(_kCodeStringColor),
++CodeSyntaxPalette _darkCodeSyntaxPalette() {
++  return const CodeSyntaxPalette(
++    keyword: const Color(_kCodeKeywordColor),
++    type: const Color(_kCodeTypeColor),
++    string: const Color(_kCodeStringColor),
+     comment: const Color(_kCodeCommentColor),
+     number: const Color(_kCodeNumberColor),
+     marker: const Color(_kCodeKeywordColor),
+
+**Debugging patch issues**
+
+I just noticed our earlier patch didn’t include the painter arguments, which is interesting. It seems like the apply_patch might have missed that due to context. I’ll need to patch this up and also look into removing unnecessary const keywords in the CodeSyntaxPalette's inner Colors. Maybe I should consider adding `dense: false` too? I’ll search around line 6654 to find the relevant sections. Let's sort this out!
+codex
+I found one missed call site, and the palette consts are now over-specified. Fixing both.
+exec
+powershell.exe -Command '$path='"'lib/src/widgets/wenz_rich_text_editor.dart'; for("'$i=6652; $i -le 6664; $i++){ '"'{0,6}: {1}' -f "'$i, (Get-Content $path)[$i-1] }' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 591ms:
+  6652:     return KeyedSubtree(
+  6653:       key: ValueKey<String>('wenz-richtext-video-block-${block.id}'),
+  6654:       child: _ObjectBlockCard(
+  6655:         icon: Icons.smart_display_outlined,
+  6656:         title: _videoCardTitle(block),
+  6657:         subtitle: _videoCardSubtitle(block),
+  6658:         blockIndex: blockIndex,
+  6659:         selected: selected,
+  6660:         canEdit: canEdit,
+  6661:         onAction: onAction,
+  6662:         dense: false,
+  6663:         child: Column(
+  6664:           mainAxisSize: MainAxisSize.min,
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 8bc7b0e0f59f6c7e97bb514c6a47056e3d6a5f77..b1fa9979020af61c7371c889b71f5df62133333d
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -6374,13 +6374,13 @@
+                       ),
+                     ],
+                   ),
+-                  child: SizedBox.square(
+-                    dimension: _kVideoPlayButtonSize,
+-                    child: const Icon(
+-                      Icons.play_arrow_rounded,
+-                      color: Colors.black87,
+-                      size: _kVideoPlayIconSize,
+-                    ),
++                  child: const SizedBox.square(
++                    dimension: _kVideoPlayButtonSize,
++                    child: Icon(
++                      Icons.play_arrow_rounded,
++                      color: Colors.black87,
++                      size: _kVideoPlayIconSize,
++                    ),
+                   ),
+                 ),
+               ),
+@@ -6656,10 +6656,11 @@
+         title: _videoCardTitle(block),
+         subtitle: _videoCardSubtitle(block),
+         blockIndex: blockIndex,
+-        selected: selected,
+-        canEdit: canEdit,
+-        onAction: onAction,
+-        child: Column(
++        selected: selected,
++        canEdit: canEdit,
++        onAction: onAction,
++        dense: false,
++        child: Column(
+           mainAxisSize: MainAxisSize.min,
+           crossAxisAlignment: CrossAxisAlignment.stretch,
+           children: <Widget>[
+@@ -7561,7 +7562,7 @@
+     return KeyedSubtree(
+       key: ValueKey<String>('wenz-richtext-image-block-${block.id}'),
+       child: Padding(
+-        padding: EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
++        padding: const EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
+         child: LayoutBuilder(
+           builder: (context, constraints) {
+             final maxWidth = constraints.maxWidth.isFinite
+@@ -8482,11 +8483,11 @@
+   ).highlight(code);
+ }
+ 
+-CodeSyntaxPalette _darkCodeSyntaxPalette() {
+-  return CodeSyntaxPalette(
+-    keyword: const Color(_kCodeKeywordColor),
+-    type: const Color(_kCodeTypeColor),
+-    string: const Color(_kCodeStringColor),
++CodeSyntaxPalette _darkCodeSyntaxPalette() {
++  return const CodeSyntaxPalette(
++    keyword: const Color(_kCodeKeywordColor),
++    type: const Color(_kCodeTypeColor),
++    string: const Color(_kCodeStringColor),
+     comment: const Color(_kCodeCommentColor),
+     number: const Color(_kCodeNumberColor),
+     marker: const Color(_kCodeKeywordColor),
+
+**Revising constructor calls**
+
+I noticed that the analyzer only flagged inner constants, not the outer ones. I could use `return const CodeSyntaxPalette(keyword: Color(...))` and avoid marking the inner constructor calls as constant to keep things clean. So, I’ll patch this to remove the inner const keywords since having the const on the outer one is already sufficient. Next up, I’ll need to handle the patch for the painter call, and I'll use `apply_patch` to do that.
+codex
+I’m applying the two remaining source tweaks now.
+apply patch
+patch: completed
+D:\project\GitHub\wenz_flutter\wenz_richtext\lib\src\widgets\wenz_rich_text_editor.dart
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 8bc7b0e0f59f6c7e97bb514c6a47056e3d6a5f77..69884376ff02d01293a9e27e4eb8023bb5b683c5
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -6374,13 +6374,13 @@
+                       ),
+                     ],
+                   ),
+-                  child: SizedBox.square(
+-                    dimension: _kVideoPlayButtonSize,
+-                    child: const Icon(
+-                      Icons.play_arrow_rounded,
+-                      color: Colors.black87,
+-                      size: _kVideoPlayIconSize,
+-                    ),
++                  child: const SizedBox.square(
++                    dimension: _kVideoPlayButtonSize,
++                    child: Icon(
++                      Icons.play_arrow_rounded,
++                      color: Colors.black87,
++                      size: _kVideoPlayIconSize,
++                    ),
+                   ),
+                 ),
+               ),
+@@ -6656,10 +6656,11 @@
+         title: _videoCardTitle(block),
+         subtitle: _videoCardSubtitle(block),
+         blockIndex: blockIndex,
+-        selected: selected,
+-        canEdit: canEdit,
+-        onAction: onAction,
+-        child: Column(
++        selected: selected,
++        canEdit: canEdit,
++        onAction: onAction,
++        dense: false,
++        child: Column(
+           mainAxisSize: MainAxisSize.min,
+           crossAxisAlignment: CrossAxisAlignment.stretch,
+           children: <Widget>[
+@@ -6863,10 +6864,13 @@
+     return Padding(
+       padding: const EdgeInsets.symmetric(vertical: 8),
+       child: CustomPaint(
+-        foregroundPainter: _DashedRRectBorderPainter(
+-          color: resolvedBorderColor,
+-          radius: _kMediaCornerRadius,
+-        ),
++        foregroundPainter: _DashedRRectBorderPainter(
++          color: resolvedBorderColor,
++          radius: _kMediaCornerRadius,
++          strokeWidth: 1,
++          dashLength: 7,
++          gapLength: 4,
++        ),
+         child: DecoratedBox(
+           decoration: BoxDecoration(
+             color: backgroundColor,
+@@ -7561,7 +7565,7 @@
+     return KeyedSubtree(
+       key: ValueKey<String>('wenz-richtext-image-block-${block.id}'),
+       child: Padding(
+-        padding: EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
++        padding: const EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
+         child: LayoutBuilder(
+           builder: (context, constraints) {
+             final maxWidth = constraints.maxWidth.isFinite
+@@ -8482,16 +8486,16 @@
+   ).highlight(code);
+ }
+ 
+-CodeSyntaxPalette _darkCodeSyntaxPalette() {
+-  return CodeSyntaxPalette(
+-    keyword: const Color(_kCodeKeywordColor),
+-    type: const Color(_kCodeTypeColor),
+-    string: const Color(_kCodeStringColor),
+-    comment: const Color(_kCodeCommentColor),
+-    number: const Color(_kCodeNumberColor),
+-    marker: const Color(_kCodeKeywordColor),
+-  );
+-}
++CodeSyntaxPalette _darkCodeSyntaxPalette() {
++  return const CodeSyntaxPalette(
++    keyword: Color(_kCodeKeywordColor),
++    type: Color(_kCodeTypeColor),
++    string: Color(_kCodeStringColor),
++    comment: Color(_kCodeCommentColor),
++    number: Color(_kCodeNumberColor),
++    marker: Color(_kCodeKeywordColor),
++  );
++}
+ 
+ const List<String> _kDefaultCodeLanguages = <String>[
+   '',
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 8bc7b0e0f59f6c7e97bb514c6a47056e3d6a5f77..69884376ff02d01293a9e27e4eb8023bb5b683c5
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -6374,13 +6374,13 @@
+                       ),
+                     ],
+                   ),
+-                  child: SizedBox.square(
+-                    dimension: _kVideoPlayButtonSize,
+-                    child: const Icon(
+-                      Icons.play_arrow_rounded,
+-                      color: Colors.black87,
+-                      size: _kVideoPlayIconSize,
+-                    ),
++                  child: const SizedBox.square(
++                    dimension: _kVideoPlayButtonSize,
++                    child: Icon(
++                      Icons.play_arrow_rounded,
++                      color: Colors.black87,
++                      size: _kVideoPlayIconSize,
++                    ),
+                   ),
+                 ),
+               ),
+@@ -6656,10 +6656,11 @@
+         title: _videoCardTitle(block),
+         subtitle: _videoCardSubtitle(block),
+         blockIndex: blockIndex,
+-        selected: selected,
+-        canEdit: canEdit,
+-        onAction: onAction,
+-        child: Column(
++        selected: selected,
++        canEdit: canEdit,
++        onAction: onAction,
++        dense: false,
++        child: Column(
+           mainAxisSize: MainAxisSize.min,
+           crossAxisAlignment: CrossAxisAlignment.stretch,
+           children: <Widget>[
+@@ -6863,10 +6864,13 @@
+     return Padding(
+       padding: const EdgeInsets.symmetric(vertical: 8),
+       child: CustomPaint(
+-        foregroundPainter: _DashedRRectBorderPainter(
+-          color: resolvedBorderColor,
+-          radius: _kMediaCornerRadius,
+-        ),
++        foregroundPainter: _DashedRRectBorderPainter(
++          color: resolvedBorderColor,
++          radius: _kMediaCornerRadius,
++          strokeWidth: 1,
++          dashLength: 7,
++          gapLength: 4,
++        ),
+         child: DecoratedBox(
+           decoration: BoxDecoration(
+             color: backgroundColor,
+@@ -7561,7 +7565,7 @@
+     return KeyedSubtree(
+       key: ValueKey<String>('wenz-richtext-image-block-${block.id}'),
+       child: Padding(
+-        padding: EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
++        padding: const EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
+         child: LayoutBuilder(
+           builder: (context, constraints) {
+             final maxWidth = constraints.maxWidth.isFinite
+@@ -8482,16 +8486,16 @@
+   ).highlight(code);
+ }
+ 
+-CodeSyntaxPalette _darkCodeSyntaxPalette() {
+-  return CodeSyntaxPalette(
+-    keyword: const Color(_kCodeKeywordColor),
+-    type: const Color(_kCodeTypeColor),
+-    string: const Color(_kCodeStringColor),
+-    comment: const Color(_kCodeCommentColor),
+-    number: const Color(_kCodeNumberColor),
+-    marker: const Color(_kCodeKeywordColor),
+-  );
+-}
++CodeSyntaxPalette _darkCodeSyntaxPalette() {
++  return const CodeSyntaxPalette(
++    keyword: Color(_kCodeKeywordColor),
++    type: Color(_kCodeTypeColor),
++    string: Color(_kCodeStringColor),
++    comment: Color(_kCodeCommentColor),
++    number: Color(_kCodeNumberColor),
++    marker: Color(_kCodeKeywordColor),
++  );
++}
+ 
+ const List<String> _kDefaultCodeLanguages = <String>[
+   '',
+
+codex
+The last source changes are in; I’m rerunning analysis to confirm it’s clean.
+exec
+powershell.exe -Command 'flutter analyze' in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 4527ms:
+Analyzing wenz_richtext...                                      
+No issues found! (ran in 2.8s)
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 8bc7b0e0f59f6c7e97bb514c6a47056e3d6a5f77..69884376ff02d01293a9e27e4eb8023bb5b683c5
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -6374,13 +6374,13 @@
+                       ),
+                     ],
+                   ),
+-                  child: SizedBox.square(
+-                    dimension: _kVideoPlayButtonSize,
+-                    child: const Icon(
+-                      Icons.play_arrow_rounded,
+-                      color: Colors.black87,
+-                      size: _kVideoPlayIconSize,
+-                    ),
++                  child: const SizedBox.square(
++                    dimension: _kVideoPlayButtonSize,
++                    child: Icon(
++                      Icons.play_arrow_rounded,
++                      color: Colors.black87,
++                      size: _kVideoPlayIconSize,
++                    ),
+                   ),
+                 ),
+               ),
+@@ -6656,10 +6656,11 @@
+         title: _videoCardTitle(block),
+         subtitle: _videoCardSubtitle(block),
+         blockIndex: blockIndex,
+-        selected: selected,
+-        canEdit: canEdit,
+-        onAction: onAction,
+-        child: Column(
++        selected: selected,
++        canEdit: canEdit,
++        onAction: onAction,
++        dense: false,
++        child: Column(
+           mainAxisSize: MainAxisSize.min,
+           crossAxisAlignment: CrossAxisAlignment.stretch,
+           children: <Widget>[
+@@ -6863,10 +6864,13 @@
+     return Padding(
+       padding: const EdgeInsets.symmetric(vertical: 8),
+       child: CustomPaint(
+-        foregroundPainter: _DashedRRectBorderPainter(
+-          color: resolvedBorderColor,
+-          radius: _kMediaCornerRadius,
+-        ),
++        foregroundPainter: _DashedRRectBorderPainter(
++          color: resolvedBorderColor,
++          radius: _kMediaCornerRadius,
++          strokeWidth: 1,
++          dashLength: 7,
++          gapLength: 4,
++        ),
+         child: DecoratedBox(
+           decoration: BoxDecoration(
+             color: backgroundColor,
+@@ -7561,7 +7565,7 @@
+     return KeyedSubtree(
+       key: ValueKey<String>('wenz-richtext-image-block-${block.id}'),
+       child: Padding(
+-        padding: EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
++        padding: const EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
+         child: LayoutBuilder(
+           builder: (context, constraints) {
+             final maxWidth = constraints.maxWidth.isFinite
+@@ -8482,16 +8486,16 @@
+   ).highlight(code);
+ }
+ 
+-CodeSyntaxPalette _darkCodeSyntaxPalette() {
+-  return CodeSyntaxPalette(
+-    keyword: const Color(_kCodeKeywordColor),
+-    type: const Color(_kCodeTypeColor),
+-    string: const Color(_kCodeStringColor),
+-    comment: const Color(_kCodeCommentColor),
+-    number: const Color(_kCodeNumberColor),
+-    marker: const Color(_kCodeKeywordColor),
+-  );
+-}
++CodeSyntaxPalette _darkCodeSyntaxPalette() {
++  return const CodeSyntaxPalette(
++    keyword: Color(_kCodeKeywordColor),
++    type: Color(_kCodeTypeColor),
++    string: Color(_kCodeStringColor),
++    comment: Color(_kCodeCommentColor),
++    number: Color(_kCodeNumberColor),
++    marker: Color(_kCodeKeywordColor),
++  );
++}
+ 
+ const List<String> _kDefaultCodeLanguages = <String>[
+   '',
+
+**Finalizing response structure**
+
+I’m aiming to keep my final answer concise while mentioning the file path and confirming that the analysis is clean. It makes sense to include the start line number with single-line references rather than ranges. I’ll specifically reference file paths like `lib/src/widgets/wenz_rich_text_editor.dart:6377` for each change. I also need to ensure I inspect the current file for any updated line numbers. I’ll compile all changes in bullet points and reference accordingly.
+codex
+I’ve got a clean analyzer run; I’m grabbing the final line references for the handoff.
+exec
+powershell.exe -Command "rg -n \"SizedBox.square|_DashedRRectBorderPainter\\(|dense: false|EdgeInsets.symmetric\\(vertical: _kMediaBlockMarginVertical / 2|const CodeSyntaxPalette\" lib/src/widgets/wenz_rich_text_editor.dart" in D:\project\GitHub\wenz_flutter\wenz_richtext
+ succeeded in 169ms:
+6377:                  child: const SizedBox.square(
+6662:        dense: false,
+6774:                    SizedBox.square(
+6867:        foregroundPainter: _DashedRRectBorderPainter(
+6944:  const _DashedRRectBorderPainter({
+7450:    return SizedBox.square(
+7568:        padding: const EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
+8490:  return const CodeSyntaxPalette(
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 8bc7b0e0f59f6c7e97bb514c6a47056e3d6a5f77..69884376ff02d01293a9e27e4eb8023bb5b683c5
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -6374,13 +6374,13 @@
+                       ),
+                     ],
+                   ),
+-                  child: SizedBox.square(
+-                    dimension: _kVideoPlayButtonSize,
+-                    child: const Icon(
+-                      Icons.play_arrow_rounded,
+-                      color: Colors.black87,
+-                      size: _kVideoPlayIconSize,
+-                    ),
++                  child: const SizedBox.square(
++                    dimension: _kVideoPlayButtonSize,
++                    child: Icon(
++                      Icons.play_arrow_rounded,
++                      color: Colors.black87,
++                      size: _kVideoPlayIconSize,
++                    ),
+                   ),
+                 ),
+               ),
+@@ -6656,10 +6656,11 @@
+         title: _videoCardTitle(block),
+         subtitle: _videoCardSubtitle(block),
+         blockIndex: blockIndex,
+-        selected: selected,
+-        canEdit: canEdit,
+-        onAction: onAction,
+-        child: Column(
++        selected: selected,
++        canEdit: canEdit,
++        onAction: onAction,
++        dense: false,
++        child: Column(
+           mainAxisSize: MainAxisSize.min,
+           crossAxisAlignment: CrossAxisAlignment.stretch,
+           children: <Widget>[
+@@ -6863,10 +6864,13 @@
+     return Padding(
+       padding: const EdgeInsets.symmetric(vertical: 8),
+       child: CustomPaint(
+-        foregroundPainter: _DashedRRectBorderPainter(
+-          color: resolvedBorderColor,
+-          radius: _kMediaCornerRadius,
+-        ),
++        foregroundPainter: _DashedRRectBorderPainter(
++          color: resolvedBorderColor,
++          radius: _kMediaCornerRadius,
++          strokeWidth: 1,
++          dashLength: 7,
++          gapLength: 4,
++        ),
+         child: DecoratedBox(
+           decoration: BoxDecoration(
+             color: backgroundColor,
+@@ -7561,7 +7565,7 @@
+     return KeyedSubtree(
+       key: ValueKey<String>('wenz-richtext-image-block-${block.id}'),
+       child: Padding(
+-        padding: EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
++        padding: const EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
+         child: LayoutBuilder(
+           builder: (context, constraints) {
+             final maxWidth = constraints.maxWidth.isFinite
+@@ -8482,16 +8486,16 @@
+   ).highlight(code);
+ }
+ 
+-CodeSyntaxPalette _darkCodeSyntaxPalette() {
+-  return CodeSyntaxPalette(
+-    keyword: const Color(_kCodeKeywordColor),
+-    type: const Color(_kCodeTypeColor),
+-    string: const Color(_kCodeStringColor),
+-    comment: const Color(_kCodeCommentColor),
+-    number: const Color(_kCodeNumberColor),
+-    marker: const Color(_kCodeKeywordColor),
+-  );
+-}
++CodeSyntaxPalette _darkCodeSyntaxPalette() {
++  return const CodeSyntaxPalette(
++    keyword: Color(_kCodeKeywordColor),
++    type: Color(_kCodeTypeColor),
++    string: Color(_kCodeStringColor),
++    comment: Color(_kCodeCommentColor),
++    number: Color(_kCodeNumberColor),
++    marker: Color(_kCodeKeywordColor),
++  );
++}
+ 
+ const List<String> _kDefaultCodeLanguages = <String>[
+   '',
+
+codex
+**Fixed**
+- Cleaned the analyzer warnings in `lib/src/widgets/wenz_rich_text_editor.dart` by making the play button and media padding const (`:6377`, `:7568`) and const-ifying the syntax palette (`:8490`).
+- Removed the remaining warnings by passing explicit dashed-border painter values at the call site (`:6867`) and an explicit `dense: false` for `_ObjectBlockCard` (`:6662`).
+- Verified with `flutter analyze` — no issues found.
+
+
+diff --git a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+index 8bc7b0e0f59f6c7e97bb514c6a47056e3d6a5f77..69884376ff02d01293a9e27e4eb8023bb5b683c5
+--- a/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
++++ b/wenz_richtext/lib/src/widgets/wenz_rich_text_editor.dart
+@@ -6374,13 +6374,13 @@
+                       ),
+                     ],
+                   ),
+-                  child: SizedBox.square(
+-                    dimension: _kVideoPlayButtonSize,
+-                    child: const Icon(
+-                      Icons.play_arrow_rounded,
+-                      color: Colors.black87,
+-                      size: _kVideoPlayIconSize,
+-                    ),
++                  child: const SizedBox.square(
++                    dimension: _kVideoPlayButtonSize,
++                    child: Icon(
++                      Icons.play_arrow_rounded,
++                      color: Colors.black87,
++                      size: _kVideoPlayIconSize,
++                    ),
+                   ),
+                 ),
+               ),
+@@ -6656,10 +6656,11 @@
+         title: _videoCardTitle(block),
+         subtitle: _videoCardSubtitle(block),
+         blockIndex: blockIndex,
+-        selected: selected,
+-        canEdit: canEdit,
+-        onAction: onAction,
+-        child: Column(
++        selected: selected,
++        canEdit: canEdit,
++        onAction: onAction,
++        dense: false,
++        child: Column(
+           mainAxisSize: MainAxisSize.min,
+           crossAxisAlignment: CrossAxisAlignment.stretch,
+           children: <Widget>[
+@@ -6863,10 +6864,13 @@
+     return Padding(
+       padding: const EdgeInsets.symmetric(vertical: 8),
+       child: CustomPaint(
+-        foregroundPainter: _DashedRRectBorderPainter(
+-          color: resolvedBorderColor,
+-          radius: _kMediaCornerRadius,
+-        ),
++        foregroundPainter: _DashedRRectBorderPainter(
++          color: resolvedBorderColor,
++          radius: _kMediaCornerRadius,
++          strokeWidth: 1,
++          dashLength: 7,
++          gapLength: 4,
++        ),
+         child: DecoratedBox(
+           decoration: BoxDecoration(
+             color: backgroundColor,
+@@ -7561,7 +7565,7 @@
+     return KeyedSubtree(
+       key: ValueKey<String>('wenz-richtext-image-block-${block.id}'),
+       child: Padding(
+-        padding: EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
++        padding: const EdgeInsets.symmetric(vertical: _kMediaBlockMarginVertical / 2),
+         child: LayoutBuilder(
+           builder: (context, constraints) {
+             final maxWidth = constraints.maxWidth.isFinite
+@@ -8482,16 +8486,16 @@
+   ).highlight(code);
+ }
+ 
+-CodeSyntaxPalette _darkCodeSyntaxPalette() {
+-  return CodeSyntaxPalette(
+-    keyword: const Color(_kCodeKeywordColor),
+-    type: const Color(_kCodeTypeColor),
+-    string: const Color(_kCodeStringColor),
+-    comment: const Color(_kCodeCommentColor),
+-    number: const Color(_kCodeNumberColor),
+-    marker: const Color(_kCodeKeywordColor),
+-  );
+-}
++CodeSyntaxPalette _darkCodeSyntaxPalette() {
++  return const CodeSyntaxPalette(
++    keyword: Color(_kCodeKeywordColor),
++    type: Color(_kCodeTypeColor),
++    string: Color(_kCodeStringColor),
++    comment: Color(_kCodeCommentColor),
++    number: Color(_kCodeNumberColor),
++    marker: Color(_kCodeKeywordColor),
++  );
++}
+ 
+ const List<String> _kDefaultCodeLanguages = <String>[
+   '',
+
+tokens used
+68,849
+**Fixed**
+- Cleaned the analyzer warnings in `lib/src/widgets/wenz_rich_text_editor.dart` by making the play button and media padding const (`:6377`, `:7568`) and const-ifying the syntax palette (`:8490`).
+- Removed the remaining warnings by passing explicit dashed-border painter values at the call site (`:6867`) and an explicit `dense: false` for `_ObjectBlockCard` (`:6662`).
+- Verified with `flutter analyze` — no issues found.
+
+

@@ -1,0 +1,14 @@
+完成 P004，未修改 plan 文件、未勾选 checkbox。
+
+**改动**
+- `lib/src/widgets/wenz_rich_text_editor.dart:72` 调整 todo/list 样式常量，列表使用 `26px` inset、todo gap 为 `10px`。
+- `lib/src/widgets/wenz_rich_text_editor.dart:3143` 增加列表相邻块紧凑间距，嵌套列表更紧凑。
+- `lib/src/widgets/wenz_rich_text_editor.dart:3750` 引用块改为 `surfaceContainer` 背景、`4px` primary 左边框、右侧圆角。
+- `lib/src/widgets/block_renderer_registry.dart:216` 增加 `listMarker` 上下文，用于同层有序列表编号。
+- `test/widgets/wenz_rich_text_editor_test.dart:702` 补充 quote/list/todo 样式回归测试。
+- `test/widgets/editor_golden_test.dart:45` 补充 P004 相关设计 token 断言。
+
+**验证**
+- `flutter test test/widgets/wenz_rich_text_editor_test.dart --name "todo checkbox toggles|renders quote blocks|renders list markers|aligns todo checkbox|design baseline maps"`
+- `flutter test test/widgets/editor_golden_test.dart --name "design baseline maps default renderer coverage and tokens"`
+- 两组定向测试均通过。

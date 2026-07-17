@@ -1,0 +1,2088 @@
+{
+  "library": "networks2",
+  "group": "Networks",
+  "shapeCount": 115,
+  "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+  "sourceSizeBytes": 1069258,
+  "generatedAt": "2026-06-13T16:53:10.785702Z",
+  "shapes": [
+    {
+      "key": "networks2.antenna",
+      "label": "antenna",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 50.8,
+      "defaultHeight": 99.97,
+      "tags": [
+        "networks",
+        "antenna"
+      ],
+      "aliases": [
+        "mxgraph.networks2.antenna"
+      ]
+    },
+    {
+      "key": "networks2.antennaShadow",
+      "label": "antenna shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "antenna",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.antennaShadow",
+        "mxgraph.networks2.antenna_shadow",
+        "mxgraph.networks2.antenna-shadow",
+        "mxgraph.networks2.antenna shadow"
+      ]
+    },
+    {
+      "key": "networks2.application",
+      "label": "application",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 52.97,
+      "defaultHeight": 102.0,
+      "tags": [
+        "networks",
+        "application"
+      ],
+      "aliases": [
+        "mxgraph.networks2.application"
+      ]
+    },
+    {
+      "key": "networks2.applicationShadow",
+      "label": "application shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "application",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.applicationShadow",
+        "mxgraph.networks2.application_shadow",
+        "mxgraph.networks2.application-shadow",
+        "mxgraph.networks2.application shadow"
+      ]
+    },
+    {
+      "key": "networks2.bigData",
+      "label": "big data",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 99.6,
+      "tags": [
+        "networks",
+        "big",
+        "data"
+      ],
+      "aliases": [
+        "mxgraph.networks2.bigData",
+        "mxgraph.networks2.big_data",
+        "mxgraph.networks2.big-data",
+        "mxgraph.networks2.big data"
+      ]
+    },
+    {
+      "key": "networks2.bigDataShadow",
+      "label": "big data shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "big",
+        "data",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.bigDataShadow",
+        "mxgraph.networks2.big_data_shadow",
+        "mxgraph.networks2.big-data-shadow",
+        "mxgraph.networks2.big data shadow"
+      ]
+    },
+    {
+      "key": "networks2.biohazard",
+      "label": "biohazard",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 101.24,
+      "defaultHeight": 93.0,
+      "tags": [
+        "networks",
+        "biohazard"
+      ],
+      "aliases": [
+        "mxgraph.networks2.biohazard"
+      ]
+    },
+    {
+      "key": "networks2.biohazardShadow",
+      "label": "biohazard shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "biohazard",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.biohazardShadow",
+        "mxgraph.networks2.biohazard_shadow",
+        "mxgraph.networks2.biohazard-shadow",
+        "mxgraph.networks2.biohazard shadow"
+      ]
+    },
+    {
+      "key": "networks2.biometricReader",
+      "label": "biometric reader",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 84.07,
+      "defaultHeight": 99.71,
+      "tags": [
+        "networks",
+        "biometric",
+        "reader"
+      ],
+      "aliases": [
+        "mxgraph.networks2.biometricReader",
+        "mxgraph.networks2.biometric_reader",
+        "mxgraph.networks2.biometric-reader",
+        "mxgraph.networks2.biometric reader"
+      ]
+    },
+    {
+      "key": "networks2.biometricReaderShadow",
+      "label": "biometric reader shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "biometric",
+        "reader",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.biometricReaderShadow",
+        "mxgraph.networks2.biometric_reader_shadow",
+        "mxgraph.networks2.biometric-reader-shadow",
+        "mxgraph.networks2.biometric reader shadow"
+      ]
+    },
+    {
+      "key": "networks2.cctv",
+      "label": "cctv",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.04,
+      "defaultHeight": 72.79,
+      "tags": [
+        "networks",
+        "cctv"
+      ],
+      "aliases": [
+        "mxgraph.networks2.cctv"
+      ]
+    },
+    {
+      "key": "networks2.cctvShadow",
+      "label": "cctv shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "cctv",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.cctvShadow",
+        "mxgraph.networks2.cctv_shadow",
+        "mxgraph.networks2.cctv-shadow",
+        "mxgraph.networks2.cctv shadow"
+      ]
+    },
+    {
+      "key": "networks2.cloud",
+      "label": "cloud",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.04,
+      "defaultHeight": 72.22,
+      "tags": [
+        "networks",
+        "cloud"
+      ],
+      "aliases": [
+        "mxgraph.networks2.cloud"
+      ]
+    },
+    {
+      "key": "networks2.cloudShadow",
+      "label": "cloud shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "cloud",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.cloudShadow",
+        "mxgraph.networks2.cloud_shadow",
+        "mxgraph.networks2.cloud-shadow",
+        "mxgraph.networks2.cloud shadow"
+      ]
+    },
+    {
+      "key": "networks2.community",
+      "label": "community",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 87.6,
+      "defaultHeight": 100.29,
+      "tags": [
+        "networks",
+        "community"
+      ],
+      "aliases": [
+        "mxgraph.networks2.community"
+      ]
+    },
+    {
+      "key": "networks2.communityShadow",
+      "label": "community shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "community",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.communityShadow",
+        "mxgraph.networks2.community_shadow",
+        "mxgraph.networks2.community-shadow",
+        "mxgraph.networks2.community shadow"
+      ]
+    },
+    {
+      "key": "networks2.copier",
+      "label": "copier",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 88.61,
+      "defaultHeight": 99.79,
+      "tags": [
+        "networks",
+        "copier"
+      ],
+      "aliases": [
+        "mxgraph.networks2.copier"
+      ]
+    },
+    {
+      "key": "networks2.copierShadow",
+      "label": "copier shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "copier",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.copierShadow",
+        "mxgraph.networks2.copier_shadow",
+        "mxgraph.networks2.copier-shadow",
+        "mxgraph.networks2.copier shadow"
+      ]
+    },
+    {
+      "key": "networks2.dataManagement",
+      "label": "data management",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 82.52,
+      "defaultHeight": 99.89,
+      "tags": [
+        "networks",
+        "data",
+        "management"
+      ],
+      "aliases": [
+        "mxgraph.networks2.dataManagement",
+        "mxgraph.networks2.data_management",
+        "mxgraph.networks2.data-management",
+        "mxgraph.networks2.data management"
+      ]
+    },
+    {
+      "key": "networks2.dataManagementShadow",
+      "label": "data management shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "data",
+        "management",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.dataManagementShadow",
+        "mxgraph.networks2.data_management_shadow",
+        "mxgraph.networks2.data-management-shadow",
+        "mxgraph.networks2.data management shadow"
+      ]
+    },
+    {
+      "key": "networks2.dataStorage",
+      "label": "data storage",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 82.52,
+      "defaultHeight": 99.89,
+      "tags": [
+        "networks",
+        "data",
+        "storage"
+      ],
+      "aliases": [
+        "mxgraph.networks2.dataStorage",
+        "mxgraph.networks2.data_storage",
+        "mxgraph.networks2.data-storage",
+        "mxgraph.networks2.data storage"
+      ]
+    },
+    {
+      "key": "networks2.dataStorageShadow",
+      "label": "data storage shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "data",
+        "storage",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.dataStorageShadow",
+        "mxgraph.networks2.data_storage_shadow",
+        "mxgraph.networks2.data-storage-shadow",
+        "mxgraph.networks2.data storage shadow"
+      ]
+    },
+    {
+      "key": "networks2.desktopPc",
+      "label": "desktop pc",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 45.3,
+      "defaultHeight": 99.95,
+      "tags": [
+        "networks",
+        "desktop",
+        "pc"
+      ],
+      "aliases": [
+        "mxgraph.networks2.desktopPc",
+        "mxgraph.networks2.desktop_pc",
+        "mxgraph.networks2.desktop-pc",
+        "mxgraph.networks2.desktop pc"
+      ]
+    },
+    {
+      "key": "networks2.desktopPcShadow",
+      "label": "desktop pc shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "desktop",
+        "pc",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.desktopPcShadow",
+        "mxgraph.networks2.desktop_pc_shadow",
+        "mxgraph.networks2.desktop-pc-shadow",
+        "mxgraph.networks2.desktop pc shadow"
+      ]
+    },
+    {
+      "key": "networks2.encryption",
+      "label": "encryption",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.01,
+      "defaultHeight": 70.19,
+      "tags": [
+        "networks",
+        "encryption"
+      ],
+      "aliases": [
+        "mxgraph.networks2.encryption"
+      ]
+    },
+    {
+      "key": "networks2.encryptionShadow",
+      "label": "encryption shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "encryption",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.encryptionShadow",
+        "mxgraph.networks2.encryption_shadow",
+        "mxgraph.networks2.encryption-shadow",
+        "mxgraph.networks2.encryption shadow"
+      ]
+    },
+    {
+      "key": "networks2.externalStorage",
+      "label": "external storage",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 79.87,
+      "tags": [
+        "networks",
+        "external",
+        "storage"
+      ],
+      "aliases": [
+        "mxgraph.networks2.externalStorage",
+        "mxgraph.networks2.external_storage",
+        "mxgraph.networks2.external-storage",
+        "mxgraph.networks2.external storage"
+      ]
+    },
+    {
+      "key": "networks2.externalStorageShadow",
+      "label": "external storage shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "external",
+        "storage",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.externalStorageShadow",
+        "mxgraph.networks2.external_storage_shadow",
+        "mxgraph.networks2.external-storage-shadow",
+        "mxgraph.networks2.external storage shadow"
+      ]
+    },
+    {
+      "key": "networks2.firewall",
+      "label": "firewall",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 60.8,
+      "tags": [
+        "networks",
+        "firewall"
+      ],
+      "aliases": [
+        "mxgraph.networks2.firewall"
+      ]
+    },
+    {
+      "key": "networks2.firewallShadow",
+      "label": "firewall shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "firewall",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.firewallShadow",
+        "mxgraph.networks2.firewall_shadow",
+        "mxgraph.networks2.firewall-shadow",
+        "mxgraph.networks2.firewall shadow"
+      ]
+    },
+    {
+      "key": "networks2.gamepad",
+      "label": "gamepad",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.21,
+      "defaultHeight": 73.58,
+      "tags": [
+        "networks",
+        "gamepad"
+      ],
+      "aliases": [
+        "mxgraph.networks2.gamepad"
+      ]
+    },
+    {
+      "key": "networks2.gamepadShadow",
+      "label": "gamepad shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "gamepad",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.gamepadShadow",
+        "mxgraph.networks2.gamepad_shadow",
+        "mxgraph.networks2.gamepad-shadow",
+        "mxgraph.networks2.gamepad shadow"
+      ]
+    },
+    {
+      "key": "networks2.globalServer",
+      "label": "global server",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 100.0,
+      "tags": [
+        "networks",
+        "global",
+        "server"
+      ],
+      "aliases": [
+        "mxgraph.networks2.globalServer",
+        "mxgraph.networks2.global_server",
+        "mxgraph.networks2.global-server",
+        "mxgraph.networks2.global server"
+      ]
+    },
+    {
+      "key": "networks2.globalServerShadow",
+      "label": "global server shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "global",
+        "server",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.globalServerShadow",
+        "mxgraph.networks2.global_server_shadow",
+        "mxgraph.networks2.global-server-shadow",
+        "mxgraph.networks2.global server shadow"
+      ]
+    },
+    {
+      "key": "networks2.globe",
+      "label": "globe",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 100.0,
+      "tags": [
+        "networks",
+        "globe"
+      ],
+      "aliases": [
+        "mxgraph.networks2.globe"
+      ]
+    },
+    {
+      "key": "networks2.globeShadow",
+      "label": "globe shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "globe",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.globeShadow",
+        "mxgraph.networks2.globe_shadow",
+        "mxgraph.networks2.globe-shadow",
+        "mxgraph.networks2.globe shadow"
+      ]
+    },
+    {
+      "key": "networks2.hub",
+      "label": "hub",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 29.38,
+      "tags": [
+        "networks",
+        "hub"
+      ],
+      "aliases": [
+        "mxgraph.networks2.hub"
+      ]
+    },
+    {
+      "key": "networks2.hubShadow",
+      "label": "hub shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "hub",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.hubShadow",
+        "mxgraph.networks2.hub_shadow",
+        "mxgraph.networks2.hub-shadow",
+        "mxgraph.networks2.hub shadow"
+      ]
+    },
+    {
+      "key": "networks2.internet",
+      "label": "internet",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 96.77,
+      "defaultHeight": 77.22,
+      "tags": [
+        "networks",
+        "internet"
+      ],
+      "aliases": [
+        "mxgraph.networks2.internet"
+      ]
+    },
+    {
+      "key": "networks2.internetShadow",
+      "label": "internet shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "internet",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.internetShadow",
+        "mxgraph.networks2.internet_shadow",
+        "mxgraph.networks2.internet-shadow",
+        "mxgraph.networks2.internet shadow"
+      ]
+    },
+    {
+      "key": "networks2.internetSecurity",
+      "label": "internet security",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 100.0,
+      "tags": [
+        "networks",
+        "internet",
+        "security"
+      ],
+      "aliases": [
+        "mxgraph.networks2.internetSecurity",
+        "mxgraph.networks2.internet_security",
+        "mxgraph.networks2.internet-security",
+        "mxgraph.networks2.internet security"
+      ]
+    },
+    {
+      "key": "networks2.internetSecurityShadow",
+      "label": "internet security shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "internet",
+        "security",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.internetSecurityShadow",
+        "mxgraph.networks2.internet_security_shadow",
+        "mxgraph.networks2.internet-security-shadow",
+        "mxgraph.networks2.internet security shadow"
+      ]
+    },
+    {
+      "key": "networks2.lan",
+      "label": "lan",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 108.34,
+      "defaultHeight": 75.64,
+      "tags": [
+        "networks",
+        "lan"
+      ],
+      "aliases": [
+        "mxgraph.networks2.lan"
+      ]
+    },
+    {
+      "key": "networks2.lanShadow",
+      "label": "lan shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "lan",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.lanShadow",
+        "mxgraph.networks2.lan_shadow",
+        "mxgraph.networks2.lan-shadow",
+        "mxgraph.networks2.lan shadow"
+      ]
+    },
+    {
+      "key": "networks2.laptop",
+      "label": "laptop",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 57.34,
+      "tags": [
+        "networks",
+        "laptop"
+      ],
+      "aliases": [
+        "mxgraph.networks2.laptop"
+      ]
+    },
+    {
+      "key": "networks2.laptopShadow",
+      "label": "laptop shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "laptop",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.laptopShadow",
+        "mxgraph.networks2.laptop_shadow",
+        "mxgraph.networks2.laptop-shadow",
+        "mxgraph.networks2.laptop shadow"
+      ]
+    },
+    {
+      "key": "networks2.loadBalancer",
+      "label": "load balancer",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 86.0,
+      "defaultHeight": 76.0,
+      "tags": [
+        "networks",
+        "load",
+        "balancer"
+      ],
+      "aliases": [
+        "mxgraph.networks2.loadBalancer",
+        "mxgraph.networks2.load_balancer",
+        "mxgraph.networks2.load-balancer",
+        "mxgraph.networks2.load balancer"
+      ]
+    },
+    {
+      "key": "networks2.loadBalancerShadow",
+      "label": "load balancer shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "load",
+        "balancer",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.loadBalancerShadow",
+        "mxgraph.networks2.load_balancer_shadow",
+        "mxgraph.networks2.load-balancer-shadow",
+        "mxgraph.networks2.load balancer shadow"
+      ]
+    },
+    {
+      "key": "networks2.lock",
+      "label": "lock",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 80.0,
+      "defaultHeight": 99.99,
+      "tags": [
+        "networks",
+        "lock"
+      ],
+      "aliases": [
+        "mxgraph.networks2.lock"
+      ]
+    },
+    {
+      "key": "networks2.lockShadow",
+      "label": "lock shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "lock",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.lockShadow",
+        "mxgraph.networks2.lock_shadow",
+        "mxgraph.networks2.lock-shadow",
+        "mxgraph.networks2.lock shadow"
+      ]
+    },
+    {
+      "key": "networks2.mailServer",
+      "label": "mail server",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 78.75,
+      "tags": [
+        "networks",
+        "mail",
+        "server"
+      ],
+      "aliases": [
+        "mxgraph.networks2.mailServer",
+        "mxgraph.networks2.mail_server",
+        "mxgraph.networks2.mail-server",
+        "mxgraph.networks2.mail server"
+      ]
+    },
+    {
+      "key": "networks2.mailServerShadow",
+      "label": "mail server shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "mail",
+        "server",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.mailServerShadow",
+        "mxgraph.networks2.mail_server_shadow",
+        "mxgraph.networks2.mail-server-shadow",
+        "mxgraph.networks2.mail server shadow"
+      ]
+    },
+    {
+      "key": "networks2.mainframe",
+      "label": "mainframe",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 47.21,
+      "defaultHeight": 100.0,
+      "tags": [
+        "networks",
+        "mainframe"
+      ],
+      "aliases": [
+        "mxgraph.networks2.mainframe"
+      ]
+    },
+    {
+      "key": "networks2.mainframeShadow",
+      "label": "mainframe shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "mainframe",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.mainframeShadow",
+        "mxgraph.networks2.mainframe_shadow",
+        "mxgraph.networks2.mainframe-shadow",
+        "mxgraph.networks2.mainframe shadow"
+      ]
+    },
+    {
+      "key": "networks2.mobileNetwork",
+      "label": "mobile network",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 52.97,
+      "defaultHeight": 102.0,
+      "tags": [
+        "networks",
+        "mobile",
+        "network"
+      ],
+      "aliases": [
+        "mxgraph.networks2.mobileNetwork",
+        "mxgraph.networks2.mobile_network",
+        "mxgraph.networks2.mobile-network",
+        "mxgraph.networks2.mobile network"
+      ]
+    },
+    {
+      "key": "networks2.mobileNetworkShadow",
+      "label": "mobile network shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "mobile",
+        "network",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.mobileNetworkShadow",
+        "mxgraph.networks2.mobile_network_shadow",
+        "mxgraph.networks2.mobile-network-shadow",
+        "mxgraph.networks2.mobile network shadow"
+      ]
+    },
+    {
+      "key": "networks2.mobilePhone",
+      "label": "mobile phone",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 52.97,
+      "defaultHeight": 102.0,
+      "tags": [
+        "networks",
+        "mobile",
+        "phone"
+      ],
+      "aliases": [
+        "mxgraph.networks2.mobilePhone",
+        "mxgraph.networks2.mobile_phone",
+        "mxgraph.networks2.mobile-phone",
+        "mxgraph.networks2.mobile phone"
+      ]
+    },
+    {
+      "key": "networks2.mobilePhoneShadow",
+      "label": "mobile phone shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "mobile",
+        "phone",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.mobilePhoneShadow",
+        "mxgraph.networks2.mobile_phone_shadow",
+        "mxgraph.networks2.mobile-phone-shadow",
+        "mxgraph.networks2.mobile phone shadow"
+      ]
+    },
+    {
+      "key": "networks2.modem",
+      "label": "modem",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 29.38,
+      "tags": [
+        "networks",
+        "modem"
+      ],
+      "aliases": [
+        "mxgraph.networks2.modem"
+      ]
+    },
+    {
+      "key": "networks2.modemShadow",
+      "label": "modem shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "modem",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.modemShadow",
+        "mxgraph.networks2.modem_shadow",
+        "mxgraph.networks2.modem-shadow",
+        "mxgraph.networks2.modem shadow"
+      ]
+    },
+    {
+      "key": "networks2.monitor",
+      "label": "monitor",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 74.2,
+      "tags": [
+        "networks",
+        "monitor"
+      ],
+      "aliases": [
+        "mxgraph.networks2.monitor"
+      ]
+    },
+    {
+      "key": "networks2.monitorShadow",
+      "label": "monitor shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "monitor",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.monitorShadow",
+        "mxgraph.networks2.monitor_shadow",
+        "mxgraph.networks2.monitor-shadow",
+        "mxgraph.networks2.monitor shadow"
+      ]
+    },
+    {
+      "key": "networks2.nasFiler",
+      "label": "nas filer",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 62.0,
+      "tags": [
+        "networks",
+        "nas",
+        "filer"
+      ],
+      "aliases": [
+        "mxgraph.networks2.nasFiler",
+        "mxgraph.networks2.nas_filer",
+        "mxgraph.networks2.nas-filer",
+        "mxgraph.networks2.nas filer"
+      ]
+    },
+    {
+      "key": "networks2.nasFilerShadow",
+      "label": "nas filer shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "nas",
+        "filer",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.nasFilerShadow",
+        "mxgraph.networks2.nas_filer_shadow",
+        "mxgraph.networks2.nas-filer-shadow",
+        "mxgraph.networks2.nas filer shadow"
+      ]
+    },
+    {
+      "key": "networks2.network",
+      "label": "network",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 86.01,
+      "tags": [
+        "networks",
+        "network"
+      ],
+      "aliases": [
+        "mxgraph.networks2.network"
+      ]
+    },
+    {
+      "key": "networks2.networkShadow",
+      "label": "network shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "network",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.networkShadow",
+        "mxgraph.networks2.network_shadow",
+        "mxgraph.networks2.network-shadow",
+        "mxgraph.networks2.network shadow"
+      ]
+    },
+    {
+      "key": "networks2.networkSecurity",
+      "label": "network security",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 86.0,
+      "tags": [
+        "networks",
+        "network",
+        "security"
+      ],
+      "aliases": [
+        "mxgraph.networks2.networkSecurity",
+        "mxgraph.networks2.network_security",
+        "mxgraph.networks2.network-security",
+        "mxgraph.networks2.network security"
+      ]
+    },
+    {
+      "key": "networks2.networkSecurityShadow",
+      "label": "network security shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "network",
+        "security",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.networkSecurityShadow",
+        "mxgraph.networks2.network_security_shadow",
+        "mxgraph.networks2.network-security-shadow",
+        "mxgraph.networks2.network security shadow"
+      ]
+    },
+    {
+      "key": "networks2.patchPanel",
+      "label": "patch panel",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 33.59,
+      "tags": [
+        "networks",
+        "patch",
+        "panel"
+      ],
+      "aliases": [
+        "mxgraph.networks2.patchPanel",
+        "mxgraph.networks2.patch_panel",
+        "mxgraph.networks2.patch-panel",
+        "mxgraph.networks2.patch panel"
+      ]
+    },
+    {
+      "key": "networks2.patchPanelShadow",
+      "label": "patch panel shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "patch",
+        "panel",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.patchPanelShadow",
+        "mxgraph.networks2.patch_panel_shadow",
+        "mxgraph.networks2.patch-panel-shadow",
+        "mxgraph.networks2.patch panel shadow"
+      ]
+    },
+    {
+      "key": "networks2.pc",
+      "label": "pc",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 99.99,
+      "defaultHeight": 70.96,
+      "tags": [
+        "networks",
+        "pc"
+      ],
+      "aliases": [
+        "mxgraph.networks2.pc"
+      ]
+    },
+    {
+      "key": "networks2.pcShadow",
+      "label": "pc shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "pc",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.pcShadow",
+        "mxgraph.networks2.pc_shadow",
+        "mxgraph.networks2.pc-shadow",
+        "mxgraph.networks2.pc shadow"
+      ]
+    },
+    {
+      "key": "networks2.phone",
+      "label": "phone",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 99.47,
+      "defaultHeight": 79.47,
+      "tags": [
+        "networks",
+        "phone"
+      ],
+      "aliases": [
+        "mxgraph.networks2.phone"
+      ]
+    },
+    {
+      "key": "networks2.phoneShadow",
+      "label": "phone shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "phone",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.phoneShadow",
+        "mxgraph.networks2.phone_shadow",
+        "mxgraph.networks2.phone-shadow",
+        "mxgraph.networks2.phone shadow"
+      ]
+    },
+    {
+      "key": "networks2.printer",
+      "label": "printer",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 100.0,
+      "tags": [
+        "networks",
+        "printer"
+      ],
+      "aliases": [
+        "mxgraph.networks2.printer"
+      ]
+    },
+    {
+      "key": "networks2.printerShadow",
+      "label": "printer shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "printer",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.printerShadow",
+        "mxgraph.networks2.printer_shadow",
+        "mxgraph.networks2.printer-shadow",
+        "mxgraph.networks2.printer shadow"
+      ]
+    },
+    {
+      "key": "networks2.projectorCanvas",
+      "label": "projector canvas",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 104.0,
+      "tags": [
+        "networks",
+        "projector",
+        "canvas"
+      ],
+      "aliases": [
+        "mxgraph.networks2.projectorCanvas",
+        "mxgraph.networks2.projector_canvas",
+        "mxgraph.networks2.projector-canvas",
+        "mxgraph.networks2.projector canvas"
+      ]
+    },
+    {
+      "key": "networks2.projectorCanvasShadow",
+      "label": "projector canvas shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "projector",
+        "canvas",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.projectorCanvasShadow",
+        "mxgraph.networks2.projector_canvas_shadow",
+        "mxgraph.networks2.projector-canvas-shadow",
+        "mxgraph.networks2.projector canvas shadow"
+      ]
+    },
+    {
+      "key": "networks2.rackCabinet",
+      "label": "rack cabinet",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 47.21,
+      "defaultHeight": 100.0,
+      "tags": [
+        "networks",
+        "rack",
+        "cabinet"
+      ],
+      "aliases": [
+        "mxgraph.networks2.rackCabinet",
+        "mxgraph.networks2.rack_cabinet",
+        "mxgraph.networks2.rack-cabinet",
+        "mxgraph.networks2.rack cabinet"
+      ]
+    },
+    {
+      "key": "networks2.rackCabinetShadow",
+      "label": "rack cabinet shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "rack",
+        "cabinet",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.rackCabinetShadow",
+        "mxgraph.networks2.rack_cabinet_shadow",
+        "mxgraph.networks2.rack-cabinet-shadow",
+        "mxgraph.networks2.rack cabinet shadow"
+      ]
+    },
+    {
+      "key": "networks2.router",
+      "label": "router",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 54.85,
+      "tags": [
+        "networks",
+        "router"
+      ],
+      "aliases": [
+        "mxgraph.networks2.router"
+      ]
+    },
+    {
+      "key": "networks2.routerShadow",
+      "label": "router shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "router",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.routerShadow",
+        "mxgraph.networks2.router_shadow",
+        "mxgraph.networks2.router-shadow",
+        "mxgraph.networks2.router shadow"
+      ]
+    },
+    {
+      "key": "networks2.satelliteDish",
+      "label": "satellite dish",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.65,
+      "defaultHeight": 99.57,
+      "tags": [
+        "networks",
+        "satellite",
+        "dish"
+      ],
+      "aliases": [
+        "mxgraph.networks2.satelliteDish",
+        "mxgraph.networks2.satellite_dish",
+        "mxgraph.networks2.satellite-dish",
+        "mxgraph.networks2.satellite dish"
+      ]
+    },
+    {
+      "key": "networks2.satelliteDishShadow",
+      "label": "satellite dish shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "satellite",
+        "dish",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.satelliteDishShadow",
+        "mxgraph.networks2.satellite_dish_shadow",
+        "mxgraph.networks2.satellite-dish-shadow",
+        "mxgraph.networks2.satellite dish shadow"
+      ]
+    },
+    {
+      "key": "networks2.satellite",
+      "label": "satellite",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 115.53,
+      "defaultHeight": 97.41,
+      "tags": [
+        "networks",
+        "satellite"
+      ],
+      "aliases": [
+        "mxgraph.networks2.satellite"
+      ]
+    },
+    {
+      "key": "networks2.satelliteShadow",
+      "label": "satellite shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "satellite",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.satelliteShadow",
+        "mxgraph.networks2.satellite_shadow",
+        "mxgraph.networks2.satellite-shadow",
+        "mxgraph.networks2.satellite shadow"
+      ]
+    },
+    {
+      "key": "networks2.scanner",
+      "label": "scanner",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.01,
+      "defaultHeight": 59.65,
+      "tags": [
+        "networks",
+        "scanner"
+      ],
+      "aliases": [
+        "mxgraph.networks2.scanner"
+      ]
+    },
+    {
+      "key": "networks2.scannerShadow",
+      "label": "scanner shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "scanner",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.scannerShadow",
+        "mxgraph.networks2.scanner_shadow",
+        "mxgraph.networks2.scanner-shadow",
+        "mxgraph.networks2.scanner shadow"
+      ]
+    },
+    {
+      "key": "networks2.server",
+      "label": "server",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.01,
+      "defaultHeight": 58.12,
+      "tags": [
+        "networks",
+        "server"
+      ],
+      "aliases": [
+        "mxgraph.networks2.server"
+      ]
+    },
+    {
+      "key": "networks2.serverShadow",
+      "label": "server shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "server",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.serverShadow",
+        "mxgraph.networks2.server_shadow",
+        "mxgraph.networks2.server-shadow",
+        "mxgraph.networks2.server shadow"
+      ]
+    },
+    {
+      "key": "networks2.socialMedia",
+      "label": "social media",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 102.0,
+      "defaultHeight": 93.2,
+      "tags": [
+        "networks",
+        "social",
+        "media"
+      ],
+      "aliases": [
+        "mxgraph.networks2.socialMedia",
+        "mxgraph.networks2.social_media",
+        "mxgraph.networks2.social-media",
+        "mxgraph.networks2.social media"
+      ]
+    },
+    {
+      "key": "networks2.socialMediaShadow",
+      "label": "social media shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "social",
+        "media",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.socialMediaShadow",
+        "mxgraph.networks2.social_media_shadow",
+        "mxgraph.networks2.social-media-shadow",
+        "mxgraph.networks2.social media shadow"
+      ]
+    },
+    {
+      "key": "networks2.tablet",
+      "label": "tablet",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 65.66,
+      "tags": [
+        "networks",
+        "tablet"
+      ],
+      "aliases": [
+        "mxgraph.networks2.tablet"
+      ]
+    },
+    {
+      "key": "networks2.tabletShadow",
+      "label": "tablet shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "tablet",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.tabletShadow",
+        "mxgraph.networks2.tablet_shadow",
+        "mxgraph.networks2.tablet-shadow",
+        "mxgraph.networks2.tablet shadow"
+      ]
+    },
+    {
+      "key": "networks2.terminal",
+      "label": "terminal",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 85.54,
+      "defaultHeight": 100.0,
+      "tags": [
+        "networks",
+        "terminal"
+      ],
+      "aliases": [
+        "mxgraph.networks2.terminal"
+      ]
+    },
+    {
+      "key": "networks2.terminalShadow",
+      "label": "terminal shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "terminal",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.terminalShadow",
+        "mxgraph.networks2.terminal_shadow",
+        "mxgraph.networks2.terminal-shadow",
+        "mxgraph.networks2.terminal shadow"
+      ]
+    },
+    {
+      "key": "networks2.threat",
+      "label": "threat",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 106.25,
+      "defaultHeight": 95.83,
+      "tags": [
+        "networks",
+        "threat"
+      ],
+      "aliases": [
+        "mxgraph.networks2.threat"
+      ]
+    },
+    {
+      "key": "networks2.threatShadow",
+      "label": "threat shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "threat",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.threatShadow",
+        "mxgraph.networks2.threat_shadow",
+        "mxgraph.networks2.threat-shadow",
+        "mxgraph.networks2.threat shadow"
+      ]
+    },
+    {
+      "key": "networks2.ups",
+      "label": "ups",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 62.0,
+      "defaultHeight": 100.06,
+      "tags": [
+        "networks",
+        "ups"
+      ],
+      "aliases": [
+        "mxgraph.networks2.ups"
+      ]
+    },
+    {
+      "key": "networks2.upsShadow",
+      "label": "ups shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "ups",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.upsShadow",
+        "mxgraph.networks2.ups_shadow",
+        "mxgraph.networks2.ups-shadow",
+        "mxgraph.networks2.ups shadow"
+      ]
+    },
+    {
+      "key": "networks2.userFemale",
+      "label": "user female",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 80.96,
+      "defaultHeight": 99.4,
+      "tags": [
+        "networks",
+        "user",
+        "female"
+      ],
+      "aliases": [
+        "mxgraph.networks2.userFemale",
+        "mxgraph.networks2.user_female",
+        "mxgraph.networks2.user-female",
+        "mxgraph.networks2.user female"
+      ]
+    },
+    {
+      "key": "networks2.userFemaleShadow",
+      "label": "user female shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "user",
+        "female",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.userFemaleShadow",
+        "mxgraph.networks2.user_female_shadow",
+        "mxgraph.networks2.user-female-shadow",
+        "mxgraph.networks2.user female shadow"
+      ]
+    },
+    {
+      "key": "networks2.userMale",
+      "label": "user male",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 89.18,
+      "defaultHeight": 100.03,
+      "tags": [
+        "networks",
+        "user",
+        "male"
+      ],
+      "aliases": [
+        "mxgraph.networks2.userMale",
+        "mxgraph.networks2.user_male",
+        "mxgraph.networks2.user-male",
+        "mxgraph.networks2.user male"
+      ]
+    },
+    {
+      "key": "networks2.userMaleShadow",
+      "label": "user male shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "user",
+        "male",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.userMaleShadow",
+        "mxgraph.networks2.user_male_shadow",
+        "mxgraph.networks2.user-male-shadow",
+        "mxgraph.networks2.user male shadow"
+      ]
+    },
+    {
+      "key": "networks2.userMaleShadow2",
+      "label": "user male shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "user",
+        "male",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.userMaleShadow2",
+        "mxgraph.networks2.user_male_shadow",
+        "mxgraph.networks2.user-male-shadow",
+        "mxgraph.networks2.user male shadow"
+      ]
+    },
+    {
+      "key": "networks2.users",
+      "label": "users",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 103.53,
+      "defaultHeight": 66.23,
+      "tags": [
+        "networks",
+        "users"
+      ],
+      "aliases": [
+        "mxgraph.networks2.users"
+      ]
+    },
+    {
+      "key": "networks2.usersShadow",
+      "label": "users shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "users",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.usersShadow",
+        "mxgraph.networks2.users_shadow",
+        "mxgraph.networks2.users-shadow",
+        "mxgraph.networks2.users shadow"
+      ]
+    },
+    {
+      "key": "networks2.videoProjector",
+      "label": "video projector",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 29.4,
+      "tags": [
+        "networks",
+        "video",
+        "projector"
+      ],
+      "aliases": [
+        "mxgraph.networks2.videoProjector",
+        "mxgraph.networks2.video_projector",
+        "mxgraph.networks2.video-projector",
+        "mxgraph.networks2.video projector"
+      ]
+    },
+    {
+      "key": "networks2.videoProjectorShadow",
+      "label": "video projector shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "video",
+        "projector",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.videoProjectorShadow",
+        "mxgraph.networks2.video_projector_shadow",
+        "mxgraph.networks2.video-projector-shadow",
+        "mxgraph.networks2.video projector shadow"
+      ]
+    },
+    {
+      "key": "networks2.vr",
+      "label": "vr",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 45.0,
+      "tags": [
+        "networks",
+        "vr"
+      ],
+      "aliases": [
+        "mxgraph.networks2.vr"
+      ]
+    },
+    {
+      "key": "networks2.vrShadow",
+      "label": "vr shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "vr",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.vrShadow",
+        "mxgraph.networks2.vr_shadow",
+        "mxgraph.networks2.vr-shadow",
+        "mxgraph.networks2.vr shadow"
+      ]
+    },
+    {
+      "key": "networks2.webHosting",
+      "label": "web hosting",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 91.25,
+      "tags": [
+        "networks",
+        "web",
+        "hosting"
+      ],
+      "aliases": [
+        "mxgraph.networks2.webHosting",
+        "mxgraph.networks2.web_hosting",
+        "mxgraph.networks2.web-hosting",
+        "mxgraph.networks2.web hosting"
+      ]
+    },
+    {
+      "key": "networks2.webHostingShadow",
+      "label": "web hosting shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "web",
+        "hosting",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.webHostingShadow",
+        "mxgraph.networks2.web_hosting_shadow",
+        "mxgraph.networks2.web-hosting-shadow",
+        "mxgraph.networks2.web hosting shadow"
+      ]
+    },
+    {
+      "key": "networks2.wirelessHub",
+      "label": "wireless hub",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 100.0,
+      "defaultHeight": 54.85,
+      "tags": [
+        "networks",
+        "wireless",
+        "hub"
+      ],
+      "aliases": [
+        "mxgraph.networks2.wirelessHub",
+        "mxgraph.networks2.wireless_hub",
+        "mxgraph.networks2.wireless-hub",
+        "mxgraph.networks2.wireless hub"
+      ]
+    },
+    {
+      "key": "networks2.wirelessHubShadow",
+      "label": "wireless hub shadow",
+      "group": "Networks",
+      "sourceFile": "D:\\project\\GitHub\\drawio\\src\\main\\webapp\\stencils\\networks2.xml",
+      "defaultWidth": 140.0,
+      "defaultHeight": 140.0,
+      "tags": [
+        "networks",
+        "wireless",
+        "hub",
+        "shadow"
+      ],
+      "aliases": [
+        "mxgraph.networks2.wirelessHubShadow",
+        "mxgraph.networks2.wireless_hub_shadow",
+        "mxgraph.networks2.wireless-hub-shadow",
+        "mxgraph.networks2.wireless hub shadow"
+      ]
+    }
+  ]
+}
