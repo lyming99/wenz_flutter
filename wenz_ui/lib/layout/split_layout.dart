@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:wenz_ui/utils/mvc.dart';
 
@@ -52,7 +53,7 @@ double _clampPositionForMinSizes({
     safeViewSize,
   );
   final maxPosition = max(
-    0,
+    0.0,
     safeViewSize - _finiteNonNegativeOrZero(secondaryMinSize),
   );
 
