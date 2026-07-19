@@ -263,23 +263,7 @@ class ReorderableTabView extends MvcView<ReorderableTabController> {
 
   @override
   Widget build(BuildContext context) {
-    var pageChild = PageView(
-      controller: controller.pageController,
-      physics: const NeverScrollableScrollPhysics(),
-      children: [
-        for (var item in controller.items)
-          Container(
-            key: ValueKey(item.id),
-            child:   controller.buildItemView(context,item)??
-                Center(
-                  child: Text(
-                    item.id ?? '',
-                    style: const TextStyle(fontSize: 20),
-                  ),
-                ),
-          ),
-      ],
-    );
+    var pageChild = _ReorderableTabPageView(controller: controller);
     if (!showTab) {
       return pageChild;
     }
@@ -312,6 +296,73 @@ class ReorderableTabView extends MvcView<ReorderableTabController> {
           Expanded(child: pageChild),
         ],
       ),
+    );
+  }
+}
+
+class _ReorderableTabPageView extends StatefulWidget {
+  const _ReorderableTabPageView({required this.controller});
+
+  final ReorderableTabController controller;
+
+  @override
+  State<_ReorderableTabPageView> createState() =>
+      _ReorderableTabPageViewState();
+}
+
+class _ReorderableTabPageViewState extends State<_ReorderableTabPageView> {
+  Size? _viewportSize;
+  int _alignmentGeneration = 0;
+
+  void _alignSelectedPageAfterLayout() {
+    final generation = ++_alignmentGeneration;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || generation != _alignmentGeneration) {
+        return;
+      }
+
+      final controller = widget.controller;
+      final selectedItem = controller.selectedItem;
+      if (selectedItem == null || !controller.pageController.hasClients) {
+        return;
+      }
+
+      final selectedIndex = controller.items.indexOf(selectedItem);
+      if (selectedIndex < 0 || selectedIndex >= controller.items.length) {
+        return;
+      }
+      controller.pageController.jumpToPage(selectedIndex);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewportSize = constraints.biggest;
+        if (viewportSize != _viewportSize) {
+          _viewportSize = viewportSize;
+          _alignSelectedPageAfterLayout();
+        }
+
+        return PageView(
+          controller: widget.controller.pageController,
+          physics: const NeverScrollableScrollPhysics(),
+          children: [
+            for (var item in widget.controller.items)
+              Container(
+                key: ValueKey(item.id),
+                child: widget.controller.buildItemView(context, item) ??
+                    Center(
+                      child: Text(
+                        item.id ?? '',
+                        style: const TextStyle(fontSize: 20),
+                      ),
+                    ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
