@@ -387,15 +387,30 @@ class SplitLayoutController extends MvcController {
   }
 
   void updatePosition(double position) {
-    showAnimate = true;
+    showAnimate = !isSplitPanStatus;
     this.position = _finiteNonNegativeOrZero(position);
+    notifyListeners();
+    onPoistionChanged?.call();
+  }
+
+  void updatePanPosition(double position) {
+    showAnimate = false;
+    final mainAxisSize = _currentMainAxisSize;
+    final maxPosition = max(
+      0.0,
+      mainAxisSize - _finiteNonNegativeOrZero(secondaryMinSize),
+    );
+    final minPosition = keepPrimary
+        ? min(_finiteNonNegativeOrZero(primaryMinSize), maxPosition)
+        : 0.0;
+    this.position = _clampBetween(position, minPosition, maxPosition);
     notifyListeners();
     onPoistionChanged?.call();
   }
 
   void updatePanStatus(bool isPanning) {
     isSplitPanStatus = isPanning;
-    showAnimate = isPanning;
+    showAnimate = false;
     notifyListeners();
     onPoistionChanged?.call();
   }
@@ -441,7 +456,7 @@ class SplitLayoutController extends MvcController {
       } else {
         position = effectivePrimaryMin;
       }
-    } else if (position < mainAxisSize) {
+    } else {
       position = _clampPositionForMinSizes(
         position: position,
         viewSize: mainAxisSize,
@@ -450,9 +465,12 @@ class SplitLayoutController extends MvcController {
       );
     }
 
+    panDirectionDelta = null;
+    showAnimate = oldPosition != position;
     if (oldPosition != position) {
       onPoistionChanged?.call();
     }
+    notifyListeners();
   }
 
   void showTwoPane(SplitLayout layout) {
@@ -705,10 +723,8 @@ class SplitLayout extends MvcView<SplitLayoutController> {
             primaryPosition == PrimaryPosition.bottom) {
           delta = -delta;
         }
-        var position = controller._clampPositionToCurrentView(
-          controller.position + delta,
-        );
-        controller.updatePosition(position);
+        final position = controller.position + delta;
+        controller.updatePanPosition(position);
         controller.panDirectionDelta = delta;
       } else {
         var delta = event.delta.dy;
@@ -716,10 +732,8 @@ class SplitLayout extends MvcView<SplitLayoutController> {
             primaryPosition == PrimaryPosition.bottom) {
           delta = -delta;
         }
-        var position = controller._clampPositionToCurrentView(
-          controller.position + delta,
-        );
-        controller.updatePosition(position);
+        final position = controller.position + delta;
+        controller.updatePanPosition(position);
         controller.panDirectionDelta = delta;
       }
     }
@@ -814,10 +828,8 @@ class SplitLayout extends MvcView<SplitLayoutController> {
                 primaryPosition == PrimaryPosition.bottom) {
               delta = -delta;
             }
-            var position = controller._clampPositionToCurrentView(
-              controller.position + delta,
-            );
-            controller.updatePosition(position);
+            final position = controller.position + delta;
+            controller.updatePanPosition(position);
             controller.panDirectionDelta = delta;
           } else {
             var delta = details.delta.dy;
@@ -825,10 +837,8 @@ class SplitLayout extends MvcView<SplitLayoutController> {
                 primaryPosition == PrimaryPosition.bottom) {
               delta = -delta;
             }
-            var position = controller._clampPositionToCurrentView(
-              controller.position + delta,
-            );
-            controller.updatePosition(position);
+            final position = controller.position + delta;
+            controller.updatePanPosition(position);
             controller.panDirectionDelta = delta;
           }
         },
@@ -866,7 +876,7 @@ class SplitLayout extends MvcView<SplitLayoutController> {
       return SizedBox(
         width: safeSplitWidth,
         child: InkWell(
-          hoverColor: appColor.primary.withOpacity(0.2),
+          hoverColor: appColor.primary.withValues(alpha: 0.2),
           onTap: () {
             controller.showTwoPane(this);
           },
@@ -876,7 +886,7 @@ class SplitLayout extends MvcView<SplitLayoutController> {
     return SizedBox(
       height: safeSplitWidth,
       child: InkWell(
-        hoverColor: appColor.primary.withOpacity(0.2),
+        hoverColor: appColor.primary.withValues(alpha: 0.2),
         onTap: () {
           controller.showTwoPane(this);
         },

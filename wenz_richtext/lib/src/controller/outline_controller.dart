@@ -99,6 +99,23 @@ class OutlineItem {
       );
 }
 
+/// A one-shot request emitted when outline navigation selects a heading.
+///
+/// The revision lets a mounted editor distinguish a deliberate outline jump
+/// from ordinary caret movement and perform a pixel-accurate top alignment
+/// after the virtualized target row has been laid out.
+class OutlineNavigationRequest {
+  const OutlineNavigationRequest({
+    required this.revision,
+    required this.blockId,
+    required this.blockIndex,
+  });
+
+  final int revision;
+  final String blockId;
+  final int blockIndex;
+}
+
 /// The top-level block range hidden by a collapsed outline heading.
 ///
 /// Ranges are expressed in [WenzRichTextController.document.blocks] indexes.
@@ -532,6 +549,12 @@ class WenzOutlineController extends ChangeNotifier {
   bool get lastCollapseChangeMovedSelection =>
       _lastCollapseChangeMovedSelection;
 
+  int _navigationRevision = 0;
+  OutlineNavigationRequest? _lastNavigationRequest;
+
+  OutlineNavigationRequest? get lastNavigationRequest =>
+      _lastNavigationRequest;
+
   OutlineBlockProjection? _cachedProjection;
   List<BlockNode>? _cachedProjectionBlocks;
   List<BlockNode>? _observedBlocks;
@@ -858,10 +881,16 @@ class WenzOutlineController extends ChangeNotifier {
       blockIndex: index,
       offset: 0,
     );
+    _lastNavigationRequest = OutlineNavigationRequest(
+      revision: ++_navigationRevision,
+      blockId: block.id,
+      blockIndex: index,
+    );
     _host.setSelection(DocumentSelection(base: position, extent: position));
     if (requestFocus) {
       _host.requestFocus();
     }
+    notifyListeners();
     return true;
   }
 

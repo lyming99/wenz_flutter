@@ -1954,6 +1954,10 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   _CaretKey? _lastScrollCheckedCaret;
   bool _skipNextCaretScrollIntoView = false;
   bool _inputGeometrySyncPending = false;
+  int _lastHandledOutlineNavigationRevision = 0;
+  int _outlineNavigationGeneration = 0;
+  static const int _maxOutlineNavigationRealignFrames = 30;
+  static const double _outlineNavigationTopInset = 12;
 
   /// Last finite size offered to the editor shell. Keyboard/panel occupancy,
   /// rotation, and parent layout changes all flow through these constraints.
@@ -2126,6 +2130,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         _handleOutlineControllerChanged,
       );
       widget.outlineController?.addListener(_handleOutlineControllerChanged);
+      _lastHandledOutlineNavigationRevision = 0;
+      _outlineNavigationGeneration++;
       _syncFindControllerOutline();
       _handleOutlineControllerChanged();
     } else if (oldWidget.findController != widget.findController) {
@@ -2408,14 +2414,25 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       return;
     }
     final outline = widget.outlineController;
+    final navigationRequest = outline?.lastNavigationRequest;
+    final hasNewNavigationRequest = outline != null &&
+        identical(outline.editor, widget.controller) &&
+        navigationRequest != null &&
+        navigationRequest.revision > _lastHandledOutlineNavigationRevision;
+    if (hasNewNavigationRequest) {
+      _lastHandledOutlineNavigationRevision = navigationRequest.revision;
+      _outlineNavigationGeneration++;
+    }
+    final navigationGeneration = _outlineNavigationGeneration;
     final bodyToggleWithoutSelectionMove = outline != null &&
         identical(outline.editor, widget.controller) &&
         outline.lastCollapseChangeReason ==
             OutlineCollapseChangeReason.bodyToggle &&
         !outline.lastCollapseChangeMovedSelection;
     final revealedSelection = _revealCurrentSelectionIfHidden();
-    final shouldScrollCaret =
-        revealedSelection || !bodyToggleWithoutSelectionMove;
+    final shouldScrollCaret = hasNewNavigationRequest ||
+        revealedSelection ||
+        !bodyToggleWithoutSelectionMove;
     if (shouldScrollCaret) {
       _lastScrollCheckedCaret = null;
     } else {
@@ -2428,10 +2445,79 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        if (hasNewNavigationRequest) {
+          _realignOutlineNavigation(
+            navigationRequest,
+            generation: navigationGeneration,
+          );
+          return;
+        }
         if (revealedSelection || !_isInUserScrollCooldown()) {
           _scrollCaretIntoView();
         }
       }
+    });
+  }
+
+  void _realignOutlineNavigation(
+    OutlineNavigationRequest request, {
+    required int generation,
+    int frame = 0,
+    int? previousLayoutRevision,
+    int stableFrames = 0,
+  }) {
+    if (!mounted ||
+        generation != _outlineNavigationGeneration ||
+        !_scrollController.hasClients ||
+        widget.controller.selection?.extent.blockId != request.blockId) {
+      return;
+    }
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null || !renderBox.hasSize) {
+      return;
+    }
+
+    final rowEntry =
+        _registry.blockRowEntry(request.blockId, request.blockIndex);
+    final rowBox = rowEntry?.renderBox;
+    final layoutRevision = _extentCache._layoutRevision;
+    var nextStableFrames = 0;
+    if (rowBox == null || !rowBox.hasSize) {
+      final estimate = _estimateOffsetForBlock(
+        request.blockIndex,
+        viewportHeight: renderBox.size.height,
+      );
+      if (estimate != null) {
+        _jumpToScrollOffset(
+          estimate +
+              renderBox.size.height / 3 -
+              _outlineNavigationTopInset,
+        );
+      }
+    } else {
+      final viewportTop = renderBox.localToGlobal(Offset.zero).dy;
+      final rowTop = rowBox.localToGlobal(Offset.zero).dy;
+      final delta =
+          rowTop - viewportTop - _outlineNavigationTopInset;
+      if (delta.abs() > 0.5) {
+        _jumpToScrollOffset(_scrollController.position.pixels + delta);
+      } else if (previousLayoutRevision == layoutRevision) {
+        nextStableFrames = stableFrames + 1;
+      }
+    }
+
+    if (frame >= _maxOutlineNavigationRealignFrames ||
+        nextStableFrames >= 3) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _realignOutlineNavigation(
+        request,
+        generation: generation,
+        frame: frame + 1,
+        previousLayoutRevision: layoutRevision,
+        stableFrames: nextStableFrames,
+      );
     });
   }
 

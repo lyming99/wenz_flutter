@@ -632,6 +632,15 @@ void main() {
       expect(host.selection?.extent.blockIndex, 0);
       expect(host.selection?.extent.offset, 0);
       expect(host.selection?.extent.path.isBlockText, isTrue);
+      expect(outline.lastNavigationRequest?.blockId, 'h1');
+      expect(outline.lastNavigationRequest?.blockIndex, 0);
+      expect(outline.lastNavigationRequest?.revision, 1);
+
+      expect(
+        outline.selectByAnchor('intro', requestFocus: false),
+        isTrue,
+      );
+      expect(outline.lastNavigationRequest?.revision, 2);
 
       outline.dispose();
       host.dispose();
