@@ -10,6 +10,7 @@ import '../core/model/rich_text_document.dart';
 import '../core/position/document_position.dart';
 import '../core/transaction/change_set.dart';
 import '../input/clipboard_service.dart';
+import '../input/external_image_insertion.dart';
 import '../input/external_image_input.dart';
 import '../input/shortcut_manager.dart';
 import '../plugins/editor_plugin.dart';
@@ -70,6 +71,7 @@ class WenzEditorConfiguration {
     this.enableExternalImageInput = true,
     this.externalImageClipboardReader,
     this.externalImageStore,
+    this.externalImageInsertionResolver,
     this.mentionSearch,
     this.onMentionTap,
     this.onOpenLink,
@@ -196,6 +198,12 @@ class WenzEditorConfiguration {
   /// builds validate file paths/file URIs and materialise in-memory images into
   /// temporary files; unsupported builds return a safe no-op failure.
   final ExternalImageStore? externalImageStore;
+
+  /// Optional host policy for choosing the document position of prepared
+  /// clipboard/drop images.
+  ///
+  /// Returning `null` preserves the interaction's suggested target.
+  final ExternalImageInsertionSelectionResolver? externalImageInsertionResolver;
 
   /// Optional mention search callback used by editor mention suggestion UIs.
   ///
@@ -343,6 +351,7 @@ class WenzEditorConfiguration {
     bool? enableExternalImageInput,
     Object? externalImageClipboardReader = _unset,
     Object? externalImageStore = _unset,
+    Object? externalImageInsertionResolver = _unset,
     Object? mentionSearch = _unset,
     Object? onMentionTap = _unset,
     Object? onOpenLink = _unset,
@@ -402,6 +411,11 @@ class WenzEditorConfiguration {
       externalImageStore: identical(externalImageStore, _unset)
           ? this.externalImageStore
           : externalImageStore as ExternalImageStore?,
+      externalImageInsertionResolver:
+          identical(externalImageInsertionResolver, _unset)
+              ? this.externalImageInsertionResolver
+              : externalImageInsertionResolver
+                  as ExternalImageInsertionSelectionResolver?,
       mentionSearch: identical(mentionSearch, _unset)
           ? this.mentionSearch
           : mentionSearch as WenzMentionSearchCallback?,

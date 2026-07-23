@@ -631,7 +631,7 @@ void main() {
       expect(doc.blocks[0], isA<ImageBlockNode>());
       final image = doc.blocks[0] as ImageBlockNode;
       expect(image.assetId, 'https://x.dev/a.png');
-      expect(image.file, 'alt');
+      expect(image.file, 'https://x.dev/a.png');
       expect(image.altText, 'alt');
     });
 
@@ -641,9 +641,45 @@ void main() {
       final image = doc.blocks.single as ImageBlockNode;
 
       expect(image.assetId, 'https://x.dev/a.png');
-      expect(image.file, 'alt');
+      expect(image.file, 'https://x.dev/a.png');
       expect(image.altText, 'alt');
       expect(image.caption, 'Hero caption');
+    });
+
+    test('normalizes CRLF and strips optional ATX closing hashes', () {
+      const source = '# Windows heading ###\r\n\r\nBody text\r\n';
+      final document = codec.decode(source);
+
+      expect(document.blocks, hasLength(2));
+      expect(document.blocks.first.plainText, 'Windows heading');
+      expect(document.blocks.last.plainText, 'Body text');
+      expect(document.plainText, isNot(contains('\r')));
+    });
+
+    test('only a matching fence closes a fenced code block', () {
+      const source = '```text\nalpha\n~~~\nomega\n```';
+      final document = codec.decode(source);
+
+      expect(document.blocks, hasLength(1));
+      final code = document.blocks.single as CodeBlockNode;
+      expect(code.language, 'text');
+      expect(code.code, 'alpha\n~~~\nomega');
+    });
+
+    test('inline code parses and round-trips without visible backticks', () {
+      const source = 'Use `flutter test` and ``a ` b``.';
+      final document = codec.decode(source);
+      final paragraph = document.blocks.single as TextBlockNode;
+      final codeRuns = paragraph.content
+          .whereType<TextRun>()
+          .where((run) => run.attributes.inlineCode == true)
+          .toList();
+
+      expect(
+        codeRuns.map((run) => run.text),
+        <String>['flutter test', 'a ` b'],
+      );
+      expect(codec.encode(document), source);
     });
 
     test('standalone video placeholder becomes video block', () {

@@ -15,7 +15,11 @@ void main() {
           content: <InlineNode>[
             TextRun(
               text: 'Hello',
-              attributes: TextAttributes(bold: true, color: 0xFFD81B60),
+              attributes: TextAttributes(
+                bold: true,
+                color: 0xFFD81B60,
+                inlineCode: true,
+              ),
             ),
             InlineEmbed(
               embedType: 'formula',
@@ -110,6 +114,12 @@ void main() {
           .attributes
           .color,
       0xFFD81B60,
+    );
+    expect(
+      ((decoded.blocks.first as TextBlockNode).content.first as TextRun)
+          .attributes
+          .inlineCode,
+      isTrue,
     );
     expect(
       (decoded.blocks.first as TextBlockNode).content.last,

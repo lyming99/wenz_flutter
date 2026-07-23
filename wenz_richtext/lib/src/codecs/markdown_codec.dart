@@ -211,8 +211,16 @@ class MarkdownCodec {
   }
 
   String _encodeTextRun(TextRun run) {
-    var text = _escapeInline(run.text);
     final attrs = run.attributes;
+    var text = attrs.inlineCode == true
+        ? _encodeCodeSpan(run.text)
+        : _escapeInline(run.text);
+    if (attrs.inlineCode == true) {
+      if (attrs.url != null && attrs.url!.isNotEmpty) {
+        text = '[$text](${attrs.url})';
+      }
+      return text;
+    }
     if (attrs.lineThrough == true) {
       text = '~~$text~~';
     }
@@ -229,6 +237,29 @@ class MarkdownCodec {
       text = '[$text](${attrs.url})';
     }
     return text;
+  }
+
+  String _encodeCodeSpan(String text) {
+    var longestRun = 0;
+    var currentRun = 0;
+    for (final codeUnit in text.codeUnits) {
+      if (codeUnit == 0x60) {
+        currentRun++;
+        if (currentRun > longestRun) longestRun = currentRun;
+      } else {
+        currentRun = 0;
+      }
+    }
+    final fence = '`' * (longestRun + 1);
+    final normalized = text.replaceAll('\n', ' ');
+    final needsPadding = normalized.startsWith('`') ||
+        normalized.endsWith('`') ||
+        (normalized.startsWith(' ') &&
+            normalized.endsWith(' ') &&
+            normalized.trim().isNotEmpty);
+    return needsPadding
+        ? '$fence $normalized $fence'
+        : '$fence$normalized$fence';
   }
 
   String _encodeEmbed(InlineEmbed embed) {
@@ -370,7 +401,8 @@ class MarkdownCodec {
   /// means any unrecognised line becomes a paragraph; [decode] does not throw
   /// for content. (A non-String / null source is impossible at the type level.)
   RichTextDocument decode(String source) {
-    final lines = source.split('\n');
+    final lines =
+        source.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
     final blocks = <BlockNode>[];
     var blockSeq = 0;
     var i = 0;
@@ -389,13 +421,14 @@ class MarkdownCodec {
       // Fenced code block.
       final fenceMatch = _fenceRegex.firstMatch(line.trimLeft());
       if (fenceMatch != null) {
+        final openingFence = fenceMatch.group(1)!;
         final language =
             _normalizeMermaidCodeLanguage(fenceMatch.group(2) ?? '');
         final codeLines = <String>[];
         i++;
         while (i < lines.length) {
           final codeLine = lines[i];
-          if (_fenceRegex.hasMatch(codeLine.trimLeft())) {
+          if (_isClosingFence(codeLine, openingFence)) {
             i++;
             break;
           }
@@ -414,7 +447,10 @@ class MarkdownCodec {
       final headingMatch = _headingRegex.firstMatch(line.trimLeft());
       if (headingMatch != null) {
         final level = headingMatch.group(1)!.length;
-        final text = headingMatch.group(2)!.trim();
+        final text = headingMatch
+            .group(2)!
+            .replaceFirst(RegExp(r'[ \t]+#+[ \t]*$'), '')
+            .trim();
         blocks.add(TextBlockNode(
           id: newId('h'),
           type: BlockType.heading,
@@ -533,7 +569,7 @@ class MarkdownCodec {
           blocks.add(ImageBlockNode(
             id: newId('image'),
             assetId: source,
-            file: alt,
+            file: source,
             caption: caption,
             altText: alt,
           ));
@@ -670,6 +706,17 @@ class MarkdownCodec {
       if (text[pos] == '\\' && pos + 1 < text.length) {
         buffer.write(text[pos + 1]);
         pos += 2;
+        continue;
+      }
+
+      final codeMatch = _codeSpanAt(text, pos);
+      if (codeMatch != null) {
+        flush();
+        runs.add(TextRun(
+          text: codeMatch.text,
+          attributes: const TextAttributes(inlineCode: true),
+        ));
+        pos = codeMatch.end;
         continue;
       }
 
@@ -1089,6 +1136,66 @@ class MarkdownCodec {
     final normalized = alt.trim().toLowerCase();
     return normalized == 'video' || normalized.startsWith('video:');
   }
+
+  bool _isClosingFence(String line, String openingFence) {
+    final trimmed = line.trimLeft();
+    if (trimmed.isEmpty ||
+        trimmed.codeUnitAt(0) != openingFence.codeUnitAt(0)) {
+      return false;
+    }
+    var runLength = 0;
+    while (runLength < trimmed.length &&
+        trimmed.codeUnitAt(runLength) == openingFence.codeUnitAt(0)) {
+      runLength++;
+    }
+    return runLength >= openingFence.length &&
+        trimmed.substring(runLength).trim().isEmpty;
+  }
+
+  _MarkdownCodeSpanMatch? _codeSpanAt(String source, int start) {
+    if (source.codeUnitAt(start) != 0x60) {
+      return null;
+    }
+    var openingLength = 0;
+    while (start + openingLength < source.length &&
+        source.codeUnitAt(start + openingLength) == 0x60) {
+      openingLength++;
+    }
+    final fence = '`' * openingLength;
+    var searchStart = start + openingLength;
+    while (searchStart < source.length) {
+      final closingStart = source.indexOf(fence, searchStart);
+      if (closingStart < 0) return null;
+      final precededByBacktick =
+          closingStart > 0 && source.codeUnitAt(closingStart - 1) == 0x60;
+      final closingEnd = closingStart + openingLength;
+      final followedByBacktick =
+          closingEnd < source.length && source.codeUnitAt(closingEnd) == 0x60;
+      if (!precededByBacktick && !followedByBacktick) {
+        var content =
+            source.substring(start + openingLength, closingStart).replaceAll(
+                  '\n',
+                  ' ',
+                );
+        if (content.length >= 2 &&
+            content.startsWith(' ') &&
+            content.endsWith(' ') &&
+            content.trim().isNotEmpty) {
+          content = content.substring(1, content.length - 1);
+        }
+        return _MarkdownCodeSpanMatch(content, closingEnd);
+      }
+      searchStart = closingEnd;
+    }
+    return null;
+  }
+}
+
+class _MarkdownCodeSpanMatch {
+  const _MarkdownCodeSpanMatch(this.text, this.end);
+
+  final String text;
+  final int end;
 }
 
 // Regexes are anchored at match positions via `matchAsPrefix` / `firstMatch`

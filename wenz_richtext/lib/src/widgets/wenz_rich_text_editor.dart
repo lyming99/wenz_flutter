@@ -25,6 +25,7 @@ import '../core/position/document_position.dart';
 import '../input/clipboard_debug_log.dart';
 import '../input/composition_state.dart';
 import '../input/editor_text_input_client.dart';
+import '../input/external_image_insertion.dart';
 import '../input/external_image_input.dart';
 import '../input/rich_clipboard_adapter.dart';
 import '../input/external_image_store_stub.dart'
@@ -470,8 +471,8 @@ const double _kBlockMinHeightFactor = 1.35;
 const double _kTodoTextGap = 6.0;
 const double _kTaskListPaddingLeft = 4.0;
 const double _kListTextInset = 26.0;
-const double _kListMarkerWidth = 18.0;
-const double _kListMarkerGap = _kListTextInset - _kListMarkerWidth;
+const double _kListMarkerMinWidth = 18.0;
+const double _kListMarkerGap = _kListTextInset - _kListMarkerMinWidth;
 const double _kListItemSpacing = _kRichTextBodyFontSize * 0.25;
 const double _kNestedListItemSpacing = _kRichTextBodyFontSize * 0.15;
 
@@ -1601,6 +1602,7 @@ class WenzRichTextEditor extends StatefulWidget {
     this.desktopSelectionToolbarBuilder,
     this.externalImageClipboardReader,
     this.externalImageStore,
+    this.externalImageInsertionResolver,
     this.accessibility = const WenzRichTextEditorAccessibility(),
   });
 
@@ -1801,6 +1803,10 @@ class WenzRichTextEditor extends StatefulWidget {
   /// [externalImageClipboardReader] or external file drops. Defaults to the
   /// platform store where available and a no-op stub elsewhere.
   final ExternalImageStore? externalImageStore;
+
+  /// Optional host policy for choosing where prepared clipboard/drop images
+  /// are inserted. Returning `null` keeps the interaction's suggested target.
+  final ExternalImageInsertionSelectionResolver? externalImageInsertionResolver;
 
   /// Accessibility labels, hints, and high-contrast focus styling.
   final WenzRichTextEditorAccessibility accessibility;
@@ -3837,6 +3843,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       _pasteExternalImages(
         images,
         selection: insertionSelection,
+        source: ExternalImageInsertionSource.drop,
       );
     }
   }
@@ -8315,7 +8322,10 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           'count': images.length,
         },
       );
-      _pasteExternalImages(images);
+      _pasteExternalImages(
+        images,
+        source: ExternalImageInsertionSource.clipboard,
+      );
       return;
     }
 
@@ -8603,13 +8613,25 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   void _pasteExternalImages(
     List<ExternalImageBlockDescription> images, {
     DocumentSelection? selection,
+    required ExternalImageInsertionSource source,
   }) {
     if (widget.readOnly) {
       return;
     }
+    final suggestedSelection = selection ?? widget.controller.selection;
+    final resolvedSelection = widget.externalImageInsertionResolver?.call(
+          ExternalImageInsertionContext(
+            source: source,
+            document: widget.controller.document,
+            images: List<ExternalImageBlockDescription>.unmodifiable(images),
+            currentSelection: widget.controller.selection,
+            suggestedSelection: suggestedSelection,
+          ),
+        ) ??
+        suggestedSelection;
     final result = widget.controller.pasteExternalImages(
       images,
-      selection: selection,
+      selection: resolvedSelection,
     );
     if (result.isSuccess) {
       widget.controller.requestFocus();
@@ -13538,6 +13560,9 @@ class _TextBlockRenderer extends StatelessWidget {
       ),
     );
     final prefix = listMarker ?? _prefixFor(block);
+    final markerWidth = prefix == null
+        ? _kListMarkerMinWidth
+        : _listMarkerWidth(context, prefix, effectiveStyle);
     final isQuotedBlock = _isQuoteBlock(block);
     Widget quoteSurface(Widget child) {
       if (!isQuotedBlock) {
@@ -13565,11 +13590,13 @@ class _TextBlockRenderer extends StatelessWidget {
                     key: ValueKey<String>(
                       'wenz-richtext-list-marker-${block.id}',
                     ),
-                    width: _kListMarkerWidth,
+                    width: markerWidth,
                     child: Text(
                       prefix,
                       style: effectiveStyle,
                       textAlign: TextAlign.end,
+                      maxLines: 1,
+                      softWrap: false,
                     ),
                   ),
                   const SizedBox(width: _kListMarkerGap),
@@ -13611,11 +13638,13 @@ class _TextBlockRenderer extends StatelessWidget {
           children: <Widget>[
             SizedBox(
               key: ValueKey<String>('wenz-richtext-list-marker-${block.id}'),
-              width: _kListMarkerWidth,
+              width: markerWidth,
               child: Text(
                 prefix,
                 style: effectiveStyle,
                 textAlign: TextAlign.end,
+                maxLines: 1,
+                softWrap: false,
               ),
             ),
             const SizedBox(width: _kListMarkerGap),
@@ -22463,9 +22492,12 @@ TextStyle _textStyleForAttributes(
               : baseStyle.decorationColor;
   final backgroundColor = attrs.background != null
       ? Color(attrs.background!)
-      : hasRevision
-          ? scheme.primaryContainer.withAlpha(_kInlineRevisionBackgroundAlpha)
-          : baseStyle.backgroundColor;
+      : attrs.inlineCode == true
+          ? scheme.surfaceContainerHighest.withAlpha(180)
+          : hasRevision
+              ? scheme.primaryContainer
+                  .withAlpha(_kInlineRevisionBackgroundAlpha)
+              : baseStyle.backgroundColor;
   return baseStyle.copyWith(
     color: attrs.color != null
         ? Color(attrs.color!)
@@ -22476,7 +22508,7 @@ TextStyle _textStyleForAttributes(
     fontWeight: attrs.bold == true ? FontWeight.w700 : null,
     fontStyle: attrs.italic == true ? FontStyle.italic : null,
     fontSize: attrs.fontSize,
-    fontFamily: attrs.fontFamily,
+    fontFamily: attrs.inlineCode == true ? 'monospace' : attrs.fontFamily,
     decoration:
         decorations.isEmpty ? null : TextDecoration.combine(decorations),
     decorationColor: decorationColor,
@@ -22539,6 +22571,21 @@ String? _listMarkerFor(BlockNode block, int? orderedNumber) {
     'task' => null,
     _ => _unorderedListBullet(indent),
   };
+}
+
+double _listMarkerWidth(
+  BuildContext context,
+  String marker,
+  TextStyle style,
+) {
+  final painter = TextPainter(
+    text: TextSpan(text: marker, style: style),
+    textAlign: TextAlign.end,
+    textDirection: Directionality.of(context),
+    locale: Localizations.maybeLocaleOf(context),
+    maxLines: 1,
+  )..layout();
+  return math.max(_kListMarkerMinWidth, painter.width.ceilToDouble());
 }
 
 String _unorderedListBullet(int indent) {

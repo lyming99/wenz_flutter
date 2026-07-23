@@ -694,6 +694,80 @@ void main() {
     expect(controller.document.plainText, isNot(contains('plain fallback')));
   });
 
+  testWidgets('host can configure the insertion position of image files',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'before',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'before')],
+          ),
+          DividerBlockNode(id: 'anchor'),
+          TextBlockNode(
+            id: 'after',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'after')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('before', 0, 3),
+    );
+    ExternalImageInsertionContext? insertionContext;
+
+    await _pumpPasteEditor(
+      tester,
+      controller,
+      reader: _FakeExternalImageClipboardReader(
+        ExternalImageClipboardData(
+          plainText: 'unused fallback',
+          images: <ExternalImageInput>[
+            ExternalImageInput.filePath(
+              path: 'C:/tmp/configured.png',
+              source: ExternalImageInputSource.clipboard,
+            ),
+          ],
+        ),
+      ),
+      store: _FakeExternalImageStore(
+        const <ExternalImageBlockDescription>[
+          ExternalImageBlockDescription(
+            file: 'C:/tmp/configured.png',
+            caption: 'configured',
+            altText: 'configured',
+          ),
+        ],
+      ),
+      insertionResolver: (context) {
+        insertionContext = context;
+        final position = DocumentPosition.object(
+          blockId: 'anchor',
+          blockIndex: 1,
+        );
+        return DocumentSelection(base: position, extent: position);
+      },
+    );
+
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyV);
+    await tester.pump();
+
+    expect(insertionContext?.source, ExternalImageInsertionSource.clipboard);
+    expect(
+      insertionContext?.currentSelection,
+      collapsedTextSelection('before', 0, 3),
+    );
+    expect(
+      insertionContext?.suggestedSelection,
+      collapsedTextSelection('before', 0, 3),
+    );
+    expect(controller.document.blocks, hasLength(4));
+    expect(controller.document.blocks[0].id, 'before');
+    expect(controller.document.blocks[1], isA<ImageBlockNode>());
+    expect(controller.document.blocks[2].id, 'anchor');
+    expect(controller.document.blocks[3].id, 'after');
+  });
+
   testWidgets('paste keeps sized file URI ahead of paired memory fallback',
       (tester) async {
     final controller = WenzRichTextController(
@@ -4972,6 +5046,63 @@ void main() {
     final doneSpan = _richTextSpan(tester, 'Done task');
     expect(doneSpan.style?.color, theme.colorScheme.onSurfaceVariant);
     expect(doneSpan.style?.decoration, TextDecoration.lineThrough);
+  });
+
+  testWidgets('ordered list markers grow past two digits without wrapping',
+      (tester) async {
+    final blocks = List<BlockNode>.generate(
+      105,
+      (index) => TextBlockNode(
+        id: 'ordered-${index + 1}',
+        type: BlockType.listItem,
+        attributes: const BlockAttributes(listType: 'ordered'),
+        content: <InlineNode>[TextRun(text: 'Item ${index + 1}')],
+      ),
+    );
+    final controller = WenzRichTextController(
+      document: RichTextDocument(blocks: blocks),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 360,
+            height: 5000,
+            child: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final marker = find.byKey(
+      const ValueKey<String>('wenz-richtext-list-marker-ordered-100'),
+    );
+    await tester.scrollUntilVisible(
+      marker,
+      400,
+      scrollable: find.descendant(
+        of: find.byType(WenzRichTextEditor),
+        matching: find.byType(Scrollable),
+      ),
+      maxScrolls: 20,
+    );
+    await tester.pump();
+    expect(marker, findsOneWidget);
+    expect(
+      find.descendant(of: marker, matching: find.text('100.')),
+      findsOneWidget,
+    );
+    expect(tester.getSize(marker).width, greaterThan(18));
+    final markerText = tester.widget<Text>(
+      find.descendant(of: marker, matching: find.byType(Text)),
+    );
+    expect(markerText.maxLines, 1);
+    expect(markerText.softWrap, isFalse);
   });
 
   testWidgets('paragraph converted to quote remains immediately selectable',
@@ -23453,6 +23584,12 @@ Future<void> _sendCtrlShortcut(
     await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
   }
   await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+  if (key == LogicalKeyboardKey.keyV) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 1)),
+    );
+    await tester.pump();
+  }
 }
 
 WenzRichTextController _contextMenuController({
@@ -23553,6 +23690,7 @@ Future<void> _pumpPasteEditor(
   WenzRichTextController controller, {
   ExternalImageClipboardReader? reader,
   ExternalImageStore? store,
+  ExternalImageInsertionSelectionResolver? insertionResolver,
   bool enableExternalImageInput = true,
 }) async {
   final focusNode = FocusNode();
@@ -23567,6 +23705,7 @@ Future<void> _pumpPasteEditor(
           enableExternalImageInput: enableExternalImageInput,
           externalImageClipboardReader: reader,
           externalImageStore: store,
+          externalImageInsertionResolver: insertionResolver,
         ),
       ),
     ),

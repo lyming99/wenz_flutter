@@ -155,8 +155,9 @@ class RichClipboardAdapter {
     final externalData = includeExternalImages
         ? await _readExternalClipboardData()
         : const ExternalImageClipboardData();
-    final fallbackPlainText =
-        richData.plainText ?? await _readFlutterPlainText();
+    final fallbackPlainText = richData.plainText ??
+        externalData.plainText ??
+        await _readFlutterPlainText();
     final snapshot = RichClipboardSnapshot(
       wenzRichText: richData.wenzRichText,
       html: _firstNonEmptyText(richData.html, externalData.html),

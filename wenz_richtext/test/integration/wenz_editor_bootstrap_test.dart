@@ -67,6 +67,41 @@ void main() {
       expect(bootstrap.toJson(), contains('Hello'));
       expect(bootstrap.toHtml(), contains('Hello'));
     });
+
+    test('external image insertion resolver survives configuration assembly',
+        () {
+      DocumentSelection? resolver(ExternalImageInsertionContext context) =>
+          context.suggestedSelection;
+      DocumentSelection? replacement(ExternalImageInsertionContext context) =>
+          context.currentSelection;
+      final configuration = WenzEditorConfiguration(
+        externalImageInsertionResolver: resolver,
+      );
+
+      expect(
+        configuration.copyWith().externalImageInsertionResolver,
+        same(resolver),
+      );
+      expect(
+        configuration
+            .copyWith(externalImageInsertionResolver: replacement)
+            .externalImageInsertionResolver,
+        same(replacement),
+      );
+      expect(
+        configuration
+            .copyWith(externalImageInsertionResolver: null)
+            .externalImageInsertionResolver,
+        isNull,
+      );
+
+      final bootstrap = WenzEditorBootstrap.create(configuration);
+      addTearDown(bootstrap.dispose);
+      expect(
+        bootstrap.buildEditor().externalImageInsertionResolver,
+        same(resolver),
+      );
+    });
   });
 
   group('default desktop toolbar factory', () {

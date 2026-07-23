@@ -170,6 +170,7 @@ export 'src/input/clipboard_debug_log.dart';
 export 'src/input/composition_state.dart';
 export 'src/input/editor_text_input_client.dart';
 export 'src/input/external_image_clipboard_reader.dart';
+export 'src/input/external_image_insertion.dart';
 export 'src/input/external_image_input.dart';
 export 'src/input/rich_clipboard_adapter.dart';
 export 'src/input/shortcut_manager.dart';

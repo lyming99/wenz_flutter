@@ -20,6 +20,7 @@ class TextAttributes {
     this.fontFamily,
     this.underline,
     this.lineThrough,
+    this.inlineCode,
     this.remark,
     this.url,
     this.commentIds = const <String>[],
@@ -39,6 +40,7 @@ class TextAttributes {
   final String? fontFamily;
   final bool? underline;
   final bool? lineThrough;
+  final bool? inlineCode;
   final bool? remark;
   final String? url;
   final List<String> commentIds;
@@ -53,6 +55,7 @@ class TextAttributes {
       fontFamily == null &&
       underline == null &&
       lineThrough == null &&
+      inlineCode == null &&
       remark == null &&
       url == null &&
       commentIds.isEmpty &&
@@ -68,6 +71,7 @@ class TextAttributes {
       fontFamily: fontFamily ?? parent.fontFamily,
       underline: underline ?? parent.underline,
       lineThrough: lineThrough ?? parent.lineThrough,
+      inlineCode: inlineCode ?? parent.inlineCode,
       remark: remark ?? parent.remark,
       url: url ?? parent.url,
       commentIds: commentIds.isEmpty ? parent.commentIds : commentIds,
@@ -84,6 +88,7 @@ class TextAttributes {
     String? fontFamily,
     bool? underline,
     bool? lineThrough,
+    bool? inlineCode,
     bool? remark,
     String? url,
     List<String>? commentIds,
@@ -98,6 +103,7 @@ class TextAttributes {
       fontFamily: fontFamily ?? this.fontFamily,
       underline: underline ?? this.underline,
       lineThrough: lineThrough ?? this.lineThrough,
+      inlineCode: inlineCode ?? this.inlineCode,
       remark: remark ?? this.remark,
       url: url ?? this.url,
       commentIds: commentIds ?? this.commentIds,
@@ -115,6 +121,7 @@ class TextAttributes {
       fontFamily: overlay.fontFamily ?? fontFamily,
       underline: overlay.underline ?? underline,
       lineThrough: overlay.lineThrough ?? lineThrough,
+      inlineCode: overlay.inlineCode ?? inlineCode,
       remark: overlay.remark ?? remark,
       url: overlay.url ?? url,
       commentIds: overlay.commentIds.isEmpty ? commentIds : overlay.commentIds,
@@ -133,6 +140,7 @@ class TextAttributes {
       if (fontFamily != null) 'fontFamily': fontFamily,
       if (underline != null) 'underline': underline,
       if (lineThrough != null) 'lineThrough': lineThrough,
+      if (inlineCode != null) 'inlineCode': inlineCode,
       if (remark != null) 'remark': remark,
       if (url != null) 'url': url,
       if (commentIds.isNotEmpty) 'commentIds': commentIds,
@@ -150,6 +158,7 @@ class TextAttributes {
       fontFamily: json['fontFamily'] as String?,
       underline: json['underline'] as bool?,
       lineThrough: json['lineThrough'] as bool?,
+      inlineCode: json['inlineCode'] as bool?,
       remark: json['remark'] as bool?,
       url: json['url'] as String?,
       commentIds: _asStringList(json['commentIds']),
@@ -168,6 +177,7 @@ class TextAttributes {
         other.fontFamily == fontFamily &&
         other.underline == underline &&
         other.lineThrough == lineThrough &&
+        other.inlineCode == inlineCode &&
         other.remark == remark &&
         other.url == url &&
         _listEquals(other.commentIds, commentIds) &&
@@ -185,6 +195,7 @@ class TextAttributes {
       fontFamily,
       underline,
       lineThrough,
+      inlineCode,
       remark,
       url,
       Object.hashAll(commentIds),

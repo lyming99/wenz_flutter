@@ -605,6 +605,8 @@ class WenzEditorBootstrap {
           effectiveDesktopSelectionToolbarBuilder,
       externalImageClipboardReader: configuration.externalImageClipboardReader,
       externalImageStore: configuration.externalImageStore,
+      externalImageInsertionResolver:
+          configuration.externalImageInsertionResolver,
       accessibility: configuration.accessibility,
     );
   }
