@@ -14591,14 +14591,65 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pump();
     expect(controller.selection?.extent.blockId, 'p2');
-    expect(controller.selection?.extent.offset, 0);
+    expect(controller.selection?.extent.offset, 5);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
     await tester.pump();
-    // Up from the start of p2 returns to the end of p1.
+    // Up from the matching column in p2 returns to the end of p1.
     expect(controller.selection?.extent.blockId, 'p1');
     expect(controller.selection?.extent.offset, 5);
   });
+
+  testWidgets(
+    'vertical caret motion remembers x across a short intermediate block',
+    (tester) async {
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'abcdefghij')],
+            ),
+            TextBlockNode(
+              id: 'p2',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'x')],
+            ),
+            TextBlockNode(
+              id: 'p3',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'abcdefghij')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('p1', 0, 8),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WenzRichTextEditor(
+              controller: controller,
+              autofocus: true,
+              enableIme: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      expect(controller.selection?.extent.blockId, 'p2');
+      expect(controller.selection?.extent.offset, 1);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      expect(controller.selection?.extent.blockId, 'p3');
+      expect(controller.selection?.extent.offset, 8);
+    },
+  );
 
   testWidgets('held arrow key (auto-repeat) moves the caret each repeat', (
     tester,

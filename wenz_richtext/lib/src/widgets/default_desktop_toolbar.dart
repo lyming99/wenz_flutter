@@ -446,6 +446,14 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
             enabled: state.canSetBlockType,
             onPressed: toolbar.setUnorderedList,
           ),
+          _MarkButton(
+            buttonKey: const ValueKey<String>('rich-inline-code-toggle'),
+            tooltip: '行内代码',
+            icon: WenzLucideToolbarIcons.code,
+            mark: TextMark.inlineCode,
+            toolbar: toolbar,
+            state: state,
+          ),
           _ToolbarDivider(
             visible: style.showGroupDividers,
             preserveWidth: true,
@@ -543,20 +551,21 @@ class _ToolbarIconButton extends StatelessWidget {
     required this.enabled,
     required this.onPressed,
     this.selected = false,
-    this.iconColor,
+    this.buttonKey,
   });
 
   final String tooltip;
   final String icon;
   final bool enabled;
   final bool selected;
-  final Color? iconColor;
+  final Key? buttonKey;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return IconButton(
+      key: buttonKey,
       tooltip: tooltip,
       iconSize: _kToolbarIconSize,
       isSelected: selected,
@@ -564,7 +573,6 @@ class _ToolbarIconButton extends StatelessWidget {
       onPressed: enabled ? onPressed : null,
       icon: WenzLucideToolbarIcon(
         icon,
-        color: enabled ? iconColor : null,
         enabled: enabled,
       ),
     );
@@ -578,6 +586,7 @@ class _MarkButton extends StatelessWidget {
     required this.mark,
     required this.toolbar,
     required this.state,
+    this.buttonKey,
   });
 
   final String tooltip;
@@ -585,12 +594,17 @@ class _MarkButton extends StatelessWidget {
   final TextMark mark;
   final ToolbarController toolbar;
   final ToolbarState state;
+  final Key? buttonKey;
 
   @override
   Widget build(BuildContext context) {
     return _ToolbarIconButton(
-      tooltip: tooltip,
+      tooltip:
+          mark == TextMark.inlineCode && state.isMarkActive(TextMark.inlineCode)
+              ? '移除行内代码'
+              : tooltip,
       icon: icon,
+      buttonKey: buttonKey,
       selected: state.isMarkActive(mark),
       enabled: state.canToggleMark,
       onPressed: () => toolbar.toggleMark(mark),
@@ -1842,7 +1856,7 @@ String _textColorTooltip(ToolbarState state) {
 String _clearTextColorTooltip(ToolbarState state) {
   final unavailable = state.canFormatInline ? '' : '不可用';
   if (state.textColorMixed) {
-    final tooltip = '清除混合文字颜色';
+    const tooltip = '清除混合文字颜色';
     return unavailable.isEmpty ? tooltip : '$tooltip$unavailable';
   }
   if (state.textColor == null) {

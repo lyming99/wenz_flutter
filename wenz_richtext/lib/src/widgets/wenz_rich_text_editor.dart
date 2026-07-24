@@ -14,6 +14,7 @@ import '../controller/find_replace_controller.dart';
 import '../controller/outline_controller.dart';
 import '../controller/slash_menu_controller.dart';
 import '../controller/wenz_rich_text_controller.dart';
+import '../core/commands/inline_commands.dart';
 import '../core/commands/inline_editing.dart';
 import '../core/model/attributes.dart';
 import '../core/model/block_node.dart';
@@ -7625,6 +7626,18 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         controller.redo();
         _revealCurrentSelectionIfHidden();
         return;
+      case EditorShortcutIntent.toggleBold:
+        _revealCurrentSelectionIfHidden();
+        controller.execute(const ToggleMarkCommand(TextMark.bold));
+        return;
+      case EditorShortcutIntent.toggleItalic:
+        _revealCurrentSelectionIfHidden();
+        controller.execute(const ToggleMarkCommand(TextMark.italic));
+        return;
+      case EditorShortcutIntent.toggleInlineCode:
+        _revealCurrentSelectionIfHidden();
+        controller.execute(const ToggleMarkCommand(TextMark.inlineCode));
+        return;
       case EditorShortcutIntent.copy:
         _handleCopy();
         return;
@@ -8176,8 +8189,10 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     );
     final target = result?.targetOffset;
     if (target != null) {
-      // Remember the local column for repeated vertical moves.
-      _verticalPreferX = result?.caretX ?? _verticalPreferX;
+      // Seed the preferred column once. Short intermediate lines must not
+      // overwrite it, otherwise a later long line can never return to the
+      // original horizontal position.
+      _verticalPreferX ??= result?.caretX;
       final next = extent.copyWith(offset: target);
       controller.setSelection(
         shift
@@ -8187,7 +8202,23 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       return;
     }
     // At the block's first/last visual line: cross to the neighbour.
-    _verticalPreferX = null;
+    _verticalPreferX ??= result?.caretX;
+    final preferX = _verticalPreferX;
+    if (preferX != null) {
+      final next = _registry.verticalBoundaryTarget(
+        extent,
+        forward,
+        preferX: preferX,
+      );
+      if (next != null) {
+        controller.setSelection(
+          shift
+              ? DocumentSelection(base: selection.base, extent: next)
+              : DocumentSelection(base: next, extent: next),
+        );
+        return;
+      }
+    }
     controller.moveCaretVertical(forward: forward, expandSelection: shift);
   }
 
@@ -13807,6 +13838,7 @@ class _TextBlockRenderer extends StatelessWidget {
         children: inlineTextLayout.spans,
       ),
       offsetMapper: inlineTextLayout.offsetMapper,
+      inlineCodeRanges: inlineTextLayout.inlineCodeRanges,
       textAlign: _textAlign(block.attributes.alignment),
       minHeight: isTodoListItem
           ? _lineHeightFor(effectiveStyle, tokens)
@@ -16319,11 +16351,13 @@ class _TableCellTextLayout {
     required this.textLength,
     required this.textSpan,
     required this.offsetMapper,
+    required this.inlineCodeRanges,
   });
 
   final int textLength;
   final InlineSpan textSpan;
   final _InlineOffsetMapper offsetMapper;
+  final List<TextRange> inlineCodeRanges;
 }
 
 _TableCellTextLayout _tableCellTextLayoutFor({
@@ -16363,6 +16397,7 @@ _TableCellTextLayout _tableCellTextLayoutFor({
           : inlineTextLayout.spans,
     ),
     offsetMapper: inlineTextLayout.offsetMapper,
+    inlineCodeRanges: inlineTextLayout.inlineCodeRanges,
   );
 }
 
@@ -16994,6 +17029,7 @@ class _TableCellSurfaceState extends State<_TableCellSurface> {
       textLength: textLayout.textLength,
       textSpan: textLayout.textSpan,
       offsetMapper: textLayout.offsetMapper,
+      inlineCodeRanges: textLayout.inlineCodeRanges,
       textAlign: widget.textAlign,
       minHeight: (widget.textStyle.fontSize ?? 14) * _kBlockMinHeightFactor,
       selection: widget.selection,
@@ -17423,6 +17459,7 @@ class _TextSelectionSurface extends StatefulWidget {
     required this.registry,
     required this.showDebugOverlay,
     this.findRanges = const <_FindHighlightRange>[],
+    this.inlineCodeRanges = const <TextRange>[],
     this.selectionHighlightColor,
     this.paintSelectionHighlight = true,
     this.hitTestKey,
@@ -17442,6 +17479,7 @@ class _TextSelectionSurface extends StatefulWidget {
   final BlockGeometryRegistry registry;
   final bool showDebugOverlay;
   final List<_FindHighlightRange> findRanges;
+  final List<TextRange> inlineCodeRanges;
   final Color? selectionHighlightColor;
   final bool paintSelectionHighlight;
   final bool clampHitTestToVisibleBounds;
@@ -17911,41 +17949,61 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
         // hit-local-to-text-local offset mapping via the hitTestKey mechanism.
         final textHitBoxMinWidth = minWidth;
         final text = CustomPaint(
-          painter: _SelectionHighlightPainter(
+          key: widget.inlineCodeRanges.isEmpty
+              ? null
+              : const ValueKey<String>(
+                  'wenz-richtext-inline-code-background',
+                ),
+          painter: _InlineCodeBackgroundPainter(
             layoutService: _layoutService,
             textSpan: widget.textSpan,
-            offsetMapper: widget.offsetMapper,
             textAlign: widget.textAlign,
             textDirection: direction,
             locale: locale,
             minWidth: minWidth,
             maxWidth: maxWidth,
-            range: selectionRange,
-            color: selectionHighlightColor,
+            ranges: widget.inlineCodeRanges,
+            color: theme.brightness == Brightness.dark
+                ? theme.colorScheme.onSurface.withAlpha(48)
+                : theme.colorScheme.onSurface.withAlpha(32),
           ),
           child: CustomPaint(
-            painter: _FindHighlightPainter(
+            painter: _SelectionHighlightPainter(
               layoutService: _layoutService,
               textSpan: widget.textSpan,
+              offsetMapper: widget.offsetMapper,
               textAlign: widget.textAlign,
               textDirection: direction,
               locale: locale,
               minWidth: minWidth,
               maxWidth: maxWidth,
-              ranges: widget.findRanges,
-              color: findHighlightColor,
-              activeColor: activeFindHighlightColor,
+              range: selectionRange,
+              color: selectionHighlightColor,
             ),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minWidth: textHitBoxMinWidth,
-                minHeight: widget.minHeight,
-              ),
-              child: RichText(
-                text: widget.textSpan,
+            child: CustomPaint(
+              painter: _FindHighlightPainter(
+                layoutService: _layoutService,
+                textSpan: widget.textSpan,
                 textAlign: widget.textAlign,
                 textDirection: direction,
                 locale: locale,
+                minWidth: minWidth,
+                maxWidth: maxWidth,
+                ranges: widget.findRanges,
+                color: findHighlightColor,
+                activeColor: activeFindHighlightColor,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minWidth: textHitBoxMinWidth,
+                  minHeight: widget.minHeight,
+                ),
+                child: RichText(
+                  text: widget.textSpan,
+                  textAlign: widget.textAlign,
+                  textDirection: direction,
+                  locale: locale,
+                ),
               ),
             ),
           ),
@@ -18066,10 +18124,12 @@ class _InlineTextLayout {
   const _InlineTextLayout({
     required this.spans,
     required this.offsetMapper,
+    required this.inlineCodeRanges,
   });
 
   final List<InlineSpan> spans;
   final _InlineOffsetMapper offsetMapper;
+  final List<TextRange> inlineCodeRanges;
 }
 
 class _InlineOffsetMapper {
@@ -18235,6 +18295,75 @@ class _FindHighlightRange extends _LocalSelectionRange {
   });
 
   final bool active;
+}
+
+class _InlineCodeBackgroundPainter extends CustomPainter {
+  const _InlineCodeBackgroundPainter({
+    required this.layoutService,
+    required this.textSpan,
+    required this.textAlign,
+    required this.textDirection,
+    required this.locale,
+    required this.minWidth,
+    required this.maxWidth,
+    required this.ranges,
+    required this.color,
+  });
+
+  final TextLayoutService layoutService;
+  final InlineSpan textSpan;
+  final TextAlign textAlign;
+  final TextDirection textDirection;
+  final Locale? locale;
+  final double minWidth;
+  final double maxWidth;
+  final List<TextRange> ranges;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (ranges.isEmpty) {
+      return;
+    }
+    final painter = layoutService.layout(
+      span: textSpan,
+      textAlign: textAlign,
+      textDirection: textDirection,
+      locale: locale,
+      minWidth: minWidth,
+      maxWidth: maxWidth,
+    );
+    final paint = Paint()..color = color;
+    for (final range in ranges) {
+      if (!range.isValid || range.isCollapsed) {
+        continue;
+      }
+      final boxes = layoutService.selectionBoxes(
+        painter,
+        range.start,
+        range.end,
+      );
+      for (final box in boxes) {
+        final rect = box.toRect().inflate(1.5);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(rect, const Radius.circular(4)),
+          paint,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _InlineCodeBackgroundPainter oldDelegate) {
+    return oldDelegate.textSpan != textSpan ||
+        oldDelegate.textAlign != textAlign ||
+        oldDelegate.textDirection != textDirection ||
+        oldDelegate.locale != locale ||
+        oldDelegate.minWidth != minWidth ||
+        oldDelegate.maxWidth != maxWidth ||
+        oldDelegate.ranges != ranges ||
+        oldDelegate.color != color;
+  }
 }
 
 class _FindHighlightPainter extends CustomPainter {
@@ -20010,6 +20139,11 @@ class _ObjectMoreMenuState extends State<_ObjectMoreMenu> {
           icon: Icons.content_copy_outlined,
           label: '复制$mediaLabel路径',
         ),
+        _mediaResourceActionMenuItem(
+          action: MediaResourceAction.showDetails,
+          icon: Icons.info_outline,
+          label: '查看$mediaLabel详情',
+        ),
         if (widget.imageActions)
           _mediaResourceActionMenuItem(
             action: MediaResourceAction.copyImage,
@@ -21604,6 +21738,7 @@ class _CalloutRendererState extends State<_CalloutRenderer> {
                         children: inlineTextLayout.spans,
                       ),
                       offsetMapper: inlineTextLayout.offsetMapper,
+                      inlineCodeRanges: inlineTextLayout.inlineCodeRanges,
                       textAlign: TextAlign.start,
                       minHeight:
                           (bodyStyle.fontSize ?? 14) * _kBlockMinHeightFactor,
@@ -21977,6 +22112,7 @@ _InlineTextLayout _inlineTextLayoutFor(
 }) {
   final spans = <InlineSpan>[];
   final segments = <_InlineOffsetSegment>[];
+  final inlineCodeRanges = <TextRange>[];
   var logicalCursor = 0;
   var renderCursor = 0;
   for (final node in nodes) {
@@ -22019,6 +22155,23 @@ _InlineTextLayout _inlineTextLayoutFor(
           ];
     final renderLength = _inlineSpanTextLength(nodeSpans);
     spans.addAll(nodeSpans);
+    if (node is TextRun &&
+        node.attributes.inlineCode == true &&
+        renderLength > 0) {
+      final range = TextRange(
+        start: renderCursor,
+        end: renderCursor + renderLength,
+      );
+      if (inlineCodeRanges.isNotEmpty &&
+          inlineCodeRanges.last.end == range.start) {
+        final previous = inlineCodeRanges.removeLast();
+        inlineCodeRanges.add(
+          TextRange(start: previous.start, end: range.end),
+        );
+      } else {
+        inlineCodeRanges.add(range);
+      }
+    }
     if (logicalLength > 0 || renderLength > 0) {
       segments.add(
         _InlineOffsetSegment(
@@ -22040,6 +22193,7 @@ _InlineTextLayout _inlineTextLayoutFor(
       logicalLength: logicalCursor,
       renderLength: renderCursor,
     ),
+    inlineCodeRanges: List<TextRange>.unmodifiable(inlineCodeRanges),
   );
 }
 
@@ -22781,12 +22935,9 @@ TextStyle _textStyleForAttributes(
               : baseStyle.decorationColor;
   final backgroundColor = attrs.background != null
       ? Color(attrs.background!)
-      : attrs.inlineCode == true
-          ? scheme.surfaceContainerHighest.withAlpha(180)
-          : hasRevision
-              ? scheme.primaryContainer
-                  .withAlpha(_kInlineRevisionBackgroundAlpha)
-              : baseStyle.backgroundColor;
+      : hasRevision
+          ? scheme.primaryContainer.withAlpha(_kInlineRevisionBackgroundAlpha)
+          : baseStyle.backgroundColor;
   return baseStyle.copyWith(
     color: attrs.color != null
         ? Color(attrs.color!)

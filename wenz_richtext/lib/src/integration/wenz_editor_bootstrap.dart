@@ -549,11 +549,13 @@ class WenzEditorBootstrap {
     ValueChanged<String>? onSelectionSearchRequested,
     VoidCallback? onReplaceRequested,
     WenzLinkInteractionCallback? onOpenLink,
+    EditorShortcutConfiguration? shortcutConfiguration,
   }) {
-    final shortcutConfiguration = EditorShortcutConfiguration.merge(
+    final effectiveShortcutConfiguration = EditorShortcutConfiguration.merge(
       <EditorShortcutConfiguration>[
         ...pluginShortcutConfigurations,
         configuration.shortcutConfiguration,
+        if (shortcutConfiguration != null) shortcutConfiguration,
       ],
     );
     final effectiveDesktopToolbarMode =
@@ -586,7 +588,7 @@ class WenzEditorBootstrap {
           readOnly ?? (configuration.permission == WenzEditorPermission.read),
       showDebugOverlay: showDebugOverlay,
       enableIme: enableIme,
-      shortcutConfiguration: shortcutConfiguration,
+      shortcutConfiguration: effectiveShortcutConfiguration,
       contextMenuConfiguration: configuration.contextMenuConfiguration ??
           const WenzEditorContextMenuConfiguration(),
       blockRenderers: blockRendererRegistry,

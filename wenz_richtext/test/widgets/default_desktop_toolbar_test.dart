@@ -33,6 +33,7 @@ void main() {
         '任务列表',
         '有序列表',
         '无序列表',
+        '行内代码',
         '对齐方式：无对齐',
       ]) {
         expect(find.byTooltip(tooltip), findsOneWidget);
@@ -430,6 +431,20 @@ void main() {
         isTrue,
       );
 
+      expect(
+        find.byKey(const ValueKey<String>('rich-inline-code-toggle')),
+        findsOneWidget,
+      );
+      await _tapToolbarButton(tester, '行内代码');
+      expect(_iconButton(tester, '移除行内代码').isSelected, isTrue);
+      expect(
+        _hasRun(
+          harness.controller,
+          (run) => run.attributes.inlineCode == true,
+        ),
+        isTrue,
+      );
+
       await _tapToolbarButton(tester, '清除样式');
       expect(_hasRun(harness.controller, (run) => run.attributes.bold == true),
           isFalse);
@@ -445,6 +460,13 @@ void main() {
         _hasRun(
           harness.controller,
           (run) => run.attributes.lineThrough == true,
+        ),
+        isFalse,
+      );
+      expect(
+        _hasRun(
+          harness.controller,
+          (run) => run.attributes.inlineCode == true,
         ),
         isFalse,
       );
@@ -1503,6 +1525,7 @@ void _expectDefaultToolbarSequence(WidgetTester tester) {
     '任务列表',
     '有序列表',
     '无序列表',
+    '行内代码',
     '对齐方式：无对齐',
     '插入元素',
   ]);

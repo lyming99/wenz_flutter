@@ -401,7 +401,7 @@ int inlineNodesLength(List<InlineNode> nodes) {
 }
 
 /// Boolean inline marks toggleable by [ToggleMarkCommand] / [toggleTableCellMark].
-enum TextMark { bold, italic, underline, lineThrough, remark }
+enum TextMark { bold, italic, underline, lineThrough, inlineCode, remark }
 
 /// The attributes that apply (turn on) a single [mark].
 TextAttributes markAttributes(TextMark mark) {
@@ -410,6 +410,7 @@ TextAttributes markAttributes(TextMark mark) {
     TextMark.italic => const TextAttributes(italic: true),
     TextMark.underline => const TextAttributes(underline: true),
     TextMark.lineThrough => const TextAttributes(lineThrough: true),
+    TextMark.inlineCode => const TextAttributes(inlineCode: true),
     TextMark.remark => const TextAttributes(remark: true),
   };
 }
@@ -434,6 +435,7 @@ bool anyRunHasMark(
       TextMark.italic => node.attributes.italic == true,
       TextMark.underline => node.attributes.underline == true,
       TextMark.lineThrough => node.attributes.lineThrough == true,
+      TextMark.inlineCode => node.attributes.inlineCode == true,
       TextMark.remark => node.attributes.remark == true,
     };
     if (on) {
@@ -490,8 +492,11 @@ TextAttributes withoutMark(TextAttributes attrs, TextMark mark) {
     fontFamily: attrs.fontFamily,
     underline: mark == TextMark.underline ? null : attrs.underline,
     lineThrough: mark == TextMark.lineThrough ? null : attrs.lineThrough,
+    inlineCode: mark == TextMark.inlineCode ? null : attrs.inlineCode,
     remark: mark == TextMark.remark ? null : attrs.remark,
     url: attrs.url,
+    commentIds: attrs.commentIds,
+    revisionIds: attrs.revisionIds,
   );
 }
 
@@ -543,8 +548,11 @@ List<InlineNode> withUrl(
             fontFamily: node.attributes.fontFamily,
             underline: node.attributes.underline,
             lineThrough: node.attributes.lineThrough,
+            inlineCode: node.attributes.inlineCode,
             remark: node.attributes.remark,
             url: url, // overwrite (not merge) so null clears the link
+            commentIds: node.attributes.commentIds,
+            revisionIds: node.attributes.revisionIds,
           ),
         ),
       );

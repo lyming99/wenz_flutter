@@ -12,6 +12,9 @@ enum MediaResourceAction {
   /// Copies the resolved local resource path as text.
   copyPath,
 
+  /// Shows host-provided local file metadata for the resource.
+  showDetails,
+
   /// Copies the resolved image bytes to an image-capable clipboard.
   ///
   /// This action is only meaningful for [MediaResourceType.image].

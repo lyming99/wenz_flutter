@@ -141,6 +141,7 @@ class ToolbarState {
     required this.italic,
     required this.underline,
     required this.lineThrough,
+    required this.inlineCode,
     required this.remark,
     required this.textColor,
     required this.textColorMixed,
@@ -215,6 +216,7 @@ class ToolbarState {
   final bool italic;
   final bool underline;
   final bool lineThrough;
+  final bool inlineCode;
   final bool remark;
 
   /// The single inline font color shared by the selection as `0xAARRGGBB`.
@@ -262,6 +264,7 @@ class ToolbarState {
       TextMark.italic => italic,
       TextMark.underline => underline,
       TextMark.lineThrough => lineThrough,
+      TextMark.inlineCode => inlineCode,
       TextMark.remark => remark,
     };
   }
@@ -303,6 +306,7 @@ class ToolbarState {
     italic: false,
     underline: false,
     lineThrough: false,
+    inlineCode: false,
     remark: false,
     textColor: null,
     textColorMixed: false,
@@ -339,6 +343,7 @@ class ToolbarState {
     bool? italic,
     bool? underline,
     bool? lineThrough,
+    bool? inlineCode,
     bool? remark,
     Object? textColor = _sentinel,
     bool? textColorMixed,
@@ -380,6 +385,7 @@ class ToolbarState {
       italic: italic ?? this.italic,
       underline: underline ?? this.underline,
       lineThrough: lineThrough ?? this.lineThrough,
+      inlineCode: inlineCode ?? this.inlineCode,
       remark: remark ?? this.remark,
       textColor:
           identical(textColor, _sentinel) ? this.textColor : textColor as int?,
@@ -430,6 +436,7 @@ class ToolbarState {
         other.italic == italic &&
         other.underline == underline &&
         other.lineThrough == lineThrough &&
+        other.inlineCode == inlineCode &&
         other.remark == remark &&
         other.textColor == textColor &&
         other.textColorMixed == textColorMixed &&
@@ -471,6 +478,7 @@ class ToolbarState {
         italic,
         underline,
         lineThrough,
+        inlineCode,
         remark,
         textColor,
         textColorMixed,
@@ -540,6 +548,7 @@ class ToolbarController extends ChangeNotifier {
   bool get italic => _state.italic;
   bool get underline => _state.underline;
   bool get lineThrough => _state.lineThrough;
+  bool get inlineCode => _state.inlineCode;
   bool get remark => _state.remark;
   int? get textColor => _state.textColor;
   bool get textColorMixed => _state.textColorMixed;
@@ -569,6 +578,7 @@ class ToolbarController extends ChangeNotifier {
   void toggleItalic() => _toggleMark(TextMark.italic);
   void toggleUnderline() => _toggleMark(TextMark.underline);
   void toggleLineThrough() => _toggleMark(TextMark.lineThrough);
+  void toggleInlineCode() => _toggleMark(TextMark.inlineCode);
   void toggleRemark() => _toggleMark(TextMark.remark);
 
   /// Generic toggle for any [TextMark]. Disabled (no-op) when
@@ -727,7 +737,8 @@ class ToolbarController extends ChangeNotifier {
   }
 
   DocumentPosition _blockInsertionPosition(DocumentSelection selection) {
-    if (selection.start.path.isBlockObject || selection.end.path.isBlockObject) {
+    if (selection.start.path.isBlockObject ||
+        selection.end.path.isBlockObject) {
       return selection.end;
     }
     return selection.extent;
@@ -1141,9 +1152,8 @@ class ToolbarController extends ChangeNotifier {
     final blockAlignment = tableCellRange == null
         ? _collectBlockAlignment(document, start, end)
         : _AlignmentSummary.empty;
-    final alignment = cellStyle != null
-        ? cellStyle.alignment
-        : blockAlignment.alignment;
+    final alignment =
+        cellStyle != null ? cellStyle.alignment : blockAlignment.alignment;
     final alignmentMixed =
         cellStyle?.alignmentMixed ?? blockAlignment.alignmentMixed;
     final canEdit = _host.canEdit;
@@ -1180,6 +1190,7 @@ class ToolbarController extends ChangeNotifier {
       italic: inlineSummary.italic,
       underline: inlineSummary.underline,
       lineThrough: inlineSummary.lineThrough,
+      inlineCode: inlineSummary.inlineCode,
       remark: inlineSummary.remark,
       textColor: inlineSummary.color,
       textColorMixed: inlineSummary.colorMixed,
@@ -1224,6 +1235,7 @@ class ToolbarController extends ChangeNotifier {
     var italic = true;
     var underline = true;
     var lineThrough = true;
+    var inlineCode = true;
     var remark = true;
     String? url;
     var urlSet = false;
@@ -1254,6 +1266,7 @@ class ToolbarController extends ChangeNotifier {
         italic: italic,
         underline: underline,
         lineThrough: lineThrough,
+        inlineCode: inlineCode,
         remark: remark,
         url: url,
         urlSet: urlSet,
@@ -1269,6 +1282,7 @@ class ToolbarController extends ChangeNotifier {
       italic = partial.italic;
       underline = partial.underline;
       lineThrough = partial.lineThrough;
+      inlineCode = partial.inlineCode;
       remark = partial.remark;
       url = partial.url;
       urlSet = partial.urlSet;
@@ -1289,6 +1303,7 @@ class ToolbarController extends ChangeNotifier {
       italic: italic,
       underline: underline,
       lineThrough: lineThrough,
+      inlineCode: inlineCode,
       remark: remark,
       url: url,
       color: colorMixed ? null : color,
@@ -1314,6 +1329,7 @@ class ToolbarController extends ChangeNotifier {
       italic: true,
       underline: true,
       lineThrough: true,
+      inlineCode: true,
       remark: true,
       url: null,
       urlSet: false,
@@ -1333,6 +1349,7 @@ class ToolbarController extends ChangeNotifier {
       italic: partial.italic,
       underline: partial.underline,
       lineThrough: partial.lineThrough,
+      inlineCode: partial.inlineCode,
       remark: partial.remark,
       url: partial.url,
       color: partial.colorMixed ? null : partial.color,
@@ -1448,6 +1465,7 @@ class ToolbarController extends ChangeNotifier {
     required bool italic,
     required bool underline,
     required bool lineThrough,
+    required bool inlineCode,
     required bool remark,
     required String? url,
     required bool urlSet,
@@ -1484,6 +1502,9 @@ class ToolbarController extends ChangeNotifier {
       if (node.attributes.lineThrough != true) {
         lineThrough = false;
       }
+      if (node.attributes.inlineCode != true) {
+        inlineCode = false;
+      }
       if (node.attributes.remark != true) {
         remark = false;
       }
@@ -1513,6 +1534,7 @@ class ToolbarController extends ChangeNotifier {
       italic: italic,
       underline: underline,
       lineThrough: lineThrough,
+      inlineCode: inlineCode,
       remark: remark,
       url: url,
       urlSet: urlSet,
@@ -1637,6 +1659,7 @@ class InlineAttributeSummary {
     required this.italic,
     required this.underline,
     required this.lineThrough,
+    required this.inlineCode,
     required this.remark,
     required this.url,
     required this.color,
@@ -1651,6 +1674,7 @@ class InlineAttributeSummary {
       italic: attrs.italic == true,
       underline: attrs.underline == true,
       lineThrough: attrs.lineThrough == true,
+      inlineCode: attrs.inlineCode == true,
       remark: attrs.remark == true,
       url: attrs.url,
       color: attrs.color,
@@ -1665,6 +1689,7 @@ class InlineAttributeSummary {
     italic: false,
     underline: false,
     lineThrough: false,
+    inlineCode: false,
     remark: false,
     url: null,
     color: null,
@@ -1677,6 +1702,7 @@ class InlineAttributeSummary {
   final bool italic;
   final bool underline;
   final bool lineThrough;
+  final bool inlineCode;
   final bool remark;
   final String? url;
   final int? color;
@@ -1728,6 +1754,7 @@ class _AttributeScan {
     required this.italic,
     required this.underline,
     required this.lineThrough,
+    required this.inlineCode,
     required this.remark,
     required this.url,
     required this.urlSet,
@@ -1744,6 +1771,7 @@ class _AttributeScan {
   final bool italic;
   final bool underline;
   final bool lineThrough;
+  final bool inlineCode;
   final bool remark;
   final String? url;
   final bool urlSet;

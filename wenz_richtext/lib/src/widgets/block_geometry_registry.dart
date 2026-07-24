@@ -110,9 +110,8 @@ class BlockGeometryRegistry {
   /// Drops every text and row geometry entry whose block id is no longer in the
   /// visible top-level block projection.
   void retainBlocks(Iterable<String> blockIds) {
-    final retained = blockIds is Set<String>
-        ? blockIds
-        : Set<String>.unmodifiable(blockIds);
+    final retained =
+        blockIds is Set<String> ? blockIds : Set<String>.unmodifiable(blockIds);
     _entries.removeWhere((entry) {
       if (retained.contains(entry.blockId)) {
         return false;
@@ -592,6 +591,44 @@ class BlockGeometryRegistry {
       return null;
     }
     return entry.verticalMoveAt(position.offset, forward, preferX);
+  }
+
+  /// Finds the closest mounted text surface in the neighbouring block and
+  /// resolves its first/last visual line at [preferX]. This keeps the original
+  /// horizontal column when repeated Up/Down presses cross block boundaries.
+  DocumentPosition? verticalBoundaryTarget(
+    DocumentPosition position,
+    bool forward, {
+    required double preferX,
+  }) {
+    final candidates = _entries.where((entry) {
+      return forward
+          ? entry.blockIndex > position.blockIndex
+          : entry.blockIndex < position.blockIndex;
+    }).toList()
+      ..sort((first, second) {
+        final order = first.blockIndex.compareTo(second.blockIndex);
+        return forward ? order : -order;
+      });
+    for (final entry in candidates) {
+      final box = entry.renderBox;
+      if (box == null || !box.hasSize) continue;
+      final local = Offset(
+        preferX.clamp(0.0, box.size.width).toDouble(),
+        forward
+            ? 0.5
+            : (box.size.height - 0.5).clamp(0.0, box.size.height).toDouble(),
+      );
+      final offset =
+          entry.positionFromLocal(local).clamp(0, entry.textLength).toInt();
+      return DocumentPosition(
+        blockId: entry.blockId,
+        blockIndex: entry.blockIndex,
+        path: entry.path,
+        offset: offset,
+      );
+    }
+    return null;
   }
 
   BlockEntry? _entry(String blockId, PositionPath? path) {

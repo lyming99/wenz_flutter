@@ -10,6 +10,9 @@ enum EditorShortcutIntent {
   selectAll,
   undo,
   redo,
+  toggleBold,
+  toggleItalic,
+  toggleInlineCode,
   copy,
   cut,
   paste,
@@ -467,7 +470,8 @@ class EditorShortcutManager {
       }
       final resolution = binding.resolution;
       if (resolution.intent == EditorShortcutIntent.insertCharacter &&
-          (imeEnabled || inputClientAttached ||
+          (imeEnabled ||
+              inputClientAttached ||
               !_isValidShortcutCharacter(resolution.character))) {
         return const EditorShortcutResolution.ignored();
       }
@@ -519,7 +523,8 @@ class EditorShortcutManager {
     EditorShortcutResolution resolution,
     bool readOnly,
   ) {
-    if (!readOnly || resolution.disposition != EditorShortcutDisposition.handled) {
+    if (!readOnly ||
+        resolution.disposition != EditorShortcutDisposition.handled) {
       return resolution;
     }
     final intent = resolution.intent;
