@@ -648,9 +648,8 @@ class MarkdownCodec {
     String Function(String) newId,
   ) {
     if (block is TextBlockNode) {
-      final type = block.type == BlockType.quote
-          ? BlockType.paragraph
-          : block.type;
+      final type =
+          block.type == BlockType.quote ? BlockType.paragraph : block.type;
       return TextBlockNode(
         id: newId(_markdownIdPrefixFor(type)),
         type: type,

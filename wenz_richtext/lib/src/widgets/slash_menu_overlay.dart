@@ -87,7 +87,7 @@ ShapeBorder _slashMenuShape(ThemeData theme) {
   );
 }
 
-class WenzSlashMenuOverlay extends StatelessWidget {
+class WenzSlashMenuOverlay extends StatefulWidget {
   const WenzSlashMenuOverlay({
     super.key,
     required this.controller,
@@ -102,21 +102,113 @@ class WenzSlashMenuOverlay extends StatelessWidget {
   final double maxHeight;
 
   @override
+  State<WenzSlashMenuOverlay> createState() => _WenzSlashMenuOverlayState();
+}
+
+class _WenzSlashMenuOverlayState extends State<WenzSlashMenuOverlay> {
+  final ScrollController _scrollController = ScrollController();
+  final Map<String, GlobalKey> _itemKeys = <String, GlobalKey>{};
+  late int _highlightedIndex = widget.controller.highlightedIndex;
+  ScrollPositionAlignmentPolicy _alignmentPolicy =
+      ScrollPositionAlignmentPolicy.keepVisibleAtStart;
+  bool _ensureVisibleScheduled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_handleControllerChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant WenzSlashMenuOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (identical(oldWidget.controller, widget.controller)) {
+      return;
+    }
+    oldWidget.controller.removeListener(_handleControllerChanged);
+    widget.controller.addListener(_handleControllerChanged);
+    _highlightedIndex = widget.controller.highlightedIndex;
+    _scheduleEnsureHighlightedVisible();
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_handleControllerChanged);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _handleControllerChanged() {
+    final nextIndex = widget.controller.highlightedIndex;
+    if (nextIndex != _highlightedIndex) {
+      _alignmentPolicy = nextIndex > _highlightedIndex
+          ? ScrollPositionAlignmentPolicy.keepVisibleAtEnd
+          : ScrollPositionAlignmentPolicy.keepVisibleAtStart;
+      _highlightedIndex = nextIndex;
+    }
+    _scheduleEnsureHighlightedVisible();
+  }
+
+  void _scheduleEnsureHighlightedVisible() {
+    if (_ensureVisibleScheduled) {
+      return;
+    }
+    _ensureVisibleScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _ensureVisibleScheduled = false;
+      if (!mounted ||
+          !widget.controller.isOpen ||
+          widget.controller.items.isEmpty ||
+          !_scrollController.hasClients) {
+        return;
+      }
+
+      final index = widget.controller.highlightedIndex;
+      final items = widget.controller.items;
+      if (index < 0 || index >= items.length) {
+        return;
+      }
+      final itemContext = _itemKeys[items[index].id]?.currentContext;
+      final renderObject = itemContext?.findRenderObject();
+      if (renderObject != null && renderObject.attached) {
+        _scrollController.position.ensureVisible(
+          renderObject,
+          alignmentPolicy: _alignmentPolicy,
+        );
+        return;
+      }
+
+      // A lazily built boundary item may not have a context yet when keyboard
+      // navigation wraps from first to last (or back). Reveal that boundary,
+      // then refine the item's visibility after the list builds it.
+      if (index == 0) {
+        _scrollController.jumpTo(_scrollController.position.minScrollExtent);
+        _scheduleEnsureHighlightedVisible();
+      } else if (index == items.length - 1) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        _scheduleEnsureHighlightedVisible();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: controller,
+      animation: widget.controller,
       builder: (context, _) {
-        if (!controller.isOpen) {
+        if (!widget.controller.isOpen) {
           return const SizedBox.shrink();
         }
-        final items = controller.items;
+        final items = widget.controller.items;
+        final itemIds = items.map((item) => item.id).toSet();
+        _itemKeys.removeWhere((id, _) => !itemIds.contains(id));
         final theme = Theme.of(context);
-        final effectiveMaxWidth = math.max(0.0, maxWidth);
+        final effectiveMaxWidth = math.max(0.0, widget.maxWidth);
         final effectiveMinWidth = math.min(
-          math.max(0.0, minWidth),
+          math.max(0.0, widget.minWidth),
           effectiveMaxWidth,
         );
-        final effectiveMaxHeight = math.max(0.0, maxHeight);
+        final effectiveMaxHeight = math.max(0.0, widget.maxHeight);
         return Listener(
           behavior: HitTestBehavior.opaque,
           child: Material(
@@ -136,22 +228,30 @@ class WenzSlashMenuOverlay extends StatelessWidget {
               child: items.isEmpty
                   ? const _SlashMenuEmptyState()
                   : Scrollbar(
+                      controller: _scrollController,
                       thumbVisibility: false,
                       child: ListView.builder(
+                        controller: _scrollController,
                         padding: _kSlashMenuPadding,
                         shrinkWrap: true,
                         itemCount: items.length,
                         itemBuilder: (context, index) {
                           final item = items[index];
-                          final selected = index == controller.highlightedIndex;
-                          return _SlashMenuTile(
-                            key: ValueKey<String>('wenz-slash-item-${item.id}'),
-                            item: item,
-                            selected: selected,
-                            onTap: () {
-                              controller.selectIndex(index);
-                              controller.activate(item);
-                            },
+                          final selected =
+                              index == widget.controller.highlightedIndex;
+                          return KeyedSubtree(
+                            key: _itemKeys.putIfAbsent(item.id, GlobalKey.new),
+                            child: _SlashMenuTile(
+                              key: ValueKey<String>(
+                                'wenz-slash-item-${item.id}',
+                              ),
+                              item: item,
+                              selected: selected,
+                              onTap: () {
+                                widget.controller.selectIndex(index);
+                                widget.controller.activate(item);
+                              },
+                            ),
                           );
                         },
                       ),

@@ -17216,6 +17216,105 @@ void main() {
     );
   });
 
+  testWidgets(
+    'em dash caret and hit testing follow the rendered RichText layout',
+    (tester) async {
+      const fixtures = <String>[
+        '中文—结尾',
+        '中文——结尾',
+        '中文—English—结尾',
+      ];
+
+      for (final text in fixtures) {
+        final controller = WenzRichTextController(
+          document: RichTextDocument(
+            blocks: <BlockNode>[
+              TextBlockNode(
+                id: 'p1',
+                type: BlockType.paragraph,
+                content: <InlineNode>[TextRun(text: text)],
+              ),
+            ],
+          ),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                width: 420,
+                child: WenzRichTextEditor(
+                  controller: controller,
+                  autofocus: true,
+                  enableIme: false,
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        for (var offset = 0; offset <= text.length; offset++) {
+          controller.setSelection(collapsedTextSelection('p1', 0, offset));
+          await tester.pump();
+
+          final renderedCaret = _renderParagraphCaretTopLeft(
+            tester,
+            text,
+            offset,
+          );
+          final paintedCaret = _caretPainterGlobalTopLeft(tester);
+          expect(
+            paintedCaret.dx,
+            moreOrLessEquals(renderedCaret.dx, epsilon: 0.01),
+            reason: 'caret x must match RichText for "$text" at offset $offset',
+          );
+        }
+
+        for (var offset = 0; offset < text.length; offset++) {
+          if (text[offset] != '—') {
+            continue;
+          }
+          final dashBox = _renderParagraphTextBox(
+            tester,
+            text,
+            offset,
+            offset + 1,
+          );
+
+          await _waitPastMultiClickWindow(tester);
+          await _tapSingle(
+            tester,
+            Offset(
+              dashBox.left + dashBox.width * 0.25,
+              dashBox.top + dashBox.height / 2,
+            ),
+          );
+          expect(
+            controller.selection?.extent.offset,
+            offset,
+            reason: 'left side of dash in "$text" must select offset $offset',
+          );
+
+          await _waitPastMultiClickWindow(tester);
+          await _tapSingle(
+            tester,
+            Offset(
+              dashBox.left + dashBox.width * 0.75,
+              dashBox.top + dashBox.height / 2,
+            ),
+          );
+          expect(
+            controller.selection?.extent.offset,
+            offset + 1,
+            reason:
+                'right side of dash in "$text" must select offset ${offset + 1}',
+          );
+        }
+      }
+    },
+  );
+
   testWidgets('dragging text creates highlighted selection range', (
     tester,
   ) async {
@@ -23585,6 +23684,8 @@ Future<void> _sendCtrlShortcut(
   }
   await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
   if (key == LogicalKeyboardKey.keyV) {
+    // Clipboard reads may cross more than one asynchronous platform boundary.
+    // Wait for the paste route to finish before asserting its document change.
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 1)),
     );
@@ -25592,6 +25693,35 @@ Offset _richTextCaretTopLeft(WidgetTester tester, String text, int offset) {
     Rect.zero,
   );
   return tester.getTopLeft(finder) + local;
+}
+
+Offset _renderParagraphCaretTopLeft(
+  WidgetTester tester,
+  String text,
+  int offset,
+) {
+  final finder = _richText(text);
+  final paragraph = tester.renderObject<RenderParagraph>(finder);
+  final local = paragraph.getOffsetForCaret(
+    TextPosition(offset: offset),
+    Rect.zero,
+  );
+  return paragraph.localToGlobal(local);
+}
+
+Rect _renderParagraphTextBox(
+  WidgetTester tester,
+  String text,
+  int start,
+  int end,
+) {
+  final paragraph = tester.renderObject<RenderParagraph>(_richText(text));
+  final boxes = paragraph.getBoxesForSelection(
+    TextSelection(baseOffset: start, extentOffset: end),
+  );
+  expect(boxes, hasLength(1));
+  final local = boxes.single.toRect();
+  return paragraph.localToGlobal(local.topLeft) & local.size;
 }
 
 Offset _caretPainterGlobalTopLeft(WidgetTester tester) {

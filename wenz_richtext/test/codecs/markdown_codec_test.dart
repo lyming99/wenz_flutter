@@ -525,7 +525,8 @@ void main() {
       expect(items[3].attributes.checked, false);
     });
 
-    test('ordered todo list items keep ordered list type and checked state', () {
+    test('ordered todo list items keep ordered list type and checked state',
+        () {
       const source = '1. [ ] todo\n  1. [x] nested\n1. plain';
       final doc = codec.decode(source);
       expect(doc.blocks, hasLength(3));
@@ -588,7 +589,8 @@ void main() {
     });
 
     test('blockquote restores quoted heading and list item semantics', () {
-      const source = '> ## Quoted title\n> - [ ] Quoted todo\n> 1. Quoted ordered';
+      const source =
+          '> ## Quoted title\n> - [ ] Quoted todo\n> 1. Quoted ordered';
       final doc = codec.decode(source);
       final blocks = doc.blocks.cast<TextBlockNode>().toList();
 

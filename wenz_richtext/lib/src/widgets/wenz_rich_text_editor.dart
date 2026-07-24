@@ -40,6 +40,7 @@ import 'code_syntax_highlighter.dart';
 import 'desktop_selection_toolbar_overlay.dart';
 import 'editor_context_menu.dart';
 import 'editor_tokens.dart';
+import 'find_replace_panel.dart';
 import 'inline_embed_renderer.dart';
 import 'link_edit_dialog.dart';
 import 'link_hover_overlay.dart';
@@ -450,6 +451,8 @@ Map<String, Object?> _scrollMetricsLogFields(ScrollMetrics metrics) {
 }
 
 const double _kBlockReorderIndicatorHeight = 3.0;
+const double _kFindPanelInset = 8.0;
+const double _kFindPanelPreferredWidth = 600.0;
 const double _kTableResizeHandleWidth = 12.0;
 const double _kMinTableColumnWidth = 48.0;
 const double _kMaxTableColumnWidth = 640.0;
@@ -1589,6 +1592,7 @@ class WenzRichTextEditor extends StatefulWidget {
     this.mentionSearch,
     this.onMentionTap,
     this.onOpenLink,
+    this.enableFindReplace = true,
     this.findController,
     this.onFindRequested,
     this.onSelectionSearchRequested,
@@ -1723,11 +1727,29 @@ class WenzRichTextEditor extends StatefulWidget {
   /// visual styling and remain editable as before.
   final WenzLinkInteractionCallback? onOpenLink;
 
-  /// Optional find/replace controller. When provided, the editor paints all
-  /// current matches and enables Ctrl/Cmd+F/H shortcut dispatch.
+  /// Whether editor-local find/replace support is enabled.
+  ///
+  /// Defaults to `true`. On desktop, Ctrl/Cmd+F opens the built-in find/replace
+  /// panel and Ctrl/Cmd+H opens the same panel when the editor is writable.
+  /// Read-only editors keep search available but hide replacement controls.
+  ///
+  /// When enabled and [findController] is omitted, the editor creates and owns
+  /// a controller for its current [controller]. Set this to `false` to disable
+  /// the controller, panel, highlights, and shortcut interception, even when
+  /// callbacks or an external controller are supplied.
+  final bool enableFindReplace;
+
+  /// Optional host-owned find/replace controller.
+  ///
+  /// The editor binds it to the current [controller] and [outlineController]
+  /// while find/replace is enabled, but never disposes it. Omitting this value
+  /// uses an editor-owned controller, so ordinary hosts need no extra wiring.
   final WenzFindReplaceController? findController;
 
-  /// Called for Ctrl/Cmd+F when a find surface is available.
+  /// Called for Ctrl/Cmd+F instead of opening the built-in panel.
+  ///
+  /// Use this when the host owns the find UI. It does not replace
+  /// [findController], which may still provide matching and highlights.
   final VoidCallback? onFindRequested;
 
   /// Called when the mobile expanded-selection toolbar requests a host search.
@@ -1737,7 +1759,12 @@ class WenzRichTextEditor extends StatefulWidget {
   /// search page without changing Ctrl/Cmd+F or the editor find panel.
   final ValueChanged<String>? onSelectionSearchRequested;
 
-  /// Called for Ctrl/Cmd+H when a replace surface is available.
+  /// Called for Ctrl/Cmd+H instead of opening the built-in panel.
+  ///
+  /// Replacement shortcuts are not intercepted in [readOnly] mode. This lets
+  /// an outer host retain an existing Ctrl/Cmd+H binding when replacement is
+  /// unavailable. [onFindRequested] and this callback take over their
+  /// respective shortcuts independently.
   final VoidCallback? onReplaceRequested;
 
   /// Optional slash-menu controller. When provided, the editor shows the
@@ -1886,6 +1913,19 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   List<BlockNode>? _listMarkerBlocks;
   List<String?> _cachedListMarkers = const <String?>[];
   BlockRendererRegistry? _ownedBlockRenderers;
+  WenzFindReplaceController? _ownedFindController;
+  WenzFindReplaceController? _attachedFindController;
+  final FocusScopeNode _findPanelFocusScopeNode = FocusScopeNode(
+    debugLabel: 'WenzFindReplacePanelScope',
+  );
+  final FocusNode _findQueryFocusNode = FocusNode(
+    debugLabel: 'WenzFindReplaceQuery',
+  );
+  final FocusNode _findReplacementFocusNode = FocusNode(
+    debugLabel: 'WenzFindReplaceReplacement',
+  );
+  bool _isFindReplacePanelOpen = false;
+  bool _isFindReplaceExpanded = false;
   _FormulaEditTarget? _formulaEditTarget;
   _MentionSearchTrigger? _mentionSearchTrigger;
   bool _mentionSearchLoading = false;
@@ -2031,7 +2071,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     _inputClient.performSelectorHandler = _handlePlatformSelector;
     widget.controller.addListener(_handleControllerChanged);
     _scrollController.addListener(_handleScrollChanged);
-    widget.findController?.addListener(_handleFindControllerChanged);
+    _syncFindController();
     widget.slashMenuController?.attachEditor(widget.controller);
     if (widget.readOnly) {
       widget.slashMenuController?.close();
@@ -2081,14 +2121,22 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         oldWidget.inlineEmbedRenderer != widget.inlineEmbedRenderer ||
         oldWidget.mentionSearch != widget.mentionSearch ||
         oldWidget.onMentionTap != widget.onMentionTap ||
+        oldWidget.enableFindReplace != widget.enableFindReplace ||
         oldWidget.findController != widget.findController ||
         oldWidget.slashMenuController != widget.slashMenuController) {
       _extentCache.clear(reason: 'editor-render-configuration-changed');
       _layoutCache.clear();
     }
-    if (oldWidget.findController != widget.findController) {
-      oldWidget.findController?.removeListener(_handleFindControllerChanged);
-      widget.findController?.addListener(_handleFindControllerChanged);
+    if (oldWidget.controller != widget.controller ||
+        oldWidget.enableFindReplace != widget.enableFindReplace ||
+        oldWidget.findController != widget.findController ||
+        oldWidget.outlineController != widget.outlineController) {
+      _syncFindController();
+    }
+    if (_isFindReplacePanelOpen &&
+        (!widget.enableFindReplace || widget.onFindRequested != null)) {
+      _isFindReplacePanelOpen = false;
+      _attachedFindController?.setQuery('');
     }
     if (oldWidget.shortcutConfiguration != widget.shortcutConfiguration) {
       _shortcutManager = EditorShortcutManager(
@@ -2134,8 +2182,6 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       _outlineNavigationGeneration++;
       _syncFindControllerOutline();
       _handleOutlineControllerChanged();
-    } else if (oldWidget.findController != widget.findController) {
-      _syncFindControllerOutline();
     }
     // The effective focus node may change when the caller swaps focusNode or
     // controller; re-inject so controller.requestFocus() targets the right node.
@@ -2162,7 +2208,13 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     _EditorPopupMenuDismissal.dismiss();
     widget.controller.removeListener(_handleControllerChanged);
     _scrollController.removeListener(_handleScrollChanged);
-    widget.findController?.removeListener(_handleFindControllerChanged);
+    _attachedFindController?.removeListener(_handleFindControllerChanged);
+    _attachedFindController = null;
+    _ownedFindController?.dispose();
+    _ownedFindController = null;
+    _findQueryFocusNode.dispose();
+    _findReplacementFocusNode.dispose();
+    _findPanelFocusScopeNode.dispose();
     widget.slashMenuController?.removeListener(_handleSlashMenuChanged);
     _removeSlashMenuOverlay();
     widget.outlineController?.removeListener(_handleOutlineControllerChanged);
@@ -2197,6 +2249,86 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     if (mounted) {
       setState(() {});
     }
+  }
+
+  void _syncFindController() {
+    final previousOwned = _ownedFindController;
+    final WenzFindReplaceController? next;
+    if (!widget.enableFindReplace) {
+      _ownedFindController = null;
+      next = null;
+    } else if (widget.findController != null) {
+      _ownedFindController = null;
+      next = widget.findController;
+    } else {
+      next = _ownedFindController ??= WenzFindReplaceController(
+        editor: widget.controller,
+        outlineController: widget.outlineController,
+      );
+    }
+
+    if (!identical(_attachedFindController, next)) {
+      _attachedFindController?.removeListener(_handleFindControllerChanged);
+      _attachedFindController = next;
+      _attachedFindController?.addListener(_handleFindControllerChanged);
+    }
+    next?.attachEditor(widget.controller);
+    next?.attachOutlineController(widget.outlineController);
+
+    if (previousOwned != null && !identical(previousOwned, next)) {
+      previousOwned.dispose();
+    }
+  }
+
+  void _openFindReplacePanel({required bool replace}) {
+    final findController = _attachedFindController;
+    if (findController == null) {
+      return;
+    }
+    if (replace && widget.readOnly) {
+      return;
+    }
+    if (EditorTokens.resolve(context).isMobile) {
+      findController.next();
+      return;
+    }
+    if (!_isFindReplacePanelOpen || _isFindReplaceExpanded != replace) {
+      setState(() {
+        _isFindReplacePanelOpen = true;
+        _isFindReplaceExpanded = replace;
+      });
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _isFindReplacePanelOpen) {
+        final focusNode =
+            replace ? _findReplacementFocusNode : _findQueryFocusNode;
+        focusNode.requestFocus();
+      }
+    });
+  }
+
+  void _handleReplaceExpandedChanged(bool expanded) {
+    if (_isFindReplaceExpanded == expanded) {
+      return;
+    }
+    setState(() {
+      _isFindReplaceExpanded = expanded;
+    });
+  }
+
+  void _closeFindReplacePanel() {
+    if (!_isFindReplacePanelOpen) {
+      return;
+    }
+    _attachedFindController?.setQuery('');
+    setState(() {
+      _isFindReplacePanelOpen = false;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_isFindReplacePanelOpen) {
+        _effectiveFocusNode.requestFocus();
+      }
+    });
   }
 
   void _handleSlashMenuChanged() {
@@ -2489,16 +2621,13 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       );
       if (estimate != null) {
         _jumpToScrollOffset(
-          estimate +
-              renderBox.size.height / 3 -
-              _outlineNavigationTopInset,
+          estimate + renderBox.size.height / 3 - _outlineNavigationTopInset,
         );
       }
     } else {
       final viewportTop = renderBox.localToGlobal(Offset.zero).dy;
       final rowTop = rowBox.localToGlobal(Offset.zero).dy;
-      final delta =
-          rowTop - viewportTop - _outlineNavigationTopInset;
+      final delta = rowTop - viewportTop - _outlineNavigationTopInset;
       if (delta.abs() > 0.5) {
         _jumpToScrollOffset(_scrollController.position.pixels + delta);
       } else if (previousLayoutRevision == layoutRevision) {
@@ -2506,8 +2635,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       }
     }
 
-    if (frame >= _maxOutlineNavigationRealignFrames ||
-        nextStableFrames >= 3) {
+    if (frame >= _maxOutlineNavigationRealignFrames || nextStableFrames >= 3) {
       return;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -2690,18 +2818,19 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       return;
     }
     final focusNode = _effectiveFocusNode;
-    if (widget.enableIme && focusNode.hasFocus && !widget.readOnly) {
+    final hasEditorFocus = focusNode.hasPrimaryFocus;
+    if (widget.enableIme && hasEditorFocus && !widget.readOnly) {
       _inputClient.attach();
     } else {
       _inputClient.detach();
     }
-    if (focusNode.hasFocus) {
+    if (hasEditorFocus) {
       _hadEditorFocus = true;
     } else if (_hadEditorFocus) {
       widget.slashMenuController?.close();
       _closeMentionSearch();
     }
-    if (!focusNode.hasFocus) {
+    if (!hasEditorFocus) {
       _mobileCaretToolbarPosition = null;
     }
     setState(() {});
@@ -2766,7 +2895,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   }
 
   void _syncFindControllerOutline() {
-    widget.findController?.attachOutlineController(widget.outlineController);
+    _attachedFindController?.attachOutlineController(widget.outlineController);
   }
 
   bool _revealCurrentSelectionIfHidden() {
@@ -3006,7 +3135,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     final selection = widget.controller.selection;
     final canEdit = !widget.readOnly && widget.controller.canEdit;
     final showCaret = !widget.readOnly &&
-        focusNode.hasFocus &&
+        focusNode.hasPrimaryFocus &&
         selection?.isCollapsed == true;
     final useMobileSelectionUi =
         EditorTokens.shouldUseMobileSelectionUi(context);
@@ -3023,8 +3152,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     // re-rendering blocks whose content + selection-relevance did not change.
     final dirtyIds = widget.controller.lastChangedBlockIds;
     final findMatches =
-        widget.findController?.matches ?? const <FindReplaceMatch>[];
-    final currentFindMatch = widget.findController?.currentMatch;
+        _attachedFindController?.matches ?? const <FindReplaceMatch>[];
+    final currentFindMatch = _attachedFindController?.currentMatch;
     final listMarkers = _listMarkersForDocument(sourceBlocks);
     final effectiveTextStyle = _effectiveEditorTextStyle(
       widget.textStyle,
@@ -3139,8 +3268,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         widget.enableMobileSelectionHandles && useMobileSelectionUi;
     final showDesktopSelectionToolbar = !useMobileSelectionUi &&
         canEdit &&
-        widget.desktopToolbarMode ==
-            WenzDesktopToolbarMode.selectionFloating &&
+        widget.desktopToolbarMode == WenzDesktopToolbarMode.selectionFloating &&
         widget.desktopSelectionToolbarBuilder != null;
     final editorStack = Stack(
       key: _editorOverlayKey,
@@ -3357,6 +3485,41 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     return LayoutBuilder(
       builder: (context, constraints) {
         _handleViewportConstraintsChanged(constraints);
+        final findController = _attachedFindController;
+        final showFindPanel = _isFindReplacePanelOpen &&
+            findController != null &&
+            !EditorTokens.resolve(context).isMobile;
+        final editorSurface = showFindPanel
+            ? Stack(
+                fit: StackFit.expand,
+                children: <Widget>[
+                  child,
+                  Positioned(
+                    top: _kFindPanelInset,
+                    right: _kFindPanelInset,
+                    width: math.max(
+                      0,
+                      math.min(
+                        _kFindPanelPreferredWidth,
+                        constraints.maxWidth - (_kFindPanelInset * 2),
+                      ),
+                    ),
+                    child: FocusScope(
+                      node: _findPanelFocusScopeNode,
+                      child: WenzFindReplacePanel(
+                        controller: findController,
+                        showReplace: !widget.readOnly,
+                        replaceExpanded: _isFindReplaceExpanded,
+                        queryFocusNode: _findQueryFocusNode,
+                        replacementFocusNode: _findReplacementFocusNode,
+                        onReplaceExpandedChanged: _handleReplaceExpandedChanged,
+                        onClose: _closeFindReplacePanel,
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : child;
         return TapRegion(
           groupId: this,
           enabled: widget.slashMenuController?.isOpen == true ||
@@ -3380,7 +3543,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
                 textField: true,
                 readOnly: widget.readOnly,
                 focusable: true,
-                focused: focusNode.hasFocus,
+                focused: focusNode.hasPrimaryFocus,
                 multiline: true,
                 label: widget.accessibility
                     .effectiveLabel(readOnly: widget.readOnly),
@@ -3398,7 +3561,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
                       controller: _tableToolbarOverlayController,
                       child: ObjectBlockToolbarOverlayHost(
                         controller: _objectBlockToolbarOverlayController,
-                        child: _buildExternalImageDropTarget(child),
+                        child: _buildExternalImageDropTarget(editorSurface),
                       ),
                     ),
                   ),
@@ -3433,7 +3596,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       _viewportCaretCheckScheduled = false;
       if (!mounted ||
           widget.readOnly ||
-          !_effectiveFocusNode.hasFocus ||
+          !_effectiveFocusNode.hasPrimaryFocus ||
           widget.controller.selection?.isCollapsed != true) {
         return;
       }
@@ -3940,7 +4103,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     Widget child,
   ) {
     final accessibility = widget.accessibility;
-    if (!focusNode.hasFocus ||
+    if (!focusNode.hasPrimaryFocus ||
         !(MediaQuery.maybeHighContrastOf(context) ?? false) ||
         accessibility.highContrastFocusWidth == 0) {
       return child;
@@ -4075,7 +4238,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         widget.readOnly ||
         !widget.enableIme ||
         !widget.controller.canEdit ||
-        !_effectiveFocusNode.hasFocus) {
+        !_effectiveFocusNode.hasPrimaryFocus) {
       return false;
     }
     // The platform buffer represents a single text-bearing surface. Keeping
@@ -4140,7 +4303,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
             widget.controller.lastChangedBlockIds!.isNotEmpty);
     if (contentChanged ||
         !_canShowMobileCaretToolbar ||
-        !_effectiveFocusNode.hasFocus ||
+        !_effectiveFocusNode.hasPrimaryFocus ||
         selection == null ||
         !selection.isCollapsed ||
         selection.extent != caret) {
@@ -7062,6 +7225,28 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     if (_formulaEditFocusNode.hasFocus) {
       return KeyEventResult.ignored;
     }
+    if (_findPanelFocusScopeNode.hasFocus) {
+      final keyboard = HardwareKeyboard.instance;
+      if ((event is KeyDownEvent || event is KeyRepeatEvent) &&
+          (keyboard.isControlPressed || keyboard.isMetaPressed)) {
+        if (event.logicalKey == LogicalKeyboardKey.keyF) {
+          _openFindReplacePanel(replace: false);
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.keyH && !widget.readOnly) {
+          _openFindReplacePanel(replace: true);
+          return KeyEventResult.handled;
+        }
+      }
+      return KeyEventResult.ignored;
+    }
+    // [topWidget] and other host-provided controls are descendants of this
+    // Focus node. Their key events bubble through this callback while the
+    // editor node still reports hasFocus, so only handle document input when
+    // the editor itself owns the primary focus.
+    if (!node.hasPrimaryFocus) {
+      return KeyEventResult.ignored;
+    }
     if (_handleSlashMenuKeyEvent(event)) {
       return KeyEventResult.handled;
     }
@@ -7085,10 +7270,11 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       readOnly: widget.readOnly,
       imeEnabled: widget.enableIme,
       inputClientAttached: _inputClient.isAttached,
-      findEnabled:
-          widget.findController != null || widget.onFindRequested != null,
-      replaceEnabled:
-          widget.findController != null || widget.onReplaceRequested != null,
+      findEnabled: widget.enableFindReplace &&
+          (_attachedFindController != null || widget.onFindRequested != null),
+      replaceEnabled: widget.enableFindReplace &&
+          (_attachedFindController != null ||
+              widget.onReplaceRequested != null),
     );
     if (resolution.disposition == EditorShortcutDisposition.handled) {
       _performShortcut(resolution);
@@ -7450,11 +7636,20 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         _handlePaste();
         return;
       case EditorShortcutIntent.find:
-        widget.onFindRequested?.call();
-        widget.findController?.next();
+        final onFindRequested = widget.onFindRequested;
+        if (onFindRequested != null) {
+          onFindRequested();
+        } else {
+          _openFindReplacePanel(replace: false);
+        }
         return;
       case EditorShortcutIntent.replace:
-        widget.onReplaceRequested?.call();
+        final onReplaceRequested = widget.onReplaceRequested;
+        if (onReplaceRequested != null) {
+          onReplaceRequested();
+        } else {
+          _openFindReplacePanel(replace: true);
+        }
         return;
       case EditorShortcutIntent.toggleHeading1:
         _toggleHeadingShortcut(1);
@@ -8473,227 +8668,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     }
     final store = widget.externalImageStore ??
         external_image_store.createDefaultExternalImageStore();
-    final descriptions = <ExternalImageBlockDescription>[];
-    final consumedIndexes = <int>{};
-    for (var index = 0; index < inputs.length; index++) {
-      if (consumedIndexes.contains(index)) {
-        continue;
-      }
-      final input = inputs[index];
-      final relatedIndex = _relatedExternalImageInputIndex(
-        inputs,
-        index,
-        consumedIndexes,
-      );
-      final relatedInput = relatedIndex == null ? null : inputs[relatedIndex];
-      final fileInput = relatedInput == null
-          ? null
-          : _isFileExternalImageInput(input)
-              ? input
-              : relatedInput;
-      final memoryFallback = relatedInput == null
-          ? null
-          : input.kind == ExternalImageInputKind.memory
-              ? input
-              : relatedInput;
-      final ExternalImageBlockDescription? description;
-      if (fileInput != null && memoryFallback != null) {
-        description = await _prepareExternalImageWithMemoryFallback(
-          store: store,
-          fileInput: fileInput,
-          memoryFallback: memoryFallback,
-        );
-      } else {
-        description = await _prepareExternalImage(store, input);
-      }
-      if (description != null) {
-        descriptions.add(description);
-      }
-      consumedIndexes.add(index);
-      if (relatedIndex != null) {
-        consumedIndexes.add(relatedIndex);
-      }
-    }
-    return descriptions;
-  }
-
-  Future<ExternalImageBlockDescription?> _prepareExternalImage(
-    ExternalImageStore store,
-    ExternalImageInput input,
-  ) async {
-    try {
-      return (await store.prepare(input)).description;
-    } on Object {
-      return null;
-    }
-  }
-
-  Future<ExternalImageBlockDescription?>
-      _prepareExternalImageWithMemoryFallback({
-    required ExternalImageStore store,
-    required ExternalImageInput fileInput,
-    required ExternalImageInput memoryFallback,
-  }) async {
-    final fallbackPixelSize =
-        externalImagePixelSizeFromBytes(memoryFallback.bytes);
-    final fileDescription = await _prepareExternalImage(store, fileInput);
-    if (fileDescription == null) {
-      return _prepareExternalImage(store, memoryFallback);
-    }
-    if (_shouldUseExternalImageFallbackPixelSize(
-      fileDescription,
-      fallbackPixelSize,
-    )) {
-      return _externalImageDescriptionWithPixelSize(
-        fileDescription,
-        fallbackPixelSize!,
-      );
-    }
-    if (_hasExternalImagePixelSize(fileDescription)) {
-      return fileDescription;
-    }
-    final fallbackDescription = await _prepareExternalImage(
-      store,
-      memoryFallback,
-    );
-    if (fallbackDescription != null &&
-        _hasExternalImagePixelSize(fallbackDescription)) {
-      return _externalImageDescriptionWithDimensions(
-        fileDescription,
-        fallbackDescription,
-      );
-    }
-    return fileDescription;
-  }
-
-  int? _relatedExternalImageInputIndex(
-    List<ExternalImageInput> inputs,
-    int index,
-    Set<int> consumedIndexes,
-  ) {
-    final input = inputs[index];
-    if (!input.isAccepted ||
-        (!_isFileExternalImageInput(input) &&
-            input.kind != ExternalImageInputKind.memory)) {
-      return null;
-    }
-    final preferredIndex = index + 1;
-    if (preferredIndex < inputs.length &&
-        !consumedIndexes.contains(preferredIndex) &&
-        _externalImageInputsMayDescribeSameImage(
-          input,
-          inputs[preferredIndex],
-          adjacent: true,
-        )) {
-      return preferredIndex;
-    }
-    for (var candidateIndex = 0;
-        candidateIndex < inputs.length;
-        candidateIndex++) {
-      if (candidateIndex == index || consumedIndexes.contains(candidateIndex)) {
-        continue;
-      }
-      if (_externalImageInputsMayDescribeSameImage(
-        input,
-        inputs[candidateIndex],
-        adjacent: (candidateIndex - index).abs() == 1,
-      )) {
-        return candidateIndex;
-      }
-    }
-    return null;
-  }
-
-  bool _externalImageInputsMayDescribeSameImage(
-    ExternalImageInput first,
-    ExternalImageInput second, {
-    required bool adjacent,
-  }) {
-    if (!first.isAccepted ||
-        !second.isAccepted ||
-        first.source != second.source ||
-        !_isFileAndMemoryExternalImagePair(first, second)) {
-      return false;
-    }
-    if (adjacent && first.source == ExternalImageInputSource.clipboard) {
-      return true;
-    }
-    final firstName = _externalImageCandidateStem(first);
-    final secondName = _externalImageCandidateStem(second);
-    return firstName != null && secondName != null && firstName == secondName;
-  }
-
-  bool _isFileAndMemoryExternalImagePair(
-    ExternalImageInput first,
-    ExternalImageInput second,
-  ) {
-    return (_isFileExternalImageInput(first) &&
-            second.kind == ExternalImageInputKind.memory) ||
-        (_isFileExternalImageInput(second) &&
-            first.kind == ExternalImageInputKind.memory);
-  }
-
-  bool _isFileExternalImageInput(ExternalImageInput input) {
-    return switch (input.kind) {
-      ExternalImageInputKind.filePath || ExternalImageInputKind.fileUri => true,
-      ExternalImageInputKind.memory => false,
-    };
-  }
-
-  bool _hasExternalImagePixelSize(ExternalImageBlockDescription description) {
-    final width = description.width;
-    final height = description.height;
-    return width != null && height != null && width > 0 && height > 0;
-  }
-
-  bool _shouldUseExternalImageFallbackPixelSize(
-    ExternalImageBlockDescription description,
-    ExternalImagePixelSize? fallbackPixelSize,
-  ) {
-    if (fallbackPixelSize == null) {
-      return false;
-    }
-    if (!_hasExternalImagePixelSize(description)) {
-      return true;
-    }
-    final currentRatio = description.width! / description.height!;
-    final fallbackRatio = fallbackPixelSize.width / fallbackPixelSize.height;
-    return (currentRatio - fallbackRatio).abs() > 0.001;
-  }
-
-  ExternalImageBlockDescription _externalImageDescriptionWithPixelSize(
-    ExternalImageBlockDescription description,
-    ExternalImagePixelSize pixelSize,
-  ) {
-    return ExternalImageBlockDescription(
-      file: description.file,
-      caption: description.caption,
-      altText: description.altText,
-      width: pixelSize.width,
-      height: pixelSize.height,
-    );
-  }
-
-  ExternalImageBlockDescription _externalImageDescriptionWithDimensions(
-    ExternalImageBlockDescription description,
-    ExternalImageBlockDescription dimensionsSource,
-  ) {
-    return ExternalImageBlockDescription(
-      file: description.file,
-      caption: description.caption,
-      altText: description.altText,
-      width: dimensionsSource.width,
-      height: dimensionsSource.height,
-    );
-  }
-
-  String? _externalImageCandidateStem(ExternalImageInput input) {
-    final normalized = externalImageDisplayName(input).trim().toLowerCase();
-    if (normalized.isEmpty ||
-        normalized == defaultExternalImageCaption.toLowerCase()) {
-      return null;
-    }
-    return normalized;
+    return prepareExternalImagesForInsertion(inputs, store: store);
   }
 
   void _pasteExternalImages(
@@ -12687,30 +12662,233 @@ void _showImagePreview(
   ImageBlockNode block,
   BlockRenderContext rc,
 ) {
-  final media = _resolveMedia(context, rc) ?? const _ImageBlockPlaceholder();
-  final label = _imageAccessibleLabel(block);
-  unawaited(
-    showDialog<void>(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          clipBehavior: Clip.antiAlias,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720, maxHeight: 560),
+  final navigator = Navigator.maybeOf(context, rootNavigator: true);
+  if (navigator == null) {
+    return;
+  }
+  final materialLocalizations = Localizations.of<MaterialLocalizations>(
+    context,
+    MaterialLocalizations,
+  );
+  final barrierLabel =
+      materialLocalizations?.modalBarrierDismissLabel ?? 'Dismiss';
+  _ImageFullscreenRouteCoordinator.show(
+    navigator: navigator,
+    barrierLabel: barrierLabel,
+    block: block,
+    renderContext: rc,
+  );
+}
+
+class _ImageFullscreenRouteCoordinator {
+  static const Duration _transitionDuration = Duration(milliseconds: 180);
+  static final Expando<Object> _activeNavigatorSessions =
+      Expando<Object>('wenz-richtext-image-fullscreen-session');
+
+  static void show({
+    required NavigatorState navigator,
+    required String barrierLabel,
+    required ImageBlockNode block,
+    required BlockRenderContext renderContext,
+  }) {
+    if (!navigator.mounted || _activeNavigatorSessions[navigator] != null) {
+      return;
+    }
+    final session = Object();
+    _activeNavigatorSessions[navigator] = session;
+
+    _EditorPopupMenuDismissal.dismiss();
+    unawaited(
+      _run(
+        navigator: navigator,
+        barrierLabel: barrierLabel,
+        block: block,
+        renderContext: renderContext,
+        session: session,
+      ),
+    );
+  }
+
+  static Future<void> _run({
+    required NavigatorState navigator,
+    required String barrierLabel,
+    required ImageBlockNode block,
+    required BlockRenderContext renderContext,
+    required Object session,
+  }) async {
+    try {
+      await WidgetsBinding.instance.endOfFrame;
+      if (!navigator.mounted) {
+        return;
+      }
+
+      final route = RawDialogRoute<void>(
+        settings: RouteSettings(
+          name: 'wenz-richtext-image-fullscreen-${block.id}',
+        ),
+        barrierDismissible: false,
+        barrierColor: Colors.black,
+        barrierLabel: barrierLabel,
+        transitionDuration: _transitionDuration,
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return _FullscreenImagePreview(
+            block: block,
+            renderContext: renderContext,
+          );
+        },
+        transitionBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      );
+      await navigator.push<void>(route);
+      await route.completed;
+    } finally {
+      if (identical(_activeNavigatorSessions[navigator], session)) {
+        _activeNavigatorSessions[navigator] = null;
+      }
+    }
+  }
+}
+
+class _FullscreenImagePreview extends StatefulWidget {
+  const _FullscreenImagePreview({
+    required this.block,
+    required this.renderContext,
+  });
+
+  final ImageBlockNode block;
+  final BlockRenderContext renderContext;
+
+  @override
+  State<_FullscreenImagePreview> createState() =>
+      _FullscreenImagePreviewState();
+}
+
+class _FullscreenImagePreviewState extends State<_FullscreenImagePreview> {
+  bool _closeRequested = false;
+
+  Future<void> _requestClose() async {
+    if (_closeRequested || !mounted) {
+      return;
+    }
+    _closeRequested = true;
+    final popped = await Navigator.of(context).maybePop();
+    if (!popped && mounted) {
+      _closeRequested = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.escape): () {
+          unawaited(_requestClose());
+        },
+      },
+      child: Focus(
+        autofocus: true,
+        child: Material(
+          key: ValueKey<String>(
+            'wenz-richtext-image-fullscreen-surface-${widget.block.id}',
+          ),
+          color: Colors.black,
+          child: Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              SafeArea(
+                child: _FullscreenImageViewport(
+                  block: widget.block,
+                  renderContext: widget.renderContext,
+                ),
+              ),
+              SafeArea(
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: IconButton(
+                      key: ValueKey<String>(
+                        'wenz-richtext-image-fullscreen-close-${widget.block.id}',
+                      ),
+                      tooltip: '关闭图片预览',
+                      color: Colors.white,
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.black54,
+                      ),
+                      onPressed: () => unawaited(_requestClose()),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FullscreenImageViewport extends StatelessWidget {
+  const _FullscreenImageViewport({
+    required this.block,
+    required this.renderContext,
+  });
+
+  final ImageBlockNode block;
+  final BlockRenderContext renderContext;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewport = _finiteVideoViewportSize(
+          constraints,
+          MediaQuery.sizeOf(context),
+        );
+        if (viewport.isEmpty) {
+          return const ColoredBox(color: Colors.black);
+        }
+        final media = _resolveMedia(context, renderContext) ??
+            const _ImageBlockPlaceholder();
+        final contentSize = Size(
+          _positiveFiniteDimension(block.width) ?? viewport.width,
+          _positiveFiniteDimension(block.height) ?? viewport.height,
+        );
+        return SizedBox.fromSize(
+          size: viewport,
+          child: ColoredBox(
+            key: ValueKey<String>(
+              'wenz-richtext-image-fullscreen-viewport-${block.id}',
+            ),
+            color: Colors.black,
             child: Semantics(
-              label: label,
+              label: _imageAccessibleLabel(block),
               image: true,
               child: InteractiveViewer(
+                key: ValueKey<String>(
+                  'wenz-richtext-image-fullscreen-viewer-${block.id}',
+                ),
                 minScale: 0.5,
                 maxScale: 4,
-                child: Center(child: media),
+                child: SizedBox.fromSize(
+                  size: viewport,
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: SizedBox.fromSize(
+                      size: contentSize,
+                      child: media,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
         );
       },
-    ),
-  );
+    );
+  }
 }
 
 void _showVideoPreview(
@@ -17284,6 +17462,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
   final GlobalKey _surfaceKey = GlobalKey();
   double _lastMinWidth = 0;
   double _lastMaxWidth = 0;
+  Locale? _lastLocale;
 
   /// Drives the caret blink. Period ~530ms, toggling [value] between 0 and 1.
   /// Uses a real [Timer] rather than an [AnimationController]+ticker so the
@@ -17514,6 +17693,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
       span: widget.textSpan,
       textAlign: widget.textAlign,
       textDirection: Directionality.of(context),
+      locale: _lastLocale ?? Localizations.maybeLocaleOf(context),
       minWidth: _lastMinWidth,
       maxWidth: _lastMaxWidth,
     );
@@ -17535,6 +17715,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
       span: widget.textSpan,
       textAlign: widget.textAlign,
       textDirection: Directionality.of(context),
+      locale: _lastLocale ?? Localizations.maybeLocaleOf(context),
       minWidth: _lastMinWidth,
       maxWidth: _lastMaxWidth,
     );
@@ -17572,6 +17753,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
       span: widget.textSpan,
       textAlign: widget.textAlign,
       textDirection: Directionality.of(context),
+      locale: _lastLocale ?? Localizations.maybeLocaleOf(context),
       minWidth: _lastMinWidth,
       maxWidth: _lastMaxWidth,
     );
@@ -17599,6 +17781,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
       span: widget.textSpan,
       textAlign: widget.textAlign,
       textDirection: Directionality.of(context),
+      locale: _lastLocale ?? Localizations.maybeLocaleOf(context),
       minWidth: _lastMinWidth,
       maxWidth: _lastMaxWidth,
     );
@@ -17632,6 +17815,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
       span: widget.textSpan,
       textAlign: widget.textAlign,
       textDirection: Directionality.of(context),
+      locale: _lastLocale ?? Localizations.maybeLocaleOf(context),
       minWidth: _lastMinWidth,
       maxWidth: _lastMaxWidth,
     );
@@ -17654,6 +17838,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
   @override
   Widget build(BuildContext context) {
     final direction = Directionality.of(context);
+    final locale = Localizations.maybeLocaleOf(context);
     final selectionRange = widget.paintSelectionHighlight
         ? _selectionRangeForPath(
             widget.selection,
@@ -17686,12 +17871,14 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
         final minWidth = constraints.maxWidth.isFinite ? maxWidth : 0.0;
         _lastMinWidth = minWidth;
         _lastMaxWidth = maxWidth;
+        _lastLocale = locale;
         // Warm the layout cache so painters and hit-testing reuse the same
         // laid-out TextPainter this frame.
         _layoutService.layout(
           span: widget.textSpan,
           textAlign: widget.textAlign,
           textDirection: direction,
+          locale: locale,
           minWidth: minWidth,
           maxWidth: maxWidth,
         );
@@ -17709,6 +17896,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
           offsetMapper: widget.offsetMapper,
           textAlign: widget.textAlign,
           textDirection: direction,
+          locale: locale,
           minWidth: minWidth,
           maxWidth: maxWidth,
           caretOffset: caretOffset,
@@ -17729,6 +17917,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
             offsetMapper: widget.offsetMapper,
             textAlign: widget.textAlign,
             textDirection: direction,
+            locale: locale,
             minWidth: minWidth,
             maxWidth: maxWidth,
             range: selectionRange,
@@ -17740,6 +17929,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
               textSpan: widget.textSpan,
               textAlign: widget.textAlign,
               textDirection: direction,
+              locale: locale,
               minWidth: minWidth,
               maxWidth: maxWidth,
               ranges: widget.findRanges,
@@ -17755,6 +17945,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
                 text: widget.textSpan,
                 textAlign: widget.textAlign,
                 textDirection: direction,
+                locale: locale,
               ),
             ),
           ),
@@ -18052,6 +18243,7 @@ class _FindHighlightPainter extends CustomPainter {
     required this.textSpan,
     required this.textAlign,
     required this.textDirection,
+    required this.locale,
     required this.minWidth,
     required this.maxWidth,
     required this.ranges,
@@ -18063,6 +18255,7 @@ class _FindHighlightPainter extends CustomPainter {
   final InlineSpan textSpan;
   final TextAlign textAlign;
   final TextDirection textDirection;
+  final Locale? locale;
   final double minWidth;
   final double maxWidth;
   final List<_FindHighlightRange> ranges;
@@ -18078,6 +18271,7 @@ class _FindHighlightPainter extends CustomPainter {
       span: textSpan,
       textAlign: textAlign,
       textDirection: textDirection,
+      locale: locale,
       minWidth: minWidth,
       maxWidth: maxWidth,
     );
@@ -18102,6 +18296,7 @@ class _FindHighlightPainter extends CustomPainter {
     return oldDelegate.textSpan != textSpan ||
         oldDelegate.textAlign != textAlign ||
         oldDelegate.textDirection != textDirection ||
+        oldDelegate.locale != locale ||
         oldDelegate.minWidth != minWidth ||
         oldDelegate.maxWidth != maxWidth ||
         oldDelegate.ranges != ranges ||
@@ -18117,6 +18312,7 @@ class _SelectionHighlightPainter extends CustomPainter {
     required this.offsetMapper,
     required this.textAlign,
     required this.textDirection,
+    required this.locale,
     required this.minWidth,
     required this.maxWidth,
     required this.range,
@@ -18134,6 +18330,7 @@ class _SelectionHighlightPainter extends CustomPainter {
   final TextAlign textAlign;
 
   final TextDirection textDirection;
+  final Locale? locale;
   final double minWidth;
   final double maxWidth;
   final _LocalSelectionRange? range;
@@ -18149,6 +18346,7 @@ class _SelectionHighlightPainter extends CustomPainter {
       span: textSpan,
       textAlign: textAlign,
       textDirection: textDirection,
+      locale: locale,
       minWidth: minWidth,
       maxWidth: maxWidth,
     );
@@ -18167,6 +18365,7 @@ class _SelectionHighlightPainter extends CustomPainter {
         oldDelegate.offsetMapper != offsetMapper ||
         oldDelegate.textAlign != textAlign ||
         oldDelegate.textDirection != textDirection ||
+        oldDelegate.locale != locale ||
         oldDelegate.minWidth != minWidth ||
         oldDelegate.maxWidth != maxWidth ||
         oldDelegate.range?.start != range?.start ||
@@ -18182,6 +18381,7 @@ class _CaretPainter extends CustomPainter {
     required this.offsetMapper,
     required this.textAlign,
     required this.textDirection,
+    required this.locale,
     required this.minWidth,
     required this.maxWidth,
     required this.caretOffset,
@@ -18195,6 +18395,7 @@ class _CaretPainter extends CustomPainter {
   final _InlineOffsetMapper offsetMapper;
   final TextAlign textAlign;
   final TextDirection textDirection;
+  final Locale? locale;
   final double minWidth;
   final double maxWidth;
   final int? caretOffset;
@@ -18215,6 +18416,7 @@ class _CaretPainter extends CustomPainter {
       span: textSpan,
       textAlign: textAlign,
       textDirection: textDirection,
+      locale: locale,
       minWidth: minWidth,
       maxWidth: maxWidth,
     );
@@ -18239,6 +18441,7 @@ class _CaretPainter extends CustomPainter {
         oldDelegate.offsetMapper != offsetMapper ||
         oldDelegate.textAlign != textAlign ||
         oldDelegate.textDirection != textDirection ||
+        oldDelegate.locale != locale ||
         oldDelegate.minWidth != minWidth ||
         oldDelegate.maxWidth != maxWidth ||
         oldDelegate.caretOffset != caretOffset ||

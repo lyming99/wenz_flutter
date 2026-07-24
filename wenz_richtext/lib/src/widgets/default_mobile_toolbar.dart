@@ -10,14 +10,17 @@ import '../integration/wenz_editor_configuration.dart';
 import 'default_desktop_toolbar.dart';
 import 'link_edit_dialog.dart';
 import 'lucide_toolbar_icons.dart';
+import 'rich_text_color_picker_dialog.dart';
 
 /// Touch sizing for the mobile toolbar mirrors EditorTokens.mobile (kept in
 /// sync by hand — Dart's constant evaluator on this SDK rejects
 /// `EditorTokens.mobile.x` in const expressions, so the literals are duplicated
 /// here). The mobile toolbar is always the mobile surface, so the mobile token
 /// set is authoritative regardless of the screen it happens to be mounted on.
-const double _kMobileToolbarButtonSize = 40.0; // == EditorTokens.mobile.minimalToolbarButtonSize
-const double _kMobileToolbarIconSize = 22.0; // == EditorTokens.mobile.minimalToolbarIconSize
+const double _kMobileToolbarButtonSize =
+    40.0; // == EditorTokens.mobile.minimalToolbarButtonSize
+const double _kMobileToolbarIconSize =
+    22.0; // == EditorTokens.mobile.minimalToolbarIconSize
 const double _kMobileToolbarRadius = 10.0;
 const double _kMobileToolbarGap = 4.0;
 const double _kMobileToolbarHorizontalPadding = 8.0;
@@ -30,8 +33,8 @@ const int _kMobileColorGridMaxColumns = 6;
 const List<WenzDefaultToolbarTextColorOption> _kMobileColorOptions =
     wenzDefaultToolbarTextColorOptions;
 
-const List<WenzDefaultToolbarTextColorOption>
-    _kMobileBackgroundColorOptions = <WenzDefaultToolbarTextColorOption>[
+const List<WenzDefaultToolbarTextColorOption> _kMobileBackgroundColorOptions =
+    <WenzDefaultToolbarTextColorOption>[
   WenzDefaultToolbarTextColorOption('浅黄', 0xFFFFF59D),
   WenzDefaultToolbarTextColorOption('浅绿', 0xFFC8E6C9),
   WenzDefaultToolbarTextColorOption('浅蓝', 0xFFBBDEFB),
@@ -185,10 +188,10 @@ class _WenzDefaultMobileToolbarState extends State<WenzDefaultMobileToolbar> {
     super.didUpdateWidget(oldWidget);
     final keyboardStrategyChanged =
         oldWidget.style.aboveKeyboard != widget.style.aboveKeyboard ||
-        oldWidget.style.dismissKeyboardOnPanelOpen !=
-            widget.style.dismissKeyboardOnPanelOpen ||
-        oldWidget.style.restoreFocusOnPanelClose !=
-            widget.style.restoreFocusOnPanelClose;
+            oldWidget.style.dismissKeyboardOnPanelOpen !=
+                widget.style.dismissKeyboardOnPanelOpen ||
+            oldWidget.style.restoreFocusOnPanelClose !=
+                widget.style.restoreFocusOnPanelClose;
     if (oldWidget.controller != widget.controller ||
         oldWidget.toolbar != widget.toolbar ||
         keyboardStrategyChanged) {
@@ -347,10 +350,9 @@ class _WenzDefaultMobileToolbarState extends State<WenzDefaultMobileToolbar> {
           _isWaitingForKeyboardDismiss = false;
           _isRestoringKeyboard = true;
         } else {
-          _lastKeyboardHeight =
-              keyboardHeight > _lastKeyboardHeight
-                  ? keyboardHeight
-                  : _lastKeyboardHeight;
+          _lastKeyboardHeight = keyboardHeight > _lastKeyboardHeight
+              ? keyboardHeight
+              : _lastKeyboardHeight;
         }
       } else if (_isRestoringKeyboard ||
           widget.style.dismissKeyboardOnPanelOpen) {
@@ -431,14 +433,12 @@ class _WenzDefaultMobileToolbarState extends State<WenzDefaultMobileToolbar> {
   }
 
   double _effectivePanelHeight(MediaQueryData media) {
-    final available = media.size.height -
-        media.padding.top -
-        widget.style.mainBarHeight;
+    final available =
+        media.size.height - media.padding.top - widget.style.mainBarHeight;
     if (available <= 0) {
       return 0.0;
     }
-    if (_lastKeyboardHeight > 0 &&
-        widget.style.dismissKeyboardOnPanelOpen) {
+    if (_lastKeyboardHeight > 0 && widget.style.dismissKeyboardOnPanelOpen) {
       return _lastKeyboardHeight.clamp(0.0, available).toDouble();
     }
     if (available < _kMobilePanelMinHeight) {
@@ -454,11 +454,10 @@ class _WenzDefaultMobileToolbarState extends State<WenzDefaultMobileToolbar> {
     ThemeData theme,
     ToolbarState state,
   ) {
-    final verticalPadding = ((widget.style.mainBarHeight -
-                _kMobileToolbarButtonSize) /
-            2)
-        .clamp(0.0, _kMobileToolbarVerticalPadding)
-        .toDouble();
+    final verticalPadding =
+        ((widget.style.mainBarHeight - _kMobileToolbarButtonSize) / 2)
+            .clamp(0.0, _kMobileToolbarVerticalPadding)
+            .toDouble();
     final children = _buildPrimaryRailActions(state);
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -586,9 +585,8 @@ class _WenzDefaultMobileToolbarState extends State<WenzDefaultMobileToolbar> {
         onPressed: widget.toolbar.redo,
       ),
       _MobileIconButton(
-        tooltip: _activePanel == _MobileToolbarPanel.format
-            ? '收起格式面板'
-            : '打开格式面板',
+        tooltip:
+            _activePanel == _MobileToolbarPanel.format ? '收起格式面板' : '打开格式面板',
         icon: WenzLucideToolbarIcons.palette,
         selected: _activePanel == _MobileToolbarPanel.format,
         enabled: true,
@@ -740,7 +738,8 @@ class _PanelSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: _kMobileToolbarVerticalPadding + 2),
+      padding:
+          const EdgeInsets.only(bottom: _kMobileToolbarVerticalPadding + 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -1003,7 +1002,8 @@ class _AlignmentRow extends StatelessWidget {
           _MobileIconButton(
             tooltip: option.label,
             icon: option.icon,
-            selected: !state.alignmentMixed && option.alignment == state.alignment,
+            selected:
+                !state.alignmentMixed && option.alignment == state.alignment,
             enabled: state.canSetAlignment,
             onPressed: () => option.apply(toolbar),
           ),
@@ -1035,9 +1035,8 @@ class _ColorRow extends StatelessWidget {
           tooltip: _mobileClearTextColorTooltip(state),
           label: _mobileClearTextColorTooltip(state),
           icon: WenzLucideToolbarIcons.clearTextColor,
-          iconColor: current == null || state.textColorMixed
-              ? null
-              : Color(current),
+          iconColor:
+              current == null || state.textColorMixed ? null : Color(current),
           enabled: state.canFormatInline,
           onPressed: toolbar.clearTextColor,
         ),
@@ -1110,8 +1109,8 @@ class _MobileTextColorPalette extends StatelessWidget {
             return _MobileTextColorSwatchButton(
               tooltip: _mobileTextColorOptionTooltip(option),
               color: option.color,
-              selected: state.textColor == option.colorValue &&
-                  !state.textColorMixed,
+              selected:
+                  state.textColor == option.colorValue && !state.textColorMixed,
               enabled: state.canFormatInline,
               onPressed: () => toolbar.setTextColorValue(option.colorValue),
             );
@@ -1140,8 +1139,8 @@ class _BackgroundColorRow extends StatelessWidget {
           _ColorSwatchButton(
             tooltip: _mobileBackgroundColorOptionTooltip(option),
             color: option.color,
-            selected: current == option.colorValue &&
-                !state.textBackgroundColorMixed,
+            selected:
+                current == option.colorValue && !state.textBackgroundColorMixed,
             enabled: state.canFormatInline,
             outlineColor: theme.colorScheme.outline,
             onPressed: () => toolbar.setTextBackgroundValue(option.colorValue),
@@ -1482,24 +1481,21 @@ class _InsertRow extends StatelessWidget {
                 )
               : null,
           enabled: !actions.isPickingImage && toolbar.canInsertImage,
-          onPressed: () =>
-              _run(actions.onInsertImage!(actionContext(context))),
+          onPressed: () => _run(actions.onInsertImage!(actionContext(context))),
         ),
       if (actions.onInsertVideo != null)
         _MobileIconButton(
           tooltip: '插入视频',
           icon: WenzLucideToolbarIcons.video,
           enabled: toolbar.canInsertVideo,
-          onPressed: () =>
-              _run(actions.onInsertVideo!(actionContext(context))),
+          onPressed: () => _run(actions.onInsertVideo!(actionContext(context))),
         ),
       if (actions.onInsertFile != null)
         _MobileIconButton(
           tooltip: '插入文件',
           icon: WenzLucideToolbarIcons.file,
           enabled: controller.canEdit,
-          onPressed: () =>
-              _run(actions.onInsertFile!(actionContext(context))),
+          onPressed: () => _run(actions.onInsertFile!(actionContext(context))),
         ),
       if (actions.onInsertBlockEmbed != null)
         _MobileIconButton(
@@ -1657,81 +1653,23 @@ int _mobileTextColorGridColumnCount(double maxWidth) {
   return columns;
 }
 
-int? _parseMobileHexColor(String input) {
-  var value = input.trim();
-  if (value.startsWith('#')) {
-    value = value.substring(1);
-  } else if (value.toLowerCase().startsWith('0x')) {
-    value = value.substring(2);
-  }
-  if (value.length == 6) {
-    value = 'FF$value';
-  }
-  if (value.length != 8 || !RegExp(r'^[0-9a-fA-F]{8}$').hasMatch(value)) {
-    return null;
-  }
-  return int.tryParse(value, radix: 16);
-}
-
 Future<int?> _showMobileCustomTextColorDialog(
   BuildContext context,
   int? currentColor,
 ) async {
-  final controller = TextEditingController(
-    text: currentColor == null ? '' : '#${_mobileHexColor(currentColor)}',
+  final initialColor = Color(
+    currentColor ?? _kMobileColorOptions.first.colorValue,
   );
-  String? errorText;
-  final result = await showDialog<int>(
+  final result = await showDialog<Color>(
     context: context,
-    builder: (dialogContext) {
-      return StatefulBuilder(
-        builder: (context, setState) {
-          void submit() {
-            final colorValue = _parseMobileHexColor(controller.text);
-            if (colorValue == null) {
-              setState(() {
-                errorText = '请输入 #RRGGBB 或 #AARRGGBB';
-              });
-              return;
-            }
-            Navigator.of(dialogContext).pop(colorValue);
-          }
-
-          return AlertDialog(
-            title: const Text('自定义文字颜色'),
-            content: TextField(
-              autofocus: true,
-              controller: controller,
-              decoration: InputDecoration(
-                labelText: '十六进制颜色',
-                hintText: '#336699',
-                errorText: errorText,
-              ),
-              textCapitalization: TextCapitalization.characters,
-              inputFormatters: <TextInputFormatter>[
-                FilteringTextInputFormatter.allow(
-                  RegExp(r'[#0-9a-fA-FxX]'),
-                ),
-              ],
-              onSubmitted: (_) => submit(),
-            ),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('取消'),
-              ),
-              FilledButton(
-                onPressed: submit,
-                child: const Text('应用'),
-              ),
-            ],
-          );
-        },
-      );
-    },
+    builder: (dialogContext) => WenzRichTextColorPickerDialog(
+      initialColor: initialColor,
+      swatches: <Color>[
+        for (final option in _kMobileColorOptions) option.color,
+      ],
+    ),
   );
-  controller.dispose();
-  return result;
+  return result?.toARGB32();
 }
 
 ButtonStyle _mobileButtonStyle(ThemeData theme) {

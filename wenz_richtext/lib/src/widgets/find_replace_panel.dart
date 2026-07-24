@@ -1,18 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../controller/find_replace_controller.dart';
-import 'editor_tokens.dart';
 
 class WenzFindReplacePanel extends StatefulWidget {
   const WenzFindReplacePanel({
     super.key,
     required this.controller,
     this.showReplace = true,
+    this.replaceExpanded = true,
+    this.queryFocusNode,
+    this.replacementFocusNode,
+    this.onReplaceExpandedChanged,
     this.onClose,
   });
 
   final WenzFindReplaceController controller;
   final bool showReplace;
+  final bool replaceExpanded;
+  final FocusNode? queryFocusNode;
+  final FocusNode? replacementFocusNode;
+  final ValueChanged<bool>? onReplaceExpandedChanged;
   final VoidCallback? onClose;
 
   @override
@@ -22,6 +30,7 @@ class WenzFindReplacePanel extends StatefulWidget {
 class _WenzFindReplacePanelState extends State<WenzFindReplacePanel> {
   late final TextEditingController _queryController;
   late final TextEditingController _replacementController;
+  late bool _replaceExpanded;
 
   @override
   void initState() {
@@ -30,6 +39,7 @@ class _WenzFindReplacePanelState extends State<WenzFindReplacePanel> {
     _replacementController = TextEditingController(
       text: widget.controller.replacement,
     );
+    _replaceExpanded = widget.showReplace && widget.replaceExpanded;
     widget.controller.addListener(_syncFromController);
   }
 
@@ -40,6 +50,10 @@ class _WenzFindReplacePanelState extends State<WenzFindReplacePanel> {
       oldWidget.controller.removeListener(_syncFromController);
       widget.controller.addListener(_syncFromController);
       _syncFromController();
+    }
+    if (oldWidget.replaceExpanded != widget.replaceExpanded ||
+        oldWidget.showReplace != widget.showReplace) {
+      _replaceExpanded = widget.showReplace && widget.replaceExpanded;
     }
   }
 
@@ -77,9 +91,6 @@ class _WenzFindReplacePanelState extends State<WenzFindReplacePanel> {
         controller.currentIndex >= 0 ? controller.currentIndex + 1 : 0;
     final total = controller.matches.length;
     final colorScheme = theme.colorScheme;
-    // On mobile the panel is presented as a compact top dropdown bar; desktop
-    // keeps the wrapping toolbar.
-    final isMobile = EditorTokens.resolve(context).isMobile;
     return Material(
       key: const ValueKey<String>('wenz-find-replace-panel-surface'),
       color: colorScheme.surface,
@@ -90,127 +101,96 @@ class _WenzFindReplacePanelState extends State<WenzFindReplacePanel> {
         side: BorderSide(color: colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: isMobile
-            ? _buildMobileBody(theme, controller, current, total)
-            : _buildDesktopBody(theme, controller, current, total),
+      child: CallbackShortcuts(
+        bindings: <ShortcutActivator, VoidCallback>{
+          const SingleActivator(LogicalKeyboardKey.enter): controller.next,
+          const SingleActivator(
+            LogicalKeyboardKey.enter,
+            shift: true,
+          ): controller.previous,
+          if (widget.onClose != null)
+            const SingleActivator(LogicalKeyboardKey.escape): widget.onClose!,
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: LayoutBuilder(
+            builder: (context, constraints) => _buildBody(
+              theme,
+              controller,
+              current,
+              total,
+              constraints.maxWidth,
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  /// Desktop layout — the original wrapping toolbar (fixed-width fields).
-  Widget _buildDesktopBody(
+  Widget _buildBody(
     ThemeData theme,
     WenzFindReplaceController controller,
     int current,
     int total,
+    double maxWidth,
   ) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      crossAxisAlignment: WrapCrossAlignment.center,
+    if (maxWidth < 400) {
+      return _buildNarrowBody(theme, controller, current, total);
+    }
+    final trailingButtonCount = widget.onClose == null ? 4 : 5;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        SizedBox(
-          width: 220,
-          child: TextField(
-            key: const ValueKey<String>('wenz-find-query'),
-            controller: _queryController,
-            decoration: const InputDecoration(
-              isDense: true,
-              prefixIcon: Icon(Icons.search),
-              border: OutlineInputBorder(),
-            ),
-            onChanged: controller.setQuery,
-          ),
-        ),
-        SizedBox(
-          width: 56,
-          child: Text(
-            '$current/$total',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.labelMedium,
-          ),
-        ),
-        IconButton(
-          key: const ValueKey<String>('wenz-find-previous'),
-          tooltip: '上一个匹配项',
-          icon: const Icon(Icons.keyboard_arrow_up),
-          onPressed: total == 0 ? null : controller.previous,
-        ),
-        IconButton(
-          key: const ValueKey<String>('wenz-find-next'),
-          tooltip: '下一个匹配项',
-          icon: const Icon(Icons.keyboard_arrow_down),
-          onPressed: total == 0 ? null : controller.next,
-        ),
-        IconButton(
-          key: const ValueKey<String>('wenz-find-case-sensitive'),
-          tooltip: '区分大小写',
-          isSelected: controller.options.caseSensitive,
-          style: _findPanelToggleStyle(theme),
-          selectedIcon: const Icon(Icons.text_fields),
-          icon: const Icon(Icons.text_fields_outlined),
-          onPressed: () {
-            controller.setOptions(
-              caseSensitive: !controller.options.caseSensitive,
-            );
-          },
-        ),
-        IconButton(
-          key: const ValueKey<String>('wenz-find-whole-word'),
-          tooltip: '全字匹配',
-          isSelected: controller.options.wholeWord,
-          style: _findPanelToggleStyle(theme),
-          selectedIcon: const Icon(Icons.short_text),
-          icon: const Icon(Icons.subject),
-          onPressed: () {
-            controller.setOptions(
-              wholeWord: !controller.options.wholeWord,
-            );
-          },
-        ),
-        if (widget.showReplace) ...<Widget>[
-          SizedBox(
-            width: 220,
-            child: TextField(
-              key: const ValueKey<String>('wenz-find-replacement'),
-              controller: _replacementController,
-              decoration: const InputDecoration(
-                isDense: true,
-                prefixIcon: Icon(Icons.find_replace),
-                border: OutlineInputBorder(),
+        Row(
+          children: <Widget>[
+            if (widget.showReplace)
+              _replaceToggleButton()
+            else
+              const SizedBox(width: _buttonExtent),
+            const SizedBox(width: 4),
+            Expanded(child: _queryField(controller)),
+            SizedBox(
+              width: 48,
+              child: Text(
+                '$current/$total',
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                style: theme.textTheme.labelSmall,
               ),
-              onChanged: controller.setReplacement,
             ),
-          ),
-          IconButton(
-            key: const ValueKey<String>('wenz-find-replace-current'),
-            tooltip: '替换当前匹配项',
-            icon: const Icon(Icons.swap_horiz),
-            onPressed: total == 0 ? null : controller.replaceCurrent,
-          ),
-          IconButton(
-            key: const ValueKey<String>('wenz-find-replace-all'),
-            tooltip: '全部替换',
-            icon: const Icon(Icons.done_all),
-            onPressed: total == 0 ? null : controller.replaceAll,
+            _previousButton(controller, total),
+            _nextButton(controller, total),
+            _caseSensitiveButton(theme, controller),
+            _wholeWordButton(theme, controller),
+            if (widget.onClose != null)
+              _compactIconButton(
+                key: const ValueKey<String>('wenz-find-close'),
+                tooltip: '关闭',
+                icon: const Icon(Icons.close),
+                onPressed: widget.onClose,
+              ),
+          ],
+        ),
+        if (widget.showReplace && _replaceExpanded) ...<Widget>[
+          const SizedBox(height: 4),
+          Row(
+            children: <Widget>[
+              const SizedBox(width: _buttonExtent + 4),
+              Expanded(child: _replacementField(controller)),
+              const SizedBox(width: 48),
+              _replaceCurrentButton(controller, total),
+              _replaceAllButton(controller, total),
+              SizedBox(
+                width: (trailingButtonCount - 2) * _buttonExtent,
+              ),
+            ],
           ),
         ],
-        if (widget.onClose != null)
-          IconButton(
-            key: const ValueKey<String>('wenz-find-close'),
-            tooltip: '关闭',
-            icon: const Icon(Icons.close),
-            onPressed: widget.onClose,
-          ),
       ],
     );
   }
 
-  /// Mobile layout — a compact top bar: a find row (flexible field + nav +
-  /// options + close) and, when replacing, a replace row.
-  Widget _buildMobileBody(
+  Widget _buildNarrowBody(
     ThemeData theme,
     WenzFindReplaceController controller,
     int current,
@@ -221,68 +201,14 @@ class _WenzFindReplacePanelState extends State<WenzFindReplacePanel> {
       children: <Widget>[
         Row(
           children: <Widget>[
-            Expanded(
-              child: TextField(
-                key: const ValueKey<String>('wenz-find-query'),
-                controller: _queryController,
-                decoration: const InputDecoration(
-                  isDense: true,
-                  prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(),
-                  hintText: '查找',
-                ),
-                onChanged: controller.setQuery,
-              ),
-            ),
-            const SizedBox(width: 8),
-            SizedBox(
-              width: 48,
-              child: Text(
-                '$current/$total',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.labelMedium,
-              ),
-            ),
-            IconButton(
-              key: const ValueKey<String>('wenz-find-previous'),
-              tooltip: '上一个匹配项',
-              icon: const Icon(Icons.keyboard_arrow_up),
-              onPressed: total == 0 ? null : controller.previous,
-            ),
-            IconButton(
-              key: const ValueKey<String>('wenz-find-next'),
-              tooltip: '下一个匹配项',
-              icon: const Icon(Icons.keyboard_arrow_down),
-              onPressed: total == 0 ? null : controller.next,
-            ),
-            IconButton(
-              key: const ValueKey<String>('wenz-find-case-sensitive'),
-              tooltip: '区分大小写',
-              isSelected: controller.options.caseSensitive,
-              style: _findPanelToggleStyle(theme),
-              selectedIcon: const Icon(Icons.text_fields),
-              icon: const Icon(Icons.text_fields_outlined),
-              onPressed: () {
-                controller.setOptions(
-                  caseSensitive: !controller.options.caseSensitive,
-                );
-              },
-            ),
-            IconButton(
-              key: const ValueKey<String>('wenz-find-whole-word'),
-              tooltip: '全字匹配',
-              isSelected: controller.options.wholeWord,
-              style: _findPanelToggleStyle(theme),
-              selectedIcon: const Icon(Icons.short_text),
-              icon: const Icon(Icons.subject),
-              onPressed: () {
-                controller.setOptions(
-                  wholeWord: !controller.options.wholeWord,
-                );
-              },
-            ),
+            if (widget.showReplace)
+              _replaceToggleButton()
+            else
+              const SizedBox(width: _buttonExtent),
+            const SizedBox(width: 4),
+            Expanded(child: _queryField(controller)),
             if (widget.onClose != null)
-              IconButton(
+              _compactIconButton(
                 key: const ValueKey<String>('wenz-find-close'),
                 tooltip: '关闭',
                 icon: const Icon(Icons.close),
@@ -290,41 +216,195 @@ class _WenzFindReplacePanelState extends State<WenzFindReplacePanel> {
               ),
           ],
         ),
-        if (widget.showReplace) ...<Widget>[
-          const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: <Widget>[
+            SizedBox(
+              width: 48,
+              child: Text(
+                '$current/$total',
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                style: theme.textTheme.labelSmall,
+              ),
+            ),
+            _previousButton(controller, total),
+            _nextButton(controller, total),
+            _caseSensitiveButton(theme, controller),
+            _wholeWordButton(theme, controller),
+          ],
+        ),
+        if (widget.showReplace && _replaceExpanded) ...<Widget>[
+          const SizedBox(height: 4),
           Row(
             children: <Widget>[
-              Expanded(
-                child: TextField(
-                  key: const ValueKey<String>('wenz-find-replacement'),
-                  controller: _replacementController,
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    prefixIcon: Icon(Icons.find_replace),
-                    border: OutlineInputBorder(),
-                    hintText: '替换',
-                  ),
-                  onChanged: controller.setReplacement,
-                ),
-              ),
-              IconButton(
-                key: const ValueKey<String>('wenz-find-replace-current'),
-                tooltip: '替换当前匹配项',
-                icon: const Icon(Icons.swap_horiz),
-                onPressed: total == 0 ? null : controller.replaceCurrent,
-              ),
-              IconButton(
-                key: const ValueKey<String>('wenz-find-replace-all'),
-                tooltip: '全部替换',
-                icon: const Icon(Icons.done_all),
-                onPressed: total == 0 ? null : controller.replaceAll,
-              ),
+              const SizedBox(width: _buttonExtent + 4),
+              Expanded(child: _replacementField(controller)),
+              _replaceCurrentButton(controller, total),
+              _replaceAllButton(controller, total),
             ],
           ),
         ],
       ],
     );
   }
+
+  Widget _replaceToggleButton() {
+    return _compactIconButton(
+      key: const ValueKey<String>('wenz-find-toggle-replace'),
+      tooltip: _replaceExpanded ? '收起替换' : '展开替换',
+      icon: AnimatedRotation(
+        turns: _replaceExpanded ? 0.25 : 0,
+        duration: const Duration(milliseconds: 120),
+        child: const Icon(Icons.chevron_right),
+      ),
+      onPressed: () {
+        setState(() {
+          _replaceExpanded = !_replaceExpanded;
+        });
+        widget.onReplaceExpandedChanged?.call(_replaceExpanded);
+      },
+    );
+  }
+
+  Widget _queryField(WenzFindReplaceController controller) {
+    return TextField(
+      key: const ValueKey<String>('wenz-find-query'),
+      controller: _queryController,
+      focusNode: widget.queryFocusNode,
+      autofocus: true,
+      decoration: _fieldDecoration('查找'),
+      onChanged: controller.setQuery,
+    );
+  }
+
+  Widget _replacementField(WenzFindReplaceController controller) {
+    return TextField(
+      key: const ValueKey<String>('wenz-find-replacement'),
+      controller: _replacementController,
+      focusNode: widget.replacementFocusNode,
+      decoration: _fieldDecoration('替换'),
+      onChanged: controller.setReplacement,
+    );
+  }
+
+  Widget _previousButton(WenzFindReplaceController controller, int total) {
+    return _compactIconButton(
+      key: const ValueKey<String>('wenz-find-previous'),
+      tooltip: '上一个匹配项',
+      icon: const Icon(Icons.keyboard_arrow_up),
+      onPressed: total == 0 ? null : controller.previous,
+    );
+  }
+
+  Widget _nextButton(WenzFindReplaceController controller, int total) {
+    return _compactIconButton(
+      key: const ValueKey<String>('wenz-find-next'),
+      tooltip: '下一个匹配项',
+      icon: const Icon(Icons.keyboard_arrow_down),
+      onPressed: total == 0 ? null : controller.next,
+    );
+  }
+
+  Widget _caseSensitiveButton(
+    ThemeData theme,
+    WenzFindReplaceController controller,
+  ) {
+    return _compactIconButton(
+      key: const ValueKey<String>('wenz-find-case-sensitive'),
+      tooltip: '区分大小写',
+      isSelected: controller.options.caseSensitive,
+      style: _findPanelToggleStyle(theme),
+      selectedIcon: const Icon(Icons.text_fields),
+      icon: const Icon(Icons.text_fields_outlined),
+      onPressed: () {
+        controller.setOptions(
+          caseSensitive: !controller.options.caseSensitive,
+        );
+      },
+    );
+  }
+
+  Widget _wholeWordButton(
+    ThemeData theme,
+    WenzFindReplaceController controller,
+  ) {
+    return _compactIconButton(
+      key: const ValueKey<String>('wenz-find-whole-word'),
+      tooltip: '全字匹配',
+      isSelected: controller.options.wholeWord,
+      style: _findPanelToggleStyle(theme),
+      selectedIcon: const Icon(Icons.short_text),
+      icon: const Icon(Icons.subject),
+      onPressed: () {
+        controller.setOptions(
+          wholeWord: !controller.options.wholeWord,
+        );
+      },
+    );
+  }
+
+  Widget _replaceCurrentButton(
+    WenzFindReplaceController controller,
+    int total,
+  ) {
+    return _compactIconButton(
+      key: const ValueKey<String>('wenz-find-replace-current'),
+      tooltip: '替换当前匹配项',
+      icon: const Icon(Icons.swap_horiz),
+      onPressed: total == 0 ? null : controller.replaceCurrent,
+    );
+  }
+
+  Widget _replaceAllButton(
+    WenzFindReplaceController controller,
+    int total,
+  ) {
+    return _compactIconButton(
+      key: const ValueKey<String>('wenz-find-replace-all'),
+      tooltip: '全部替换',
+      icon: const Icon(Icons.done_all),
+      onPressed: total == 0 ? null : controller.replaceAll,
+    );
+  }
+}
+
+const double _buttonExtent = 32;
+
+InputDecoration _fieldDecoration(String hintText) {
+  return InputDecoration(
+    isDense: true,
+    border: const OutlineInputBorder(),
+    hintText: hintText,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+  );
+}
+
+Widget _compactIconButton({
+  Key? key,
+  required String tooltip,
+  required Widget icon,
+  required VoidCallback? onPressed,
+  Widget? selectedIcon,
+  bool? isSelected,
+  ButtonStyle? style,
+}) {
+  return IconButton(
+    key: key,
+    tooltip: tooltip,
+    icon: icon,
+    selectedIcon: selectedIcon,
+    isSelected: isSelected,
+    style: style,
+    constraints: const BoxConstraints.tightFor(
+      width: _buttonExtent,
+      height: _buttonExtent,
+    ),
+    padding: const EdgeInsets.all(6),
+    iconSize: 20,
+    visualDensity: VisualDensity.compact,
+    onPressed: onPressed,
+  );
 }
 
 ButtonStyle _findPanelToggleStyle(ThemeData theme) {

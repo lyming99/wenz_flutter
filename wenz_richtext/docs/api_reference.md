@@ -500,6 +500,21 @@ State accessors: `query`, `replacement`, `options`, `matches`,
 stores the matched `DocumentSelection`, path, offsets and matched text, so
 business UI can show counts or jump to a match without recomputing ranges.
 
+`WenzRichTextEditor` enables editor-local find/replace by default. When
+`findController` is omitted, it creates, rebinds, and disposes its own
+`WenzFindReplaceController`; a supplied controller remains host-owned and is
+never disposed by the widget. On desktop, Ctrl/Cmd+F opens the built-in panel
+and focuses its query field. In writable mode Ctrl/Cmd+H opens that same panel
+as a compatibility shortcut rather than creating a second replace surface.
+Read-only mode keeps Ctrl/Cmd+F, matching, navigation, and highlights, hides
+replacement controls, and lets Ctrl/Cmd+H pass through to the outer host.
+
+Set `enableFindReplace: false` to disable controller attachment, highlights,
+the built-in panel, and both shortcut interceptions. `onFindRequested` and
+`onReplaceRequested` independently take over Ctrl/Cmd+F and writable
+Ctrl/Cmd+H, respectively; a callback replaces only the panel-opening action,
+so an attached controller can still supply matches and highlights.
+
 `SlashMenuController` (tier 2) derives slash-trigger state from a host
 `WenzRichTextController`. It detects `/query` before the collapsed caret,
 filters a `SlashMenuRegistry`, tracks the highlighted item, and activates an
@@ -791,7 +806,9 @@ normalisation, and `onCommandExecuted` stay consistent.
 - `EditorShortcutManager` — pure keymap resolver used by the widget layer;
   includes exact Ctrl+Enter/Ctrl+NumpadEnter and
   Ctrl+Shift+Enter/Ctrl+Shift+NumpadEnter intents for inserting empty text
-  blocks, plus opt-in Ctrl/Cmd+F and Ctrl/Cmd+H intents for find/replace.
+  blocks, plus Ctrl/Cmd+F and Ctrl/Cmd+H intents for find/replace. The editor
+  enables them by default through `enableFindReplace`; Ctrl/Cmd+H remains a
+  writable-only compatibility binding and passes through in read-only mode.
 - `EditorShortcutConfiguration` — shortcut keymap fragment with `bindings` and
   `disabledIntents`. Use `EditorShortcutConfiguration.merge` for low-level
   composition or `mergeWenzShortcutConfigurations` when combining plugin and
@@ -826,8 +843,12 @@ normalisation, and `onCommandExecuted` stay consistent.
   Pass `contextMenuConfiguration` to append host right-click actions, replace
   the editor defaults, or build a fully ordered menu from the current
   `WenzEditorContextMenuContext`.
-  Passing `findController` paints all search matches; `onFindRequested` and
-  `onReplaceRequested` let the host open its own panel for Ctrl/Cmd+F/H.
+  With `enableFindReplace` (default `true`), omitting `findController` uses an
+  editor-owned controller and Ctrl/Cmd+F opens the built-in panel without host
+  wiring. Passing `findController` shares host-owned match state and paints all
+  search matches; `onFindRequested` and `onReplaceRequested` independently let
+  the host take over Ctrl/Cmd+F and writable Ctrl/Cmd+H. Set
+  `enableFindReplace: false` to disable the feature and pass both shortcuts on.
   Passing `slashMenuController` shows the built-in slash overlay and routes
   ArrowUp/ArrowDown/Enter/Escape while it is open.
   Passing `mentionSearch` enables the built-in `@` overlay for editable,

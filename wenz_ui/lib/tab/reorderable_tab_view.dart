@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:wenz_ui/utils/color_utils.dart';
 import 'package:wenz_ui/utils/device_util.dart';
 import 'package:wenz_ui/utils/mvc.dart';
 import 'reorderable_tab_controller.dart';
@@ -352,13 +351,7 @@ class _ReorderableTabPageViewState extends State<_ReorderableTabPageView> {
             for (var item in widget.controller.items)
               Container(
                 key: ValueKey(item.id),
-                child: widget.controller.buildItemView(context, item) ??
-                    Center(
-                      child: Text(
-                        item.id ?? '',
-                        style: const TextStyle(fontSize: 20),
-                      ),
-                    ),
+                child: widget.controller.buildItemView(context, item),
               ),
           ],
         );

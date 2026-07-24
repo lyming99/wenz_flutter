@@ -202,7 +202,9 @@ class WenzEditorConfiguration {
   /// Optional host policy for choosing the document position of prepared
   /// clipboard/drop images.
   ///
-  /// Returning `null` preserves the interaction's suggested target.
+  /// The callback receives both the current selection and the interaction's
+  /// suggested selection. Returning `null` preserves the interaction's
+  /// suggested target.
   final ExternalImageInsertionSelectionResolver? externalImageInsertionResolver;
 
   /// Optional mention search callback used by editor mention suggestion UIs.
@@ -242,7 +244,10 @@ class WenzEditorConfiguration {
 
   /// Whether the bootstrap should create the [WenzFindReplaceController].
   ///
-  /// Defaults to `true`.
+  /// Defaults to `true`. The editor then handles Ctrl/Cmd+F with its built-in
+  /// find/replace panel and Ctrl/Cmd+H with the same panel when writable.
+  /// Set this to `false` to disable the controller, panel, highlights, and
+  /// shortcut interception; disabled shortcuts remain available to the host.
   final bool enableFindReplace;
 
   /// Whether the bootstrap should create the [WenzOutlineController].
@@ -391,7 +396,8 @@ class WenzEditorConfiguration {
           ? this.onMediaResourceAction
           : onMediaResourceAction as MediaResourceActionHandler?,
       accessibility: accessibility ?? this.accessibility,
-      shortcutConfiguration: shortcutConfiguration ?? this.shortcutConfiguration,
+      shortcutConfiguration:
+          shortcutConfiguration ?? this.shortcutConfiguration,
       contextMenuConfiguration: identical(contextMenuConfiguration, _unset)
           ? this.contextMenuConfiguration
           : contextMenuConfiguration as WenzEditorContextMenuConfiguration?,
@@ -433,8 +439,8 @@ class WenzEditorConfiguration {
           : onSelectionChanged as ValueChanged<DocumentSelection?>?,
       onCommandExecuted: identical(onCommandExecuted, _unset)
           ? this.onCommandExecuted
-          : onCommandExecuted
-              as void Function(EditorCommand command, ChangeSet change)?,
+          : onCommandExecuted as void Function(
+              EditorCommand command, ChangeSet change)?,
       enableSlashMenu: enableSlashMenu ?? this.enableSlashMenu,
       enableFindReplace: enableFindReplace ?? this.enableFindReplace,
       enableOutline: enableOutline ?? this.enableOutline,

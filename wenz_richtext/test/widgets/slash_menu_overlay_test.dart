@@ -322,6 +322,104 @@ void main() {
     expect(slash.highlightedIndex, 0);
   });
 
+  testWidgets(
+      'editor arrow navigation scrolls highlighted slash item into view',
+      (tester) async {
+    final editor = WenzRichTextController(
+      document: _document('/'),
+      selection: collapsedTextSelection('p1', 0, 1),
+    );
+    final registry = SlashMenuRegistry(
+      List<SlashMenuItem>.generate(
+        12,
+        (index) => SlashMenuItem(
+          id: 'command-$index',
+          title: 'Command $index',
+          description: 'Description $index',
+          icon: 'paragraph',
+          action: (_, __) {},
+        ),
+      ),
+    );
+    final slash = SlashMenuController(editor: editor, registry: registry);
+    final focusNode = FocusNode();
+    addTearDown(slash.dispose);
+    addTearDown(focusNode.dispose);
+    await tester.binding.setSurfaceSize(const Size(360, 170));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 360,
+              height: 72,
+              child: WenzRichTextEditor(
+                controller: editor,
+                slashMenuController: slash,
+                focusNode: focusNode,
+                padding: EdgeInsets.zero,
+                enableIme: false,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    focusNode.requestFocus();
+    await tester.pump();
+    await tester.pump();
+    slash.refresh();
+    await tester.pump();
+
+    final listFinder = find.descendant(
+      of: find.byKey(_slashMenuOverlayKey),
+      matching: find.byType(ListView),
+    );
+    final list = tester.widget<ListView>(listFinder);
+    final scrollController = list.controller!;
+    expect(tester.getSize(find.byKey(_slashMenuOverlayKey)).height,
+        lessThan(_slashMenuMinReadableHeight));
+    expect(scrollController.offset, 0);
+    expect(focusNode.hasFocus, isTrue);
+
+    Future<void> sendMenuKey(LogicalKeyboardKey key) async {
+      await tester.sendKeyEvent(key);
+      await tester.pump();
+      await tester.pump();
+    }
+
+    for (var index = 1; index <= 6; index++) {
+      await sendMenuKey(LogicalKeyboardKey.arrowDown);
+      expect(slash.highlightedIndex, index);
+    }
+
+    expect(scrollController.offset, greaterThan(0));
+    _expectSlashItemFullyVisible(tester, listFinder, 6);
+    expect(focusNode.hasFocus, isTrue);
+
+    await sendMenuKey(LogicalKeyboardKey.arrowUp);
+    expect(slash.highlightedIndex, 5);
+    _expectSlashItemFullyVisible(tester, listFinder, 5);
+
+    for (var index = 4; index >= 0; index--) {
+      await sendMenuKey(LogicalKeyboardKey.arrowUp);
+      expect(slash.highlightedIndex, index);
+    }
+    await sendMenuKey(LogicalKeyboardKey.arrowUp);
+    expect(slash.highlightedIndex, slash.items.length - 1);
+    expect(scrollController.offset, scrollController.position.maxScrollExtent);
+    _expectSlashItemFullyVisible(tester, listFinder, slash.items.length - 1);
+
+    await sendMenuKey(LogicalKeyboardKey.arrowDown);
+    expect(slash.highlightedIndex, 0);
+    expect(scrollController.offset, scrollController.position.minScrollExtent);
+    _expectSlashItemFullyVisible(tester, listFinder, 0);
+    expect(focusNode.hasFocus, isTrue);
+  });
+
   testWidgets('editor opens slash menu above near keyboard-clipped bottom',
       (tester) async {
     await _pumpPositionedSlashEditor(
@@ -365,7 +463,8 @@ void main() {
     );
   });
 
-  testWidgets('editor chooses larger constrained side and keeps list scrollable',
+  testWidgets(
+      'editor chooses larger constrained side and keeps list scrollable',
       (tester) async {
     await _pumpPositionedSlashEditor(
       tester,
@@ -627,7 +726,8 @@ void main() {
     expect(editor.selection?.extent.offset, 0);
   });
 
-  testWidgets('overlay renders nothing while the menu is closed', (tester) async {
+  testWidgets('overlay renders nothing while the menu is closed',
+      (tester) async {
     final editor = WenzRichTextController(
       document: _document('plain text'),
       selection: collapsedTextSelection('p1', 0, 4),
@@ -728,6 +828,19 @@ Rect _slashOverlayRect(WidgetTester tester) {
   final overlay = find.byKey(_slashMenuOverlayKey);
   expect(overlay, findsOneWidget);
   return tester.getRect(overlay);
+}
+
+void _expectSlashItemFullyVisible(
+  WidgetTester tester,
+  Finder listFinder,
+  int index,
+) {
+  final viewport = tester.getRect(listFinder);
+  final item = tester.getRect(
+    find.byKey(ValueKey<String>('wenz-slash-item-command-$index')),
+  );
+  expect(item.top, greaterThanOrEqualTo(viewport.top));
+  expect(item.bottom, lessThanOrEqualTo(viewport.bottom));
 }
 
 BoxDecoration _slashTileDecoration(WidgetTester tester, Finder itemFinder) {

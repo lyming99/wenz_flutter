@@ -387,7 +387,6 @@ void main() {
         expect(mediaCalls, 0);
       }
     });
-
   });
 
   group('WenzDefaultDesktopToolbar commands', () {
@@ -582,8 +581,27 @@ void main() {
       expect(find.byTooltip('自定义文字颜色'), findsOneWidget);
       await tester.tap(_menuItemButtonFinder('自定义颜色'));
       await tester.pumpAndSettle();
+      expect(find.byType(WenzRichTextColorPickerDialog), findsOneWidget);
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        'D32F2F',
+      );
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('文字颜色 #FFD32F2F'), findsOneWidget);
+      expect(
+        _hasRun(
+          harness.controller,
+          (run) => run.attributes.color == 0xFFD32F2F,
+        ),
+        isTrue,
+      );
+
+      await _openTextColorMenu(tester, '文字颜色 #FFD32F2F');
+      await tester.tap(_menuItemButtonFinder('自定义颜色'));
+      await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), '#336699');
-      await tester.tap(find.text('Apply'));
+      await tester.tap(find.text('应用'));
       await tester.pumpAndSettle();
       expect(find.byTooltip('文字颜色 #FF336699'), findsOneWidget);
       expect(
@@ -771,11 +789,7 @@ void main() {
         kind: PointerDeviceKind.mouse,
       );
 
-      var run = _textBlock(harness.controller, 'p1').content.single as TextRun;
-      expect(run.attributes.color, isNull);
-      expect(run.attributes.background, 0xFFFFF59D);
-      expect(run.attributes.bold, isTrue);
-      expect(run.attributes.url, 'https://example.test');
+      _expectStyledTextColorRun(harness, null);
       expect(tester.takeException(), isNull);
 
       await _openTextColorMenu(
@@ -791,14 +805,97 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(AlertDialog), findsOneWidget);
       await tester.enterText(find.byType(TextField), '#336699');
-      await tester.tap(find.text('Apply'), kind: PointerDeviceKind.mouse);
+      await tester.tap(find.text('应用'), kind: PointerDeviceKind.mouse);
       await tester.pumpAndSettle();
 
-      run = _textBlock(harness.controller, 'p1').content.single as TextRun;
-      expect(run.attributes.color, 0xFF336699);
-      expect(run.attributes.background, 0xFFFFF59D);
-      expect(run.attributes.bold, isTrue);
-      expect(run.attributes.url, 'https://example.test');
+      _expectStyledTextColorRun(harness, 0xFF336699);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('completes text color mouse workflow without tracker errors', (
+      tester,
+    ) async {
+      final harness = await _pumpToolbar(
+        tester,
+        document: _styledTextColorDocument(),
+        selection: textSelection('p1', 0, 0, 5),
+      );
+      await _scrollToolbarUntilVisible(tester, '文字颜色 #FFD32F2F');
+      final mouse = await _addMousePointer(
+        tester,
+        find.byTooltip('文字颜色 #FFD32F2F'),
+      );
+      addTearDown(mouse.removePointer);
+
+      await _clickMouseAt(
+        tester,
+        mouse,
+        find.byTooltip('文字颜色 #FFD32F2F'),
+      );
+      await _pumpTextColorMenuOpen(tester);
+      expect(find.byTooltip('蓝色 #FF1976D2'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await _moveMouseTo(tester, mouse, find.byTooltip('蓝色 #FF1976D2'));
+      await _clickMouseAt(
+        tester,
+        mouse,
+        find.byTooltip('蓝色 #FF1976D2'),
+      );
+      await _pumpTextColorMenuAction(tester);
+      _expectStyledTextColorRun(harness, 0xFF1976D2);
+      expect(find.byTooltip('文字颜色 #FF1976D2'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await _clickMouseAt(
+        tester,
+        mouse,
+        find.byTooltip('文字颜色 #FF1976D2'),
+      );
+      await _pumpTextColorMenuOpen(tester);
+      expect(find.byTooltip('蓝色 #FF1976D2'), findsOneWidget);
+      await _clickMouseAt(
+        tester,
+        mouse,
+        find.byTooltip('文字颜色 #FF1976D2'),
+      );
+      await _pumpTextColorMenuOpen(tester);
+      expect(find.byTooltip('蓝色 #FF1976D2'), findsNothing);
+      expect(tester.takeException(), isNull);
+
+      await _clickMouseAt(
+        tester,
+        mouse,
+        find.byTooltip('文字颜色 #FF1976D2'),
+      );
+      await _pumpTextColorMenuOpen(tester);
+      await _clickMouseAt(
+        tester,
+        mouse,
+        _menuItemButtonFinder('清除文字颜色 #FF1976D2'),
+      );
+      await _pumpTextColorMenuAction(tester);
+      _expectStyledTextColorRun(harness, null);
+      expect(find.byTooltip('文字颜色'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await _clickMouseAt(tester, mouse, find.byTooltip('文字颜色'));
+      await _pumpTextColorMenuOpen(tester);
+      await _clickMouseAt(
+        tester,
+        mouse,
+        _menuItemButtonFinder('自定义颜色'),
+      );
+      await _pumpTextColorMenuAction(tester);
+      await tester.pumpAndSettle();
+      expect(find.byType(WenzRichTextColorPickerDialog), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await tester.enterText(find.byType(TextField), '#336699');
+      await _clickMouseAt(tester, mouse, find.text('应用'));
+      await tester.pumpAndSettle();
+      _expectStyledTextColorRun(harness, 0xFF336699);
+      expect(find.byTooltip('文字颜色 #FF336699'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -939,7 +1036,8 @@ void main() {
       expect(
         _hasRun(
           harness.controller,
-          (run) => run.text == 'Hello' && run.attributes.url == 'https://wenz.dev',
+          (run) =>
+              run.text == 'Hello' && run.attributes.url == 'https://wenz.dev',
         ),
         isTrue,
       );
@@ -1372,6 +1470,19 @@ Future<void> _moveMouseTo(
   await tester.pump();
 }
 
+Future<void> _clickMouseAt(
+  WidgetTester tester,
+  TestGesture mouse,
+  Finder finder,
+) async {
+  final location = tester.getCenter(finder);
+  await mouse.moveTo(location);
+  await tester.pump();
+  await mouse.down(location);
+  await tester.pump();
+  await mouse.up();
+}
+
 Future<void> _openInsertMenu(WidgetTester tester) async {
   await _scrollToolbarUntilVisible(tester, '插入元素');
   expect(_iconButton(tester, '插入元素').onPressed, isNotNull);
@@ -1634,6 +1745,26 @@ RichTextDocument _styledTextColorDocument() {
   );
 }
 
+void _expectStyledTextColorRun(_ToolbarHarness harness, int? color) {
+  final runs = _textBlock(harness.controller, 'p1')
+      .content
+      .whereType<TextRun>()
+      .toList();
+  expect(
+    runs,
+    contains(
+      isA<TextRun>()
+          .having((run) => run.text, 'text', 'Hello')
+          .having((run) => run.attributes.color, 'color', color),
+    ),
+  );
+  for (final run in runs) {
+    expect(run.attributes.background, 0xFFFFF59D);
+    expect(run.attributes.bold, isTrue);
+    expect(run.attributes.url, 'https://example.test');
+  }
+}
+
 RichTextDocument _mixedTextColorDocument() {
   return const RichTextDocument(
     blocks: <BlockNode>[
@@ -1844,7 +1975,3 @@ class _ToolbarHarness {
   final WenzRichTextController controller;
   final ToolbarController toolbar;
 }
-
-
-
-

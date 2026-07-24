@@ -510,6 +510,11 @@ class WenzEditorBootstrap {
   /// The shortcut configuration merges plugin-contributed fragments first and
   /// the host [WenzEditorConfiguration.shortcutConfiguration] last, so host
   /// bindings win on collision (the resolver checks bindings in reverse order).
+  /// With [WenzEditorConfiguration.enableFindReplace] enabled, Ctrl/Cmd+F and
+  /// writable Ctrl/Cmd+H use the built-in panel by default. Supplying
+  /// [onFindRequested] or [onReplaceRequested] transfers only that shortcut to
+  /// the host callback; the derived find controller remains available for
+  /// matching and highlights.
   ///
   /// The returned widget is a plain [WenzRichTextEditor]: no wrapper, theme
   /// object, or new widget type is introduced, so behaviour is identical to
@@ -591,6 +596,7 @@ class WenzEditorBootstrap {
       mentionSearch: configuration.mentionSearch,
       onMentionTap: configuration.onMentionTap,
       onOpenLink: onOpenLink ?? configuration.onOpenLink,
+      enableFindReplace: configuration.enableFindReplace,
       findController: findReplaceController,
       onFindRequested: onFindRequested,
       onSelectionSearchRequested: onSelectionSearchRequested,
@@ -601,8 +607,7 @@ class WenzEditorBootstrap {
       enableExternalDragDrop: configuration.enableExternalDragDrop,
       enableMobileSelectionHandles: configuration.enableMobileSelectionHandles,
       desktopToolbarMode: effectiveDesktopToolbarMode,
-      desktopSelectionToolbarBuilder:
-          effectiveDesktopSelectionToolbarBuilder,
+      desktopSelectionToolbarBuilder: effectiveDesktopSelectionToolbarBuilder,
       externalImageClipboardReader: configuration.externalImageClipboardReader,
       externalImageStore: configuration.externalImageStore,
       externalImageInsertionResolver:

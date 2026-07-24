@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
+
+import '../helpers/selection_test_helpers.dart';
 
 void main() {
   testWidgets('topWidget renders for an empty document and owns its gestures', (
@@ -77,12 +80,84 @@ void main() {
     expect(state.position.pixels, greaterThan(0));
     expect(scrolledTop.dy, lessThan(initialTop.dy));
   });
+
+  testWidgets(
+    'topWidget TextField owns keyboard input until editor regains focus',
+    (tester) async {
+      final editorFocusNode = FocusNode(debugLabel: 'editor-body');
+      final titleFocusNode = FocusNode(debugLabel: 'nested-title');
+      final titleController = TextEditingController(text: 'Title');
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'body',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'Body')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('body', 0, 4),
+      );
+      addTearDown(editorFocusNode.dispose);
+      addTearDown(titleFocusNode.dispose);
+      addTearDown(titleController.dispose);
+      addTearDown(controller.dispose);
+
+      await _pumpEditor(
+        tester,
+        controller: controller,
+        focusNode: editorFocusNode,
+        topWidget: TextField(
+          key: const ValueKey<String>('nested-title-field'),
+          controller: titleController,
+          focusNode: titleFocusNode,
+        ),
+      );
+
+      titleFocusNode.requestFocus();
+      titleController.selection = TextSelection.collapsed(
+        offset: titleController.text.length,
+      );
+      await tester.pump();
+
+      expect(titleFocusNode.hasPrimaryFocus, isTrue);
+      expect(editorFocusNode.hasPrimaryFocus, isFalse);
+
+      for (var index = 0; index < 'Title'.length; index += 1) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+        await tester.pump();
+      }
+
+      expect(titleController.text, isEmpty);
+      expect(titleFocusNode.hasPrimaryFocus, isTrue);
+      expect(editorFocusNode.hasPrimaryFocus, isFalse);
+      expect(controller.document.plainText, 'Body');
+      expect(controller.selection, collapsedTextSelection('body', 0, 4));
+
+      editorFocusNode.requestFocus();
+      await tester.pump();
+
+      expect(editorFocusNode.hasPrimaryFocus, isTrue);
+      expect(titleFocusNode.hasPrimaryFocus, isFalse);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyX, character: 'x');
+      await tester.pump();
+      expect(controller.document.plainText, 'Bodyx');
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.pump();
+      expect(controller.document.plainText, 'Body');
+      expect(controller.selection, collapsedTextSelection('body', 0, 4));
+    },
+  );
 }
 
 Future<void> _pumpEditor(
   WidgetTester tester, {
   required WenzRichTextController controller,
   required Widget topWidget,
+  FocusNode? focusNode,
 }) async {
   tester.view.physicalSize = const Size(320, 240);
   tester.view.devicePixelRatio = 1;
@@ -94,6 +169,7 @@ Future<void> _pumpEditor(
         body: WenzRichTextEditor(
           controller: controller,
           topWidget: topWidget,
+          focusNode: focusNode,
           padding: EdgeInsets.zero,
           enableIme: false,
           enableExternalImageInput: false,

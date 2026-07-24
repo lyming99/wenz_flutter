@@ -2,18 +2,25 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:html/dom.dart' as html_dom;
+import 'package:html/parser.dart' as html_parser;
 import 'package:super_clipboard/super_clipboard.dart' as super_clipboard;
 
+import 'external_image_file_access_stub.dart'
+    if (dart.library.io) 'external_image_file_access_io.dart' as file_access;
 import 'external_image_input.dart';
+
+/// Checks whether a clipboard HTML image location is an accessible local file.
+typedef ExternalImageFileExists = Future<bool> Function(String location);
 
 /// Shared default clipboard reader for platform image inputs.
 const ExternalImageClipboardReader defaultExternalImageClipboardReader =
     DefaultExternalImageClipboardReader();
 
-final super_clipboard.ValueFormat<String> _markdownTextClipboardFormat =
+const super_clipboard.ValueFormat<String> _markdownTextClipboardFormat =
     super_clipboard.SimpleValueFormat<String>(
   ios: super_clipboard.SimplePlatformCodec<String>(
-    formats: const <String>[
+    formats: <String>[
       'net.daringfireball.markdown',
       'text/markdown',
       'text/x-markdown',
@@ -21,7 +28,7 @@ final super_clipboard.ValueFormat<String> _markdownTextClipboardFormat =
     onDecode: _decodeClipboardString,
   ),
   macos: super_clipboard.SimplePlatformCodec<String>(
-    formats: const <String>[
+    formats: <String>[
       'net.daringfireball.markdown',
       'text/markdown',
       'text/x-markdown',
@@ -29,7 +36,7 @@ final super_clipboard.ValueFormat<String> _markdownTextClipboardFormat =
     onDecode: _decodeClipboardString,
   ),
   fallback: super_clipboard.SimplePlatformCodec<String>(
-    formats: const <String>[
+    formats: <String>[
       'text/markdown',
       'text/x-markdown',
     ],
@@ -60,7 +67,8 @@ class DefaultExternalImageClipboardReader
       return const ExternalImageClipboardData();
     }
 
-    final plainText = await _readValue(reader, super_clipboard.Formats.plainText);
+    final plainText =
+        await _readValue(reader, super_clipboard.Formats.plainText);
     final html = await _readValue(reader, super_clipboard.Formats.htmlText);
     final markdown = await _readValue(reader, _markdownTextClipboardFormat);
     final images = <ExternalImageInput>[];
@@ -73,6 +81,10 @@ class DefaultExternalImageClipboardReader
       if (seen.add(_dedupeKey(input))) {
         images.add(input);
       }
+    }
+
+    for (final input in await externalImageInputsFromClipboardHtml(html)) {
+      addImage(input);
     }
 
     for (final item in reader.items) {
@@ -317,8 +329,7 @@ class DefaultExternalImageClipboardReader
     if (trimmed.length >= 2) {
       final first = trimmed.codeUnitAt(0);
       final last = trimmed.codeUnitAt(trimmed.length - 1);
-      if ((first == 0x22 && last == 0x22) ||
-          (first == 0x27 && last == 0x27)) {
+      if ((first == 0x22 && last == 0x22) || (first == 0x27 && last == 0x27)) {
         trimmed = trimmed.substring(1, trimmed.length - 1).trim();
       }
     }
@@ -357,6 +368,196 @@ class DefaultExternalImageClipboardReader
       fileName: fileName,
     );
   }
+}
+
+/// Extracts accessible local image candidates from Word-compatible HTML.
+///
+/// Both regular `img` elements and Office VML `imagedata` elements are read.
+/// Relative filenames are resolved against a local `base` URL or the CF_HTML
+/// `SourceURL` header. Remote, data, and inaccessible locations are ignored.
+Future<List<ExternalImageInput>> externalImageInputsFromClipboardHtml(
+  String? clipboardHtml, {
+  ExternalImageFileExists fileExists = file_access.externalImageFileExists,
+}) async {
+  final source = clipboardHtml?.trim();
+  if (source == null || source.isEmpty) {
+    return const <ExternalImageInput>[];
+  }
+
+  final document = html_parser.parse(source.replaceAll('\u0000', ''));
+  final baseLocations = _localHtmlBaseLocations(document, source);
+  final inputs = <ExternalImageInput>[];
+  final seenLocations = <String>{};
+
+  for (final element in document.querySelectorAll('*')) {
+    if (!_isClipboardImageElement(element)) {
+      continue;
+    }
+    for (final attributeName in _htmlImageSourceAttributes) {
+      final rawLocation = _attributeValue(element, attributeName)?.trim();
+      if (rawLocation == null || rawLocation.isEmpty) {
+        continue;
+      }
+      final location = _resolveLocalHtmlImageLocation(
+        rawLocation,
+        baseLocations,
+      );
+      if (location == null ||
+          externalImageExtensionFromFileName(location) == null) {
+        continue;
+      }
+      final key = _normalizedHtmlImageLocationKey(location);
+      if (!seenLocations.add(key) || !await fileExists(location)) {
+        continue;
+      }
+      inputs.add(
+        ExternalImageInput.fileLocation(
+          location: location,
+          source: ExternalImageInputSource.clipboard,
+        ),
+      );
+    }
+  }
+  return inputs;
+}
+
+const List<String> _htmlImageSourceAttributes = <String>[
+  'data-original-src',
+  'data-original',
+  'originalsrc',
+  'o:href',
+  'xlink:href',
+  'href',
+  'src',
+];
+
+bool _isClipboardImageElement(html_dom.Element element) {
+  final localName = element.localName?.toLowerCase() ?? '';
+  return localName == 'img' ||
+      localName == 'imagedata' ||
+      localName.endsWith(':imagedata');
+}
+
+String? _attributeValue(html_dom.Element element, String name) {
+  final direct = element.attributes[name];
+  if (direct != null) {
+    return direct;
+  }
+  final normalizedName = name.toLowerCase();
+  for (final entry in element.attributes.entries) {
+    if (entry.key.toString().toLowerCase() == normalizedName) {
+      return entry.value;
+    }
+  }
+  return null;
+}
+
+List<String> _localHtmlBaseLocations(
+  html_dom.Document document,
+  String source,
+) {
+  final locations = <String>[];
+  final baseHref = document.querySelector('base')?.attributes['href'];
+  if (baseHref != null && _isLocalHtmlLocation(baseHref)) {
+    locations.add(baseHref.trim());
+  }
+  final sourceUrl = RegExp(
+    r'^SourceURL:(.+)$',
+    caseSensitive: false,
+    multiLine: true,
+  ).firstMatch(source)?.group(1)?.trim();
+  if (sourceUrl != null && _isLocalHtmlLocation(sourceUrl)) {
+    locations.add(sourceUrl);
+  }
+  return locations;
+}
+
+String? _resolveLocalHtmlImageLocation(
+  String rawLocation,
+  List<String> baseLocations,
+) {
+  final location = _stripHtmlLocationQuotes(rawLocation);
+  if (_isAbsoluteLocalHtmlLocation(location)) {
+    return location;
+  }
+  if (_hasNonFileScheme(location)) {
+    return null;
+  }
+  for (final baseLocation in baseLocations) {
+    final resolved = _resolveRelativeHtmlLocation(baseLocation, location);
+    if (resolved != null) {
+      return resolved;
+    }
+  }
+  return location;
+}
+
+String _stripHtmlLocationQuotes(String value) {
+  var result = value.trim();
+  if (result.length >= 2 &&
+      ((result.startsWith('"') && result.endsWith('"')) ||
+          (result.startsWith("'") && result.endsWith("'")))) {
+    result = result.substring(1, result.length - 1).trim();
+  }
+  return result;
+}
+
+bool _isLocalHtmlLocation(String value) {
+  final location = value.trim();
+  return _isAbsoluteLocalHtmlLocation(location) || !_hasNonFileScheme(location);
+}
+
+bool _isAbsoluteLocalHtmlLocation(String value) {
+  if (RegExp(r'^[a-zA-Z]:[\\/]').hasMatch(value) ||
+      value.startsWith(r'\\') ||
+      value.startsWith('/')) {
+    return true;
+  }
+  return Uri.tryParse(value)?.scheme.toLowerCase() == 'file';
+}
+
+bool _hasNonFileScheme(String value) {
+  final uri = Uri.tryParse(value);
+  return uri != null && uri.hasScheme && uri.scheme.toLowerCase() != 'file';
+}
+
+String? _resolveRelativeHtmlLocation(String base, String relative) {
+  final baseUri = Uri.tryParse(base);
+  if (baseUri != null && baseUri.scheme.toLowerCase() == 'file') {
+    final directoryBase = baseUri.path.endsWith('/')
+        ? baseUri
+        : baseUri.replace(
+            pathSegments: <String>[
+              ...baseUri.pathSegments.take(baseUri.pathSegments.length - 1),
+              '',
+            ],
+          );
+    return directoryBase.resolve(relative).toString();
+  }
+
+  final normalizedBase = base.replaceAll('\\', '/');
+  if (!_isAbsoluteLocalHtmlLocation(normalizedBase)) {
+    return null;
+  }
+  final slash = normalizedBase.lastIndexOf('/');
+  final directory = normalizedBase.endsWith('/')
+      ? normalizedBase
+      : slash < 0
+          ? '$normalizedBase/'
+          : normalizedBase.substring(0, slash + 1);
+  return '$directory$relative';
+}
+
+String _normalizedHtmlImageLocationKey(String location) {
+  final uri = Uri.tryParse(location);
+  var path = uri != null && uri.scheme.toLowerCase() == 'file'
+      ? Uri.decodeFull(uri.path)
+      : location;
+  path = path.replaceAll('\\', '/');
+  if (RegExp(r'^/[a-zA-Z]:/').hasMatch(path)) {
+    path = path.substring(1);
+  }
+  return 'file:${path.toLowerCase()}';
 }
 
 const List<_ClipboardImageFormat> _imageFormats = <_ClipboardImageFormat>[

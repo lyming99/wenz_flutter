@@ -14,7 +14,8 @@ import '../helpers/selection_test_helpers.dart';
 /// `docs/plan/plan_requirement_57_20260628-150959.md`.
 void main() {
   group('zero-config assembly', () {
-    test('create() wires controller, registries, and default derived controllers',
+    test(
+        'create() wires controller, registries, and default derived controllers',
         () {
       final bootstrap =
           WenzEditorBootstrap.create(const WenzEditorConfiguration());
@@ -115,8 +116,7 @@ void main() {
       expect(
         configuration
             .copyWith(
-              desktopToolbarMode:
-                  WenzDesktopToolbarMode.selectionFloating,
+              desktopToolbarMode: WenzDesktopToolbarMode.selectionFloating,
             )
             .desktopToolbarMode,
         WenzDesktopToolbarMode.selectionFloating,
@@ -146,8 +146,7 @@ void main() {
               ],
             ),
             selection: textSelection('p1', 0, 0, 7),
-            desktopToolbarMode:
-                WenzDesktopToolbarMode.selectionFloating,
+            desktopToolbarMode: WenzDesktopToolbarMode.selectionFloating,
           ),
         );
         addTearDown(bootstrap.dispose);
@@ -172,7 +171,8 @@ void main() {
         );
         expect(toolbar.controller, same(bootstrap.controller));
         expect(toolbar.toolbar, same(bootstrap.toolbarController));
-        expect(toolbar.toolbarItemRegistry, same(bootstrap.toolbarItemRegistry));
+        expect(
+            toolbar.toolbarItemRegistry, same(bootstrap.toolbarItemRegistry));
         expect(
           tester.getSize(find.byKey(floatingToolbarKey)).width,
           lessThanOrEqualTo(720),
@@ -245,8 +245,7 @@ void main() {
               ],
             ),
             selection: textSelection('mobile', 0, 0, 6),
-            desktopToolbarMode:
-                WenzDesktopToolbarMode.selectionFloating,
+            desktopToolbarMode: WenzDesktopToolbarMode.selectionFloating,
           ),
         );
         addTearDown(mobileBootstrap.dispose);
@@ -546,7 +545,8 @@ void main() {
       );
     });
 
-    testWidgets('configuration and plugin toolbar items render in mobile helper',
+    testWidgets(
+        'configuration and plugin toolbar items render in mobile helper',
         (tester) async {
       final bootstrap = WenzEditorBootstrap.create(
         WenzEditorConfiguration(
@@ -724,7 +724,8 @@ void main() {
 
         bootstrap.controller.insertText('\n  B --> C');
         await tester.pump();
-        expect((bootstrap.document.blocks.single as CodeBlockNode).code, edited);
+        expect(
+            (bootstrap.document.blocks.single as CodeBlockNode).code, edited);
 
         await tester.tap(
           find.byKey(const ValueKey<String>('wenz-richtext-mermaid-toggle')),
@@ -1434,6 +1435,7 @@ Future<void> _tapDesktopInsertMenuItem(
   await tester.tap(item);
   await tester.pump();
 }
+
 Offset _globalTextRangePoint(
   WidgetTester tester,
   String text,

@@ -18,8 +18,8 @@ class MeasuredWidgetSpan extends WidgetSpan {
 /// Single-block text layout cache.
 ///
 /// Wraps a [TextPainter] and caches the laid-out instance keyed by
-/// `(span, textAlign, direction, minWidth, maxWidth)`. Consumers within a
-/// single `_TextSelectionSurface` call [layout] repeatedly (caret placement,
+/// `(span, textAlign, direction, locale, minWidth, maxWidth)`. Consumers within
+/// a single `_TextSelectionSurface` call [layout] repeatedly (caret placement,
 /// hit testing, selection boxes, painting) for the same content each frame;
 /// caching avoids re-creating and re-laying-out the painter on every call.
 ///
@@ -41,6 +41,7 @@ class TextLayoutService {
     required InlineSpan span,
     required TextAlign textAlign,
     required TextDirection textDirection,
+    Locale? locale,
     double minWidth = 0.0,
     required double maxWidth,
   }) {
@@ -49,6 +50,7 @@ class TextLayoutService {
         cache.span == span &&
         cache.textAlign == textAlign &&
         cache.textDirection == textDirection &&
+        cache.locale == locale &&
         cache.minWidth == minWidth &&
         cache.maxWidth == maxWidth) {
       return cache.painter;
@@ -57,6 +59,7 @@ class TextLayoutService {
       text: span,
       textAlign: textAlign,
       textDirection: textDirection,
+      locale: locale,
     );
     final placeholderDimensions = _placeholderDimensionsFor(span);
     if (placeholderDimensions != null) {
@@ -67,6 +70,7 @@ class TextLayoutService {
       span: span,
       textAlign: textAlign,
       textDirection: textDirection,
+      locale: locale,
       minWidth: minWidth,
       maxWidth: maxWidth,
       painter: painter,
@@ -311,6 +315,7 @@ class TextLayoutData {
     required this.span,
     required this.textAlign,
     required this.textDirection,
+    required this.locale,
     required this.minWidth,
     required this.maxWidth,
     required this.painter,
@@ -319,6 +324,7 @@ class TextLayoutData {
   final InlineSpan span;
   final TextAlign textAlign;
   final TextDirection textDirection;
+  final Locale? locale;
   final double minWidth;
   final double maxWidth;
   final TextPainter painter;

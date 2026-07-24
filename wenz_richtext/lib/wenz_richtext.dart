@@ -242,6 +242,7 @@ export 'src/widgets/block_layout_index.dart';
 export 'src/widgets/comment_sidebar.dart';
 export 'src/widgets/code_syntax_highlighter.dart'
     show CodeSyntaxHighlighter, CodeSyntaxPalette;
+export 'src/widgets/color_picker_painters.dart';
 export 'src/widgets/default_desktop_toolbar.dart';
 export 'src/widgets/default_mobile_toolbar.dart';
 export 'src/widgets/desktop_selection_toolbar_overlay.dart';
@@ -255,6 +256,8 @@ export 'src/widgets/mermaid/mermaid_code_block_widget.dart'
 export 'src/widgets/link_hover_overlay.dart';
 export 'src/widgets/media_resolver.dart';
 export 'src/widgets/outline_tree.dart' show WenzOutlineTree, WenzOutlinePanel;
+export 'src/widgets/rgb_spectrum_picker.dart';
+export 'src/widgets/rich_text_color_picker_dialog.dart';
 export 'src/widgets/slash_menu_overlay.dart';
 export 'src/widgets/wenz_rich_text_editor.dart';
 

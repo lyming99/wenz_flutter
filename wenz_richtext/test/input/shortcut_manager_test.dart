@@ -63,7 +63,9 @@ void main() {
           EditorShortcutBinding.handled(
             shortcut: EditorShortcutKey(
               LogicalKeyboardKey.keyA,
-              modifiers: <EditorShortcutModifier>{EditorShortcutModifier.primary},
+              modifiers: <EditorShortcutModifier>{
+                EditorShortcutModifier.primary
+              },
             ),
             intent: EditorShortcutIntent.copy,
           ),
@@ -124,7 +126,9 @@ void main() {
           EditorShortcutBinding.passThrough(
             shortcut: EditorShortcutKey(
               LogicalKeyboardKey.keyS,
-              modifiers: <EditorShortcutModifier>{EditorShortcutModifier.primary},
+              modifiers: <EditorShortcutModifier>{
+                EditorShortcutModifier.primary
+              },
             ),
           ),
         ],
@@ -155,7 +159,9 @@ void main() {
           EditorShortcutBinding.handled(
             shortcut: EditorShortcutKey(
               LogicalKeyboardKey.keyP,
-              modifiers: <EditorShortcutModifier>{EditorShortcutModifier.primary},
+              modifiers: <EditorShortcutModifier>{
+                EditorShortcutModifier.primary
+              },
               platforms: <EditorShortcutPlatform>{EditorShortcutPlatform.macOS},
             ),
             intent: EditorShortcutIntent.find,
@@ -241,7 +247,8 @@ void main() {
       disabledIntents: <EditorShortcutIntent>{EditorShortcutIntent.paste},
     );
 
-    final merged = EditorShortcutConfiguration.merge(<EditorShortcutConfiguration>[
+    final merged =
+        EditorShortcutConfiguration.merge(<EditorShortcutConfiguration>[
       first,
       second,
     ]);
@@ -423,10 +430,10 @@ void main() {
     expect(result.expandSelection, isTrue);
   });
 
-  test('maps shift tab to backward table-cell movement', () {
+  test('maps shift tab to outdent outside widget table context', () {
     final result = resolve(_down(LogicalKeyboardKey.tab), shift: true);
 
-    expect(result.intent, EditorShortcutIntent.moveTableCellBackward);
+    expect(result.intent, EditorShortcutIntent.outdent);
   });
 
   test('maps key repeat navigation events', () {
@@ -489,7 +496,8 @@ void main() {
     expect(plainEnter.intent, EditorShortcutIntent.enter);
   });
 
-  test('guards insert text block shortcuts in read-only and disabled intents', () {
+  test('guards insert text block shortcuts in read-only and disabled intents',
+      () {
     const disabled = EditorShortcutManager(
       configuration: EditorShortcutConfiguration(
         disabledIntents: <EditorShortcutIntent>{
@@ -534,7 +542,9 @@ void main() {
     expect(disabledAbove.disposition, EditorShortcutDisposition.ignored);
   });
 
-  test('configuration can override ignore or pass through insert text block shortcuts', () {
+  test(
+      'configuration can override ignore or pass through insert text block shortcuts',
+      () {
     const configured = EditorShortcutManager(
       configuration: EditorShortcutConfiguration(
         bindings: <EditorShortcutBinding>[

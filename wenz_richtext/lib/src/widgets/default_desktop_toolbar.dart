@@ -7,6 +7,7 @@ import '../controller/wenz_rich_text_controller.dart';
 import '../core/commands/inline_editing.dart';
 import 'link_edit_dialog.dart';
 import 'lucide_toolbar_icons.dart';
+import 'rich_text_color_picker_dialog.dart';
 
 const double _kToolbarHorizontalPadding = 12.0;
 const double _kToolbarVerticalPadding = 8.0;
@@ -30,6 +31,14 @@ const double _kTextColorSwatchExtent = 20.0;
 const double _kTextColorPaletteSpacing = 8.0;
 const double _kTextColorPalettePadding = 4.0;
 const int _kTextColorPaletteColumns = 4;
+const int _kTextColorPaletteRows = 3;
+const double _textColorPaletteHeight = ((_kTextColorMenuWidth -
+                _kToolbarMenuPanelPadding * 2 -
+                20 -
+                (_kTextColorPaletteColumns - 1) * _kTextColorPaletteSpacing) /
+            _kTextColorPaletteColumns) *
+        _kTextColorPaletteRows +
+    (_kTextColorPaletteRows - 1) * _kTextColorPaletteSpacing;
 const double _kInsertMenuWidth = 216.0;
 
 const List<_BlockStyleOption> _kBlockStyleOptions = <_BlockStyleOption>[
@@ -55,8 +64,7 @@ const List<WenzDefaultToolbarTextColorOption> _kTextColorOptions =
 
 /// Shared default text color candidates used by desktop and mobile toolbars.
 const List<WenzDefaultToolbarTextColorOption>
-    wenzDefaultToolbarTextColorOptions =
-    <WenzDefaultToolbarTextColorOption>[
+    wenzDefaultToolbarTextColorOptions = <WenzDefaultToolbarTextColorOption>[
   WenzDefaultToolbarTextColorOption('黑色', 0xFF111827),
   WenzDefaultToolbarTextColorOption('深灰', 0xFF374151),
   WenzDefaultToolbarTextColorOption('岩灰', 0xFF455A64),
@@ -734,8 +742,7 @@ class _AlignmentMenuButton extends StatelessWidget {
             context,
             width: _kAlignmentMenuWidth,
           ),
-          onPressed:
-              state.canSetAlignment ? () => option.apply(toolbar) : null,
+          onPressed: state.canSetAlignment ? () => option.apply(toolbar) : null,
           child: SizedBox(
             width: _toolbarMenuContentWidth(_kAlignmentMenuWidth),
             child: Row(
@@ -1017,10 +1024,14 @@ class _TextColorMenuButtonState extends State<_TextColorMenuButton> {
       menuChildren: <Widget>[
         Padding(
           padding: const EdgeInsets.all(_kTextColorPalettePadding),
+          // MenuAnchor performs intrinsic measurement. Keep the palette
+          // viewport bounded and independent from the editor's scroll view.
           child: SizedBox(
             width: _toolbarMenuContentWidth(_kTextColorMenuWidth),
+            height: _textColorPaletteHeight,
             child: GridView.count(
               crossAxisCount: _kTextColorPaletteColumns,
+              primary: false,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisSpacing: _kTextColorPaletteSpacing,
@@ -1085,15 +1096,9 @@ class _TextColorMenuButtonState extends State<_TextColorMenuButton> {
             ),
             onPressed: state.canFormatInline
                 ? () => _closeTextColorMenuAndRun(
-                      () => _showCustomTextColorDialog(
-                        context,
-                        currentColor,
-                      ).then((colorValue) {
-                        if (!context.mounted || colorValue == null) {
-                          return;
-                        }
-                        toolbar.setTextColorValue(colorValue);
-                      }),
+                      () => _showCustomTextColorPicker(
+                        state.textColorMixed ? null : currentColor,
+                      ),
                     )
                 : null,
             child: SizedBox(
@@ -1161,10 +1166,16 @@ class _TextColorMenuButtonState extends State<_TextColorMenuButton> {
       if (_menuController.isOpen) {
         _menuController.close();
       }
-      _runAfterTextColorPointerEvent(() {
-        _runToolbarAction(action());
-      });
+      _runToolbarAction(action());
     });
+  }
+
+  Future<void> _showCustomTextColorPicker(int? currentColor) async {
+    final colorValue = await _showCustomTextColorDialog(context, currentColor);
+    if (!mounted || colorValue == null) {
+      return;
+    }
+    widget.toolbar.setTextColorValue(colorValue);
   }
 
   void _runAfterTextColorPointerEvent(VoidCallback callback) {
@@ -1216,15 +1227,15 @@ class _TextColorSwatchButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: _textColorOptionTooltip(option),
-      child: MenuItemButton(
-        closeOnActivate: false,
-        style: _toolbarColorSwatchButtonStyle(
-          Theme.of(context),
-          selected: selected,
-        ),
-        onPressed: enabled ? onPressed : null,
+    return MenuItemButton(
+      closeOnActivate: false,
+      style: _toolbarColorSwatchButtonStyle(
+        Theme.of(context),
+        selected: selected,
+      ),
+      onPressed: enabled ? onPressed : null,
+      child: Tooltip(
+        message: _textColorOptionTooltip(option),
         child: _TextColorSwatchIcon(
           color: option.color,
           selected: selected,
@@ -1485,9 +1496,7 @@ String _customTextColorLabel(ToolbarState state) {
 String _customTextColorTooltip(ToolbarState state) {
   final unavailable = state.canFormatInline ? '' : '不可用';
   if (state.textColorMixed) {
-    return unavailable.isEmpty
-        ? '自定义文字颜色（混合）'
-        : '自定义文字颜色（混合，$unavailable）';
+    return unavailable.isEmpty ? '自定义文字颜色（混合）' : '自定义文字颜色（混合，$unavailable）';
   }
   final currentColor = state.textColor;
   if (currentColor == null || _isPresetTextColor(currentColor)) {
@@ -1501,72 +1510,19 @@ Future<int?> _showCustomTextColorDialog(
   BuildContext context,
   int? currentColor,
 ) async {
-  final controller = TextEditingController(
-    text: currentColor == null ? '' : '#${_hexColor(currentColor)}',
+  final initialColor = Color(
+    currentColor ?? _kTextColorOptions.first.colorValue,
   );
-  String? errorText;
-  final result = await showDialog<int>(
+  final result = await showDialog<Color>(
     context: context,
-    builder: (dialogContext) {
-      return StatefulBuilder(
-        builder: (context, setState) {
-          void submit() {
-            final colorValue = _parseHexColor(controller.text);
-            if (colorValue == null) {
-              setState(() {
-                errorText = '请输入 #RRGGBB 或 #AARRGGBB';
-              });
-              return;
-            }
-            Navigator.of(dialogContext).pop(colorValue);
-          }
-
-          return AlertDialog(
-            title: const Text('自定义文字颜色'),
-            content: TextField(
-              autofocus: true,
-              controller: controller,
-              decoration: InputDecoration(
-                labelText: '十六进制颜色',
-                hintText: '#336699',
-                errorText: errorText,
-              ),
-              textCapitalization: TextCapitalization.characters,
-              onSubmitted: (_) => submit(),
-            ),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: submit,
-                child: const Text('Apply'),
-              ),
-            ],
-          );
-        },
-      );
-    },
+    builder: (dialogContext) => WenzRichTextColorPickerDialog(
+      initialColor: initialColor,
+      swatches: <Color>[
+        for (final option in _kTextColorOptions) option.color,
+      ],
+    ),
   );
-  controller.dispose();
-  return result;
-}
-
-int? _parseHexColor(String input) {
-  var value = input.trim();
-  if (value.startsWith('#')) {
-    value = value.substring(1);
-  } else if (value.toLowerCase().startsWith('0x')) {
-    value = value.substring(2);
-  }
-  if (value.length == 6) {
-    value = 'FF$value';
-  }
-  if (value.length != 8 || !RegExp(r'^[0-9a-fA-F]{8}$').hasMatch(value)) {
-    return null;
-  }
-  return int.tryParse(value, radix: 16);
+  return result?.toARGB32();
 }
 
 MenuStyle _toolbarMenuPanelStyle(
@@ -1874,9 +1830,7 @@ ButtonStyle _toolbarTextButtonStyle(
 String _textColorTooltip(ToolbarState state) {
   final unavailable = state.canFormatInline ? '' : '不可用';
   if (state.textColorMixed) {
-    return unavailable.isEmpty
-        ? '文字颜色（混合）'
-        : '文字颜色（混合，$unavailable）';
+    return unavailable.isEmpty ? '文字颜色（混合）' : '文字颜色（混合，$unavailable）';
   }
   if (state.textColor == null) {
     return unavailable.isEmpty ? '文字颜色' : '文字颜色$unavailable';

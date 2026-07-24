@@ -211,17 +211,23 @@ UI，不应直接改 document model。
 | Ctrl/Cmd+C | 复制 | 是 |
 | Ctrl/Cmd+X | 剪切 | 否 |
 | Ctrl/Cmd+V | 粘贴 | 否 |
-| Ctrl/Cmd+F | 查找 | 是（仅在接入查找入口时拦截） |
-| Ctrl/Cmd+H | 替换 | 否（仅在接入替换入口时拦截） |
+| Ctrl/Cmd+F | 打开编辑器内置查找替换面板并聚焦查询框 | 是（`enableFindReplace=true`） |
+| Ctrl/Cmd+H | 打开同一个查找替换面板 | 否；只读态不拦截 |
 | Ctrl/Cmd+Z / Ctrl+Shift+Z | 撤销/重做 | 否 |
 | Ctrl/Cmd+Y | 重做 | 否 |
 | Ctrl/Cmd+←/→ | 按词移动（Shift 扩选） | 否 |
 | Ctrl/Cmd+Home/End | 文档首/尾 | 否 |
 
-`EditorShortcutManager` 的查找/替换 intent 由 widget 层按需启用：
-`WenzRichTextEditor` 只有在传入 `findController`、`onFindRequested` 或
-`onReplaceRequested` 时才会处理 Ctrl/Cmd+F/H；否则这些组合键继续冒泡给
-浏览器或宿主应用。
+`WenzRichTextEditor.enableFindReplace` 默认为 `true`。未传入
+`findController` 时，编辑器会为当前 `WenzRichTextController` 创建并管理一个
+`WenzFindReplaceController`，因此桌面宿主无需额外接线：Ctrl/Cmd+F 默认打开编辑器
+顶部的内置面板，再次触发会重新聚焦查询框；可编辑状态下 Ctrl/Cmd+H 为兼容快捷键，
+打开同一个面板而不是另一套替换 UI。
+
+只读态仍可通过 Ctrl/Cmd+F 搜索、切换匹配和查看高亮，但面板不展示或执行替换；
+Ctrl/Cmd+H 不会被编辑器拦截，会继续交给外层宿主。设置
+`enableFindReplace=false` 会同时关闭自有/外部 controller 接入、匹配高亮、内置面板
+和 Ctrl/Cmd+F/H 拦截，两个快捷键均可由浏览器或宿主应用继续处理。
 
 Enter 的键盘路径只负责把 intent 分发到 `controller.enter()`，实际文档语义由
 `EnterCommand` 决定，和业务直接调用 `WenzRichTextController.enter()` 共用同一条
@@ -332,8 +338,15 @@ replacement、匹配项列表和当前命中。匹配范围使用现有
 - `FindReplaceOptions.caseSensitive` 和 `wholeWord` 已预留并实现基础匹配。
 
 `WenzRichTextEditor.findController` 会把所有命中绘制为搜索高亮，当前命中用
-更明显的颜色；`WenzFindReplacePanel` 是可嵌入的基础 UI，业务层可以放在
-工具栏、侧栏或自定义浮层内。
+更明显的颜色。该参数用于共享宿主持有的 controller；编辑器会在启用期间把它重新
+绑定到当前 `controller` 和 `outlineController`，但不会负责 dispose。省略该参数时使用
+编辑器自有 controller，widget 更新时会重新绑定，销毁时只释放自有实例。
+
+`onFindRequested` 和 `onReplaceRequested` 分别优先接管 Ctrl/Cmd+F 和可编辑状态下的
+Ctrl/Cmd+H；提供其中一个回调不会隐式接管另一个快捷键。回调只替换面板打开动作，
+不会禁用 `findController` 的匹配和高亮；若要完整关闭功能，应使用
+`enableFindReplace=false`。`WenzFindReplacePanel` 仍是公开的可嵌入基础 UI，宿主可将
+它放在工具栏、侧栏或自定义浮层内。
 
 ## Slash 菜单
 

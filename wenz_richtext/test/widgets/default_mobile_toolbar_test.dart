@@ -99,7 +99,8 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('uses viewInsets for keyboard avoidance without resizing panel', (
+    testWidgets('uses viewInsets for keyboard avoidance without resizing panel',
+        (
       tester,
     ) async {
       await _pumpMobileToolbar(tester, height: 700);
@@ -119,7 +120,8 @@ void main() {
           tester.getRect(find.byType(SingleChildScrollView)).height;
 
       expect(insetBottom, closeTo(noInsetBottom - 180, _kGeometryTolerance));
-      expect(insetPanelHeight, closeTo(noInsetPanelHeight, _kGeometryTolerance));
+      expect(
+          insetPanelHeight, closeTo(noInsetPanelHeight, _kGeometryTolerance));
 
       await _tapTooltip(tester, '收起键盘');
       expect(find.byTooltip('收起插入面板'), findsOneWidget);
@@ -248,7 +250,8 @@ void main() {
       await _pumpMobileToolbar(tester, toolbarItemRegistry: registry);
       await _tapTooltip(tester, '打开插入面板');
 
-      _expectLucideIcon(tester, 'Known token', WenzLucideToolbarIcons.extension);
+      _expectLucideIcon(
+          tester, 'Known token', WenzLucideToolbarIcons.extension);
       _expectLucideIcon(tester, 'Alias token', WenzLucideToolbarIcons.workflow);
       _expectLucideIcon(
         tester,
@@ -337,7 +340,9 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('applies, customizes, mixes, and clears text color and background', (tester) async {
+    testWidgets(
+        'applies, customizes, mixes, and clears text color and background',
+        (tester) async {
       final harness = await _pumpMobileToolbar(
         tester,
         selection: textSelection('p1', 0, 0, 5),
@@ -352,12 +357,25 @@ void main() {
 
       await _tapTextButtonByTooltip(tester, '自定义文字颜色');
       await tester.pumpAndSettle();
+      expect(find.byType(WenzRichTextColorPickerDialog), findsOneWidget);
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        '1976D2',
+      );
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+      expect(_firstRun(harness.controller).attributes.color, 0xFF1976D2);
+      expect(_iconButton(tester, '蓝色 #FF1976D2').isSelected, isTrue);
+
+      await _tapTextButtonByTooltip(tester, '自定义文字颜色');
+      await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), '#336699');
       await tester.tap(find.text('应用'));
       await tester.pumpAndSettle();
       expect(_firstRun(harness.controller).attributes.color, 0xFF336699);
       expect(find.byTooltip('自定义文字颜色 #FF336699'), findsOneWidget);
-      expect(find.widgetWithText(TextButton, '自定义颜色 #FF336699'), findsOneWidget);
+      expect(
+          find.widgetWithText(TextButton, '自定义颜色 #FF336699'), findsOneWidget);
 
       await _tapTextButtonByTooltip(tester, '清除文字颜色 #FF336699');
       expect(_firstRun(harness.controller).attributes.color, isNull);
