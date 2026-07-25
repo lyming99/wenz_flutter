@@ -7229,7 +7229,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     if (_findPanelFocusScopeNode.hasFocus) {
       final keyboard = HardwareKeyboard.instance;
       if ((event is KeyDownEvent || event is KeyRepeatEvent) &&
-          (keyboard.isControlPressed || keyboard.isMetaPressed)) {
+          _isPrimaryShortcutPressed(keyboard)) {
         if (event.logicalKey == LogicalKeyboardKey.keyF) {
           _openFindReplacePanel(replace: false);
           return KeyEventResult.handled;
@@ -7264,7 +7264,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     final resolution = _shortcutManager.resolve(
       event,
       shiftPressed: keyboard.isShiftPressed,
-      primaryPressed: keyboard.isControlPressed || keyboard.isMetaPressed,
+      primaryPressed: _isPrimaryShortcutPressed(keyboard),
       controlPressed: keyboard.isControlPressed,
       altPressed: keyboard.isAltPressed,
       metaPressed: keyboard.isMetaPressed,
@@ -7287,6 +7287,13 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     // Unrecognised Ctrl/Cmd combo: let it propagate (e.g. browser Ctrl+S,
     // dev tools) rather than swallowing everything.
     return KeyEventResult.ignored;
+  }
+
+  bool _isPrimaryShortcutPressed(HardwareKeyboard keyboard) {
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.macOS || TargetPlatform.iOS => keyboard.isMetaPressed,
+      _ => keyboard.isControlPressed,
+    };
   }
 
   bool _handleCodeBlockTabKeyEvent(KeyEvent event) {

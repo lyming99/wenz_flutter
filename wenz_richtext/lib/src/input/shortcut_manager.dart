@@ -489,7 +489,7 @@ class EditorShortcutManager {
     required bool primaryPressed,
     required bool readOnly,
   }) {
-    for (final binding in _defaultRichTextShortcutBindings) {
+    for (final binding in defaultRichTextShortcutBindings) {
       if (!binding.shortcut.matches(
         key: key,
         shiftPressed: shiftPressed,
@@ -630,141 +630,145 @@ bool _setEquals<T>(Set<T> left, Set<T> right) {
   return left.length == right.length && left.containsAll(right);
 }
 
-const Set<EditorShortcutModifier> _controlShortcutModifiers =
+const Set<EditorShortcutModifier> _primaryShortcutModifiers =
     <EditorShortcutModifier>{
-  EditorShortcutModifier.control,
+  EditorShortcutModifier.primary,
 };
 
-const Set<EditorShortcutModifier> _controlAltShortcutModifiers =
+const Set<EditorShortcutModifier> _primaryAltShortcutModifiers =
     <EditorShortcutModifier>{
-  EditorShortcutModifier.control,
+  EditorShortcutModifier.primary,
   EditorShortcutModifier.alt,
 };
 
-const Set<EditorShortcutModifier> _controlShiftShortcutModifiers =
+const Set<EditorShortcutModifier> _primaryShiftShortcutModifiers =
     <EditorShortcutModifier>{
-  EditorShortcutModifier.control,
+  EditorShortcutModifier.primary,
   EditorShortcutModifier.shift,
 };
 
-const List<EditorShortcutBinding> _defaultRichTextShortcutBindings =
+/// Default rich-text editing shortcuts.
+///
+/// Hosts can use this public list to present and configure the same bindings
+/// that the editor resolves internally.
+const List<EditorShortcutBinding> defaultRichTextShortcutBindings =
     <EditorShortcutBinding>[
   EditorShortcutBinding.handled(
     shortcut: EditorShortcutKey(
       LogicalKeyboardKey.digit1,
-      modifiers: _controlShortcutModifiers,
+      modifiers: _primaryShortcutModifiers,
     ),
     intent: EditorShortcutIntent.toggleHeading1,
   ),
   EditorShortcutBinding.handled(
     shortcut: EditorShortcutKey(
       LogicalKeyboardKey.digit2,
-      modifiers: _controlShortcutModifiers,
+      modifiers: _primaryShortcutModifiers,
     ),
     intent: EditorShortcutIntent.toggleHeading2,
   ),
   EditorShortcutBinding.handled(
     shortcut: EditorShortcutKey(
       LogicalKeyboardKey.digit3,
-      modifiers: _controlShortcutModifiers,
+      modifiers: _primaryShortcutModifiers,
     ),
     intent: EditorShortcutIntent.toggleHeading3,
   ),
   EditorShortcutBinding.handled(
     shortcut: EditorShortcutKey(
       LogicalKeyboardKey.digit4,
-      modifiers: _controlShortcutModifiers,
+      modifiers: _primaryShortcutModifiers,
     ),
     intent: EditorShortcutIntent.toggleHeading4,
   ),
   EditorShortcutBinding.handled(
     shortcut: EditorShortcutKey(
       LogicalKeyboardKey.digit5,
-      modifiers: _controlShortcutModifiers,
+      modifiers: _primaryShortcutModifiers,
     ),
     intent: EditorShortcutIntent.toggleHeading5,
   ),
   EditorShortcutBinding.handled(
     shortcut: EditorShortcutKey(
       LogicalKeyboardKey.digit6,
-      modifiers: _controlShortcutModifiers,
+      modifiers: _primaryShortcutModifiers,
     ),
     intent: EditorShortcutIntent.toggleHeading6,
   ),
   EditorShortcutBinding.handled(
     shortcut: EditorShortcutKey(
       LogicalKeyboardKey.digit8,
-      modifiers: _controlShortcutModifiers,
+      modifiers: _primaryShortcutModifiers,
     ),
     intent: EditorShortcutIntent.toggleQuote,
   ),
   EditorShortcutBinding.handled(
     shortcut: EditorShortcutKey(
       LogicalKeyboardKey.digit9,
-      modifiers: _controlShortcutModifiers,
+      modifiers: _primaryShortcutModifiers,
     ),
     intent: EditorShortcutIntent.insertFormula,
   ),
   EditorShortcutBinding.handled(
     shortcut: EditorShortcutKey(
       LogicalKeyboardKey.keyK,
-      modifiers: _controlAltShortcutModifiers,
+      modifiers: _primaryAltShortcutModifiers,
     ),
     intent: EditorShortcutIntent.toggleCodeBlock,
   ),
   EditorShortcutBinding.handled(
     shortcut: EditorShortcutKey(
       LogicalKeyboardKey.keyT,
-      modifiers: _controlShortcutModifiers,
+      modifiers: _primaryShortcutModifiers,
     ),
     intent: EditorShortcutIntent.toggleTodo,
   ),
   EditorShortcutBinding.handled(
     shortcut: EditorShortcutKey(
       LogicalKeyboardKey.keyI,
-      modifiers: _controlShortcutModifiers,
+      modifiers: _primaryShortcutModifiers,
     ),
     intent: EditorShortcutIntent.cycleList,
   ),
   EditorShortcutBinding.handled(
     shortcut: EditorShortcutKey(
       LogicalKeyboardKey.keyT,
-      modifiers: _controlShiftShortcutModifiers,
+      modifiers: _primaryShiftShortcutModifiers,
     ),
     intent: EditorShortcutIntent.insertTable,
   ),
   EditorShortcutBinding.handled(
     shortcut: EditorShortcutKey(
       LogicalKeyboardKey.keyL,
-      modifiers: _controlShiftShortcutModifiers,
+      modifiers: _primaryShiftShortcutModifiers,
     ),
     intent: EditorShortcutIntent.insertLink,
   ),
   EditorShortcutBinding.handled(
     shortcut: EditorShortcutKey(
       LogicalKeyboardKey.enter,
-      modifiers: _controlShortcutModifiers,
+      modifiers: _primaryShortcutModifiers,
     ),
     intent: EditorShortcutIntent.insertTextBlockBelow,
   ),
   EditorShortcutBinding.handled(
     shortcut: EditorShortcutKey(
       LogicalKeyboardKey.numpadEnter,
-      modifiers: _controlShortcutModifiers,
+      modifiers: _primaryShortcutModifiers,
     ),
     intent: EditorShortcutIntent.insertTextBlockBelow,
   ),
   EditorShortcutBinding.handled(
     shortcut: EditorShortcutKey(
       LogicalKeyboardKey.enter,
-      modifiers: _controlShiftShortcutModifiers,
+      modifiers: _primaryShiftShortcutModifiers,
     ),
     intent: EditorShortcutIntent.insertTextBlockAbove,
   ),
   EditorShortcutBinding.handled(
     shortcut: EditorShortcutKey(
       LogicalKeyboardKey.numpadEnter,
-      modifiers: _controlShiftShortcutModifiers,
+      modifiers: _primaryShiftShortcutModifiers,
     ),
     intent: EditorShortcutIntent.insertTextBlockAbove,
   ),

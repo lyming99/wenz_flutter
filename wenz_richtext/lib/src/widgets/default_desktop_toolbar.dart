@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../controller/toolbar_controller.dart';
@@ -519,7 +520,7 @@ class WenzDefaultDesktopToolbar extends StatelessWidget {
   }
 }
 
-class _DefaultDesktopToolbarLayout extends StatelessWidget {
+class _DefaultDesktopToolbarLayout extends StatefulWidget {
   const _DefaultDesktopToolbarLayout({
     required this.children,
   });
@@ -527,18 +528,58 @@ class _DefaultDesktopToolbarLayout extends StatelessWidget {
   final List<Widget> children;
 
   @override
+  State<_DefaultDesktopToolbarLayout> createState() =>
+      _DefaultDesktopToolbarLayoutState();
+}
+
+class _DefaultDesktopToolbarLayoutState
+    extends State<_DefaultDesktopToolbarLayout> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _handlePointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent || !_scrollController.hasClients) {
+      return;
+    }
+    GestureBinding.instance.pointerSignalResolver.register(event, (_) {
+      final delta = event.scrollDelta.dy != 0
+          ? event.scrollDelta.dy
+          : event.scrollDelta.dx;
+      final position = _scrollController.position;
+      _scrollController.jumpTo(
+        (position.pixels + delta).clamp(
+          position.minScrollExtent,
+          position.maxScrollExtent,
+        ),
+      );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          for (var index = 0; index < children.length; index++) ...<Widget>[
-            if (index > 0) const SizedBox(width: _kToolbarSpacing),
-            children[index],
+    return Listener(
+      key: const ValueKey<String>('wenz.desktop-toolbar.wheel-scroll'),
+      onPointerSignal: _handlePointerSignal,
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            for (var index = 0;
+                index < widget.children.length;
+                index++) ...<Widget>[
+              if (index > 0) const SizedBox(width: _kToolbarSpacing),
+              widget.children[index],
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

@@ -5,6 +5,24 @@ import 'package:wenz_richtext/wenz_richtext.dart';
 void main() {
   const manager = EditorShortcutManager();
 
+  test('default rich-text shortcuts use the platform primary modifier', () {
+    expect(defaultRichTextShortcutBindings, isNotEmpty);
+    for (final binding in defaultRichTextShortcutBindings) {
+      expect(
+        binding.shortcut.modifiers,
+        contains(EditorShortcutModifier.primary),
+      );
+      expect(
+        binding.shortcut.modifiers,
+        isNot(contains(EditorShortcutModifier.control)),
+      );
+      expect(
+        binding.shortcut.modifiers,
+        isNot(contains(EditorShortcutModifier.meta)),
+      );
+    }
+  });
+
   EditorShortcutResolution resolve(
     KeyEvent event, {
     bool shift = false,

@@ -1,5 +1,6 @@
 import 'dart:ui' show PointerDeviceKind;
 
+import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
@@ -224,6 +225,35 @@ void main() {
       expect(_iconButton(tester, '无序列表').onPressed, isNotNull);
       expect(_textButton(tester, '对齐方式：无对齐').onPressed, isNotNull);
       expect(_iconButton(tester, '插入元素').onPressed, isNotNull);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('maps an ordinary mouse wheel to horizontal toolbar scrolling',
+        (tester) async {
+      await _pumpToolbar(
+        tester,
+        selection: textSelection('p1', 0, 0, 5),
+        width: 320,
+      );
+
+      final listener =
+          find.byKey(const ValueKey('wenz.desktop-toolbar.wheel-scroll'));
+      final scrollable = find.descendant(
+        of: listener,
+        matching: find.byType(Scrollable),
+      );
+      final state = tester.state<ScrollableState>(scrollable);
+      expect(state.position.maxScrollExtent, greaterThan(0));
+
+      tester.binding.handlePointerEvent(
+        PointerScrollEvent(
+          position: tester.getCenter(listener),
+          scrollDelta: const Offset(0, 120),
+        ),
+      );
+      await tester.pump();
+
+      expect(state.position.pixels, greaterThan(0));
       expect(tester.takeException(), isNull);
     });
 
