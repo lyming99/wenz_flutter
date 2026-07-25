@@ -20,6 +20,8 @@ set(PLUGIN_NAME "window_border_plugin")
 list(APPEND PLUGIN_SOURCES
   "flutter_view_layout.cpp"
   "flutter_view_layout.h"
+  "maximized_window_bounds.cpp"
+  "maximized_window_bounds.h"
   "window_border_plugin.cpp"
   "window_border_plugin.h"
 )
@@ -88,6 +90,7 @@ FetchContent_MakeAvailable(googletest)
 # directly into the test binary rather than using the DLL.
 add_executable(${TEST_RUNNER}
   test/flutter_view_layout_test.cpp
+  test/maximized_window_bounds_test.cpp
   test/window_border_plugin_test.cpp
   ${PLUGIN_SOURCES}
 )

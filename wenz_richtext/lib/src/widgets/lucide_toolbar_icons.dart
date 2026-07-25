@@ -37,6 +37,7 @@ abstract final class WenzLucideToolbarIcons {
   static const String insert = 'plus';
   static const String italic = 'italic';
   static const String link = 'link';
+  static const String listTree = 'list-tree';
   static const String more = 'ellipsis';
   static const String orderedList = 'list-ordered';
   static const String paintBucket = 'paint-bucket';
@@ -119,6 +120,7 @@ const Set<String> _kKnownIconNames = <String>{
   WenzLucideToolbarIcons.insert,
   WenzLucideToolbarIcons.italic,
   WenzLucideToolbarIcons.link,
+  WenzLucideToolbarIcons.listTree,
   WenzLucideToolbarIcons.more,
   WenzLucideToolbarIcons.orderedList,
   WenzLucideToolbarIcons.paintBucket,

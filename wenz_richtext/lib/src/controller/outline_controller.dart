@@ -552,8 +552,7 @@ class WenzOutlineController extends ChangeNotifier {
   int _navigationRevision = 0;
   OutlineNavigationRequest? _lastNavigationRequest;
 
-  OutlineNavigationRequest? get lastNavigationRequest =>
-      _lastNavigationRequest;
+  OutlineNavigationRequest? get lastNavigationRequest => _lastNavigationRequest;
 
   OutlineBlockProjection? _cachedProjection;
   List<BlockNode>? _cachedProjectionBlocks;
@@ -914,7 +913,13 @@ class WenzOutlineController extends ChangeNotifier {
   void _handleHostChanged() {
     final changeSummary = _host.lastDocumentChangeSummary;
     if (changeSummary != null && !changeSummary.documentChanged) {
-      expandToRevealSelection(_host.selection);
+      // Selection-only changes do not rebuild the outline item projection, but
+      // the panel still needs a notification so it can move the active-row
+      // highlight as the caret crosses heading sections. Revealing a collapsed
+      // range already recomputes and notifies, so avoid emitting twice.
+      if (!expandToRevealSelection(_host.selection)) {
+        notifyListeners();
+      }
       return;
     }
     final nextBlocks = _host.document.blocks;

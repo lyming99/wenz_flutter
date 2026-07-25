@@ -22,6 +22,7 @@
 #include <variant>
 
 #include "flutter_view_layout.h"
+#include "maximized_window_bounds.h"
 
 namespace window_border {
 namespace {
@@ -369,12 +370,21 @@ std::optional<LRESULT> WindowBorderPlugin::HandleWindowProc(
           MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
       MONITORINFO monitor_info{sizeof(MONITORINFO)};
       if (GetMonitorInfo(monitor, &monitor_info)) {
-        const RECT& work = monitor_info.rcWork;
-        const RECT& bounds = monitor_info.rcMonitor;
-        min_max_info->ptMaxPosition.x = work.left - bounds.left;
-        min_max_info->ptMaxPosition.y = work.top - bounds.top;
-        min_max_info->ptMaxSize.x = work.right - work.left;
-        min_max_info->ptMaxSize.y = work.bottom - work.top;
+        const MaximizedWindowBounds bounds = CalculateMaximizedWindowBounds(
+            PhysicalWindowRect{monitor_info.rcMonitor.left,
+                               monitor_info.rcMonitor.top,
+                               monitor_info.rcMonitor.right,
+                               monitor_info.rcMonitor.bottom},
+            PhysicalWindowRect{monitor_info.rcWork.left,
+                               monitor_info.rcWork.top,
+                               monitor_info.rcWork.right,
+                               monitor_info.rcWork.bottom});
+        if (bounds.valid) {
+          min_max_info->ptMaxPosition.x = bounds.x;
+          min_max_info->ptMaxPosition.y = bounds.y;
+          min_max_info->ptMaxSize.x = bounds.width;
+          min_max_info->ptMaxSize.y = bounds.height;
+        }
       }
       return 0;
     }
@@ -405,6 +415,20 @@ std::optional<LRESULT> WindowBorderPlugin::HandleWindowProc(
       // used; WM_SIZE may already have synchronized the child by then.
       ScheduleFlutterViewLayout();
       return std::nullopt;
+    case WM_SETTINGCHANGE:
+      // Taskbar relocation and auto-hide changes publish a new rcWork without
+      // necessarily changing the display mode.
+      if (wparam == SPI_SETWORKAREA || IsZoomed(hwnd)) {
+        ScheduleFlutterViewLayout();
+      }
+      return std::nullopt;
+    case WM_WINDOWPOSCHANGED:
+      // A maximized window can be moved to another monitor through shell
+      // shortcuts. Re-read that monitor after DefWindowProc settles the move.
+      if (IsZoomed(hwnd)) {
+        ScheduleFlutterViewLayout();
+      }
+      return std::nullopt;
     case WM_DWMCOMPOSITIONCHANGED:
       ApplyWindowEffects();
       ScheduleFlutterViewLayout();
@@ -417,9 +441,10 @@ std::optional<LRESULT> WindowBorderPlugin::HandleWindowProc(
       ScheduleFlutterViewLayout();
       return std::nullopt;
     case kLayoutFlutterViewMessage:
-      layout_message_pending_ = false;
+      SynchronizeMaximizedWindowBounds();
       LayoutFlutterView();
       InvalidateRect(hwnd, nullptr, FALSE);
+      layout_message_pending_ = false;
       return 0;
     case WM_NCDESTROY:
       window_ = nullptr;
@@ -692,6 +717,44 @@ void WindowBorderPlugin::ScheduleFlutterViewLayout() {
   if (PostMessage(window_, kLayoutFlutterViewMessage, 0, 0)) {
     layout_message_pending_ = true;
   }
+}
+
+void WindowBorderPlugin::SynchronizeMaximizedWindowBounds() {
+  if (window_ == nullptr || !IsWindow(window_) ||
+      IsZoomed(window_) == FALSE) {
+    return;
+  }
+
+  const HMONITOR monitor =
+      MonitorFromWindow(window_, MONITOR_DEFAULTTONEAREST);
+  MONITORINFO monitor_info{sizeof(MONITORINFO)};
+  if (monitor == nullptr || !GetMonitorInfo(monitor, &monitor_info)) {
+    return;
+  }
+
+  const MaximizedWindowBounds bounds = CalculateMaximizedWindowBounds(
+      PhysicalWindowRect{monitor_info.rcMonitor.left, monitor_info.rcMonitor.top,
+                         monitor_info.rcMonitor.right,
+                         monitor_info.rcMonitor.bottom},
+      PhysicalWindowRect{monitor_info.rcWork.left, monitor_info.rcWork.top,
+                         monitor_info.rcWork.right,
+                         monitor_info.rcWork.bottom});
+  if (!bounds.valid) {
+    return;
+  }
+
+  const int left = monitor_info.rcMonitor.left + bounds.x;
+  const int top = monitor_info.rcMonitor.top + bounds.y;
+  RECT current{};
+  if (GetWindowRect(window_, &current) &&
+      current.left == left && current.top == top &&
+      current.right - current.left == bounds.width &&
+      current.bottom - current.top == bounds.height) {
+    return;
+  }
+
+  SetWindowPos(window_, nullptr, left, top, bounds.width, bounds.height,
+               SWP_NOACTIVATE | SWP_NOZORDER);
 }
 
 void WindowBorderPlugin::ShowWindowWithSynchronizedLayout(int command) {

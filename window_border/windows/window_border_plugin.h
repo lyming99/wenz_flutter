@@ -53,6 +53,7 @@ class WindowBorderPlugin : public flutter::Plugin {
   void RestoreWindowEffects();
   void LayoutFlutterView();
   void ScheduleFlutterViewLayout();
+  void SynchronizeMaximizedWindowBounds();
   void ShowWindowWithSynchronizedLayout(int command);
   void UpdateRoundedRegions(bool redraw = true);
   void PaintBorder(HDC device_context = nullptr);

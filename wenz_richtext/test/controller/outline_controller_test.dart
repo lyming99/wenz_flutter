@@ -87,6 +87,47 @@ void main() {
       host.dispose();
     });
 
+    test('selection-only changes notify outline listeners without rescanning',
+        () {
+      final host = WenzRichTextController(document: _doc());
+      final outline = WenzOutlineController(editor: host);
+      var notifications = 0;
+      outline.addListener(() => notifications++);
+
+      final firstSectionCaret = DocumentPosition.text(
+        blockId: 'p1',
+        blockIndex: 1,
+        offset: 0,
+      );
+      host.setSelection(
+        DocumentSelection(
+          base: firstSectionCaret,
+          extent: firstSectionCaret,
+        ),
+      );
+
+      expect(notifications, 1);
+      expect(outline.recomputeCount, 1);
+
+      final secondSectionCaret = DocumentPosition.text(
+        blockId: 'h2',
+        blockIndex: 2,
+        offset: 0,
+      );
+      host.setSelection(
+        DocumentSelection(
+          base: secondSectionCaret,
+          extent: secondSectionCaret,
+        ),
+      );
+
+      expect(notifications, 2);
+      expect(outline.recomputeCount, 1);
+
+      outline.dispose();
+      host.dispose();
+    });
+
     test('resolves heading move ranges including the heading block', () {
       final host = WenzRichTextController(document: _headingMoveRangeDoc());
       final outline = WenzOutlineController(editor: host);

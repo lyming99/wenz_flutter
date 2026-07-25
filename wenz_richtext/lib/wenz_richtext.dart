@@ -254,6 +254,8 @@ export 'src/widgets/link_edit_dialog.dart';
 export 'src/widgets/mermaid/mermaid_code_block_widget.dart'
     show MermaidCodeBlockWidget;
 export 'src/widgets/link_hover_overlay.dart';
+export 'src/widgets/lucide_toolbar_icons.dart'
+    show WenzLucideToolbarIcon, WenzLucideToolbarIcons;
 export 'src/widgets/media_resolver.dart';
 export 'src/widgets/outline_tree.dart' show WenzOutlineTree, WenzOutlinePanel;
 export 'src/widgets/rgb_spectrum_picker.dart';
