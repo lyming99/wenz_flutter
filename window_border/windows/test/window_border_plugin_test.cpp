@@ -39,5 +39,24 @@ TEST(WindowBorderPlugin, GetPlatformVersion) {
   EXPECT_TRUE(result_string.rfind("Windows ", 0) == 0);
 }
 
+TEST(WindowBorderPlugin, SetStyleAcceptsColorOnlyUpdatesWithoutAWindow) {
+  WindowBorderPlugin plugin;
+  EncodableMap arguments{
+      {EncodableValue("borderColor"),
+       EncodableValue(static_cast<int64_t>(0xFF112233))},
+      {EncodableValue("backgroundColor"),
+       EncodableValue(static_cast<int64_t>(0xFF010203))},
+  };
+  bool succeeded = false;
+  plugin.HandleMethodCall(
+      MethodCall("setStyle",
+                 std::make_unique<EncodableValue>(std::move(arguments))),
+      std::make_unique<MethodResultFunctions<>>(
+          [&succeeded](const EncodableValue*) { succeeded = true; }, nullptr,
+          nullptr));
+
+  EXPECT_TRUE(succeeded);
+}
+
 }  // namespace test
 }  // namespace window_border

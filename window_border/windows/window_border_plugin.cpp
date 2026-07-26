@@ -268,15 +268,43 @@ void WindowBorderPlugin::HandleMethodCall(
                                 ? nullptr
                                 : std::get_if<flutter::EncodableMap>(
                                       method_call.arguments());
-    if (arguments == nullptr || !UpdateStyle(*arguments, &error)) {
+    if (arguments == nullptr) {
+      result->Error("invalid_arguments", "setStyle expects a style map.");
+      return;
+    }
+
+    const double previous_border_width = border_width_;
+    const double previous_corner_radius = corner_radius_;
+    const bool previous_resizable = resizable_;
+    const bool previous_shadow_enabled = shadow_enabled_;
+    const uint32_t previous_border_color = border_color_;
+    const uint32_t previous_background_color = background_color_;
+    if (!UpdateStyle(*arguments, &error)) {
       result->Error("invalid_arguments",
                     error.empty() ? "setStyle expects a style map." : error);
       return;
     }
-    if (enabled_) {
+
+    const bool frame_layout_changed =
+        border_width_ != previous_border_width ||
+        resizable_ != previous_resizable;
+    const bool window_effects_changed =
+        corner_radius_ != previous_corner_radius ||
+        shadow_enabled_ != previous_shadow_enabled;
+    const bool painted_style_changed =
+        frame_layout_changed || window_effects_changed ||
+        border_color_ != previous_border_color ||
+        background_color_ != previous_background_color;
+    if (enabled_ && frame_layout_changed) {
       ApplyFramelessStyle();
       LayoutFlutterView();
-      InvalidateRect(window_, nullptr, FALSE);
+    } else if (enabled_ && window_effects_changed) {
+      ApplyWindowEffects();
+    }
+    if (enabled_ && painted_style_changed && window_ != nullptr &&
+        IsWindow(window_)) {
+      RedrawWindow(window_, nullptr, nullptr,
+                   RDW_INVALIDATE | RDW_NOERASE | RDW_NOCHILDREN);
     }
     result->Success();
     return;
@@ -516,8 +544,11 @@ bool WindowBorderPlugin::UpdateStyle(
       *error = "borderColor must be a 32-bit ARGB integer.";
       return false;
     }
-    border_color_ = static_cast<uint32_t>(*color);
-    RebuildBorderBrush();
+    const auto next_color = static_cast<uint32_t>(*color);
+    if (next_color != border_color_) {
+      border_color_ = next_color;
+      RebuildBorderBrush();
+    }
   }
 
   if (const auto* value = FindValue(arguments, "backgroundColor")) {
@@ -527,8 +558,11 @@ bool WindowBorderPlugin::UpdateStyle(
       *error = "backgroundColor must be a 32-bit ARGB integer.";
       return false;
     }
-    background_color_ = static_cast<uint32_t>(*color);
-    RebuildBackgroundBrush();
+    const auto next_color = static_cast<uint32_t>(*color);
+    if (next_color != background_color_) {
+      background_color_ = next_color;
+      RebuildBackgroundBrush();
+    }
   }
 
   if (const auto* value = FindValue(arguments, "resizable")) {
