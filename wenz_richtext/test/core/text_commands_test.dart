@@ -891,6 +891,47 @@ void main() {
     expect(session.selection?.extent.offset, 4);
   });
 
+  test(
+    'delete backward at the start of the first ordered item removes its marker',
+    () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'ordered1',
+              type: BlockType.listItem,
+              attributes: BlockAttributes(listType: 'ordered'),
+              content: <InlineNode>[TextRun(text: 'First item')],
+            ),
+          ],
+        ),
+        selection: collapsedTextSelection('ordered1', 0, 0),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(const DeleteBackwardCommand());
+
+      final block = session.document.blocks.single as TextBlockNode;
+      expect(block.type, BlockType.paragraph);
+      expect(block.attributes.listType, isNull);
+      expect(block.plainText, 'First item');
+      expect(session.selection?.isCollapsed, isTrue);
+      expect(session.selection?.extent.blockId, 'ordered1');
+      expect(session.selection?.extent.offset, 0);
+      expect(session.canUndo, isTrue);
+
+      expect(session.undo(), isTrue);
+      final restored = session.document.blocks.single as TextBlockNode;
+      expect(restored.type, BlockType.listItem);
+      expect(restored.attributes.listType, 'ordered');
+
+      expect(session.redo(), isTrue);
+      final redone = session.document.blocks.single as TextBlockNode;
+      expect(redone.type, BlockType.paragraph);
+      expect(redone.attributes.listType, isNull);
+    },
+  );
+
   test('delete backward removes character inside callout body', () {
     final session = DocumentSession(
       document: const RichTextDocument(

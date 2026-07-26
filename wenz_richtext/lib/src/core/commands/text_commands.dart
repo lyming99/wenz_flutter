@@ -252,6 +252,9 @@ class DeleteBackwardCommand extends EditorCommand {
       if (offset > 0) {
         return _deleteTextRange(session, position, offset - 1, offset);
       }
+      if (position.blockIndex == 0 && block.type == BlockType.listItem) {
+        return _convertFirstListItemToParagraph(session, position, block);
+      }
       return _mergeWithPreviousBlock(session, position);
     }
     if (block is CodeBlockNode) {
@@ -276,6 +279,34 @@ class DeleteBackwardCommand extends EditorCommand {
     }
     return const CommandResult(recordHistory: false);
   }
+}
+
+CommandResult _convertFirstListItemToParagraph(
+  DocumentSession session,
+  DocumentPosition position,
+  TextBlockNode block,
+) {
+  final paragraph = TextBlockNode(
+    id: block.id,
+    type: BlockType.paragraph,
+    attributes: BlockAttributes(
+      indent: block.attributes.indent,
+      alignment: block.attributes.alignment,
+      quoted: block.attributes.quoted,
+      childNote: block.attributes.childNote,
+      anchor: block.attributes.anchor,
+    ),
+    content: block.content,
+  );
+  _replaceBlock(session, position.blockIndex, paragraph);
+  final nextPosition = DocumentPosition.text(
+    blockId: paragraph.id,
+    blockIndex: position.blockIndex,
+    offset: 0,
+  );
+  return CommandResult(
+    selection: DocumentSelection(base: nextPosition, extent: nextPosition),
+  );
 }
 
 CommandResult _convertEmptyCodeBlockToParagraph(
