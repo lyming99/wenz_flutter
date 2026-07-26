@@ -217,7 +217,15 @@ class _TouchLinkLongPressHandlerState
   }
 }
 
-enum _RowBlockFormat { paragraph, heading, code }
+enum _RowBlockFormat {
+  paragraph,
+  heading,
+  unorderedList,
+  orderedList,
+  taskList,
+  quote,
+  code,
+}
 
 typedef _RowBlockFormatChangeHandler = void Function(
   int blockIndex,
@@ -242,6 +250,10 @@ IconData _iconForRowFormat(_RowBlockFormat format) {
   return switch (format) {
     _RowBlockFormat.paragraph => Icons.notes,
     _RowBlockFormat.heading => Icons.title,
+    _RowBlockFormat.unorderedList => Icons.format_list_bulleted,
+    _RowBlockFormat.orderedList => Icons.format_list_numbered,
+    _RowBlockFormat.taskList => Icons.check_box_outlined,
+    _RowBlockFormat.quote => Icons.format_quote,
     _RowBlockFormat.code => Icons.code,
   };
 }
@@ -6458,79 +6470,30 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       return;
     }
     final block = blocks[blockIndex];
-    switch (format) {
-      case _RowBlockFormat.paragraph:
-        if (block is TextBlockNode) {
-          widget.controller.setBlockType(
-            type: BlockType.paragraph,
-            selection: _selectionForBlock(block, blockIndex),
-          );
-          return;
-        }
-        if (block is CodeBlockNode) {
-          final nextBlock = TextBlockNode(
-            id: block.id,
-            type: BlockType.paragraph,
-            attributes: _rowTextAttributesFor(
-              block.attributes,
-              _RowBlockFormat.paragraph,
-            ),
-            content: _plainTextInlineContent(block.code),
-          );
-          widget.controller.replaceBlocks(
-            index: blockIndex,
-            deleteCount: 1,
-            blocks: <BlockNode>[nextBlock],
-            selection: _selectionForBlock(nextBlock, blockIndex),
-          );
-        }
-        return;
-      case _RowBlockFormat.heading:
-        if (block is TextBlockNode) {
-          widget.controller.setBlockType(
-            type: BlockType.heading,
-            level: block.attributes.level ?? 1,
-            selection: _selectionForBlock(block, blockIndex),
-          );
-          return;
-        }
-        if (block is CodeBlockNode) {
-          final nextBlock = TextBlockNode(
-            id: block.id,
-            type: BlockType.heading,
-            attributes: _rowTextAttributesFor(
-              block.attributes,
-              _RowBlockFormat.heading,
-            ),
-            content: _plainTextInlineContent(block.code),
-          );
-          widget.controller.replaceBlocks(
-            index: blockIndex,
-            deleteCount: 1,
-            blocks: <BlockNode>[nextBlock],
-            selection: _selectionForBlock(nextBlock, blockIndex),
-          );
-        }
-        return;
-      case _RowBlockFormat.code:
-        if (block is CodeBlockNode) {
-          return;
-        }
-        if (block is TextBlockNode) {
-          final nextBlock = CodeBlockNode(
+    if (!_canChangeRowBlockFormat(block) ||
+        _rowBlockFormatFor(block) == format) {
+      return;
+    }
+    final nextBlock = format == _RowBlockFormat.code
+        ? CodeBlockNode(
             id: block.id,
             code: block.plainText,
             attributes: _rowCodeAttributesFor(block.attributes),
+          )
+        : TextBlockNode(
+            id: block.id,
+            type: _rowTextBlockTypeFor(format),
+            attributes: _rowTextAttributesFor(block.attributes, format),
+            content: block is TextBlockNode
+                ? block.content
+                : _plainTextInlineContent(block.plainText),
           );
-          widget.controller.replaceBlocks(
-            index: blockIndex,
-            deleteCount: 1,
-            blocks: <BlockNode>[nextBlock],
-            selection: _selectionForBlock(nextBlock, blockIndex),
-          );
-        }
-        return;
-    }
+    widget.controller.replaceBlocks(
+      index: blockIndex,
+      deleteCount: 1,
+      blocks: <BlockNode>[nextBlock],
+      selection: _selectionForBlock(nextBlock, blockIndex),
+    );
   }
 
   TableBlockNode? _tableBlockAt(int blockIndex) {
@@ -10741,7 +10704,6 @@ class _BlockRenderer extends StatelessWidget {
       blockPlainText: block.plainText,
       blockFormat: _rowBlockFormatFor(block),
       canChangeBlockFormat: _canChangeRowBlockFormat(block),
-      canDuplicateBlock: block is! ImageBlockNode,
       blockIndex: blockIndex,
       blockCount: blockCount,
       blockMoveRange: blockMoveRange,
@@ -10766,7 +10728,6 @@ class _BlockDragHandleOverlay extends StatefulWidget {
     required this.blockPlainText,
     required this.blockFormat,
     required this.canChangeBlockFormat,
-    required this.canDuplicateBlock,
     required this.blockIndex,
     required this.blockCount,
     required this.blockMoveRange,
@@ -10787,7 +10748,6 @@ class _BlockDragHandleOverlay extends StatefulWidget {
   final String blockPlainText;
   final _RowBlockFormat? blockFormat;
   final bool canChangeBlockFormat;
-  final bool canDuplicateBlock;
   final int blockIndex;
   final int blockCount;
   final _BlockMoveRange blockMoveRange;
@@ -10888,7 +10848,6 @@ class _BlockDragHandleOverlayState extends State<_BlockDragHandleOverlay> {
                   blockPlainText: widget.blockPlainText,
                   blockFormat: widget.blockFormat,
                   canChangeBlockFormat: widget.canChangeBlockFormat,
-                  canDuplicateBlock: widget.canDuplicateBlock,
                   blockIndex: widget.blockIndex,
                   blockCount: widget.blockCount,
                   blockMoveRange: widget.blockMoveRange,
@@ -11030,7 +10989,6 @@ class _BlockDragHandleButton extends StatefulWidget {
     required this.blockPlainText,
     required this.blockFormat,
     required this.canChangeBlockFormat,
-    required this.canDuplicateBlock,
     required this.blockIndex,
     required this.blockCount,
     required this.blockMoveRange,
@@ -11048,7 +11006,6 @@ class _BlockDragHandleButton extends StatefulWidget {
   final String blockPlainText;
   final _RowBlockFormat? blockFormat;
   final bool canChangeBlockFormat;
-  final bool canDuplicateBlock;
   final int blockIndex;
   final int blockCount;
   final _BlockMoveRange blockMoveRange;
@@ -11655,45 +11612,22 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
             enabled: widget.blockPlainText.isNotEmpty,
           ),
         ),
-        const PopupMenuItem<_ObjectMenuSelection>(
-          value: _ObjectMenuSelection.action(ObjectBlockAction.copyReference),
-          height: _kPopupMenuItemHeight,
-          padding: _kPopupMenuItemPadding,
-          child: _PopupMenuItemContent(
-            icon: Icons.link,
-            label: '复制块引用',
-          ),
-        ),
       ]);
-      if (widget.canDuplicateBlock) {
-        entries.addAll(<PopupMenuEntry<_ObjectMenuSelection>>[
-          _popupMenuDivider<_ObjectMenuSelection>(),
-          const PopupMenuItem<_ObjectMenuSelection>(
-            value: _ObjectMenuSelection.action(ObjectBlockAction.duplicate),
-            height: _kPopupMenuItemHeight,
-            padding: _kPopupMenuItemPadding,
-            child: _PopupMenuItemContent(
-              icon: Icons.copy_all_outlined,
-              label: '创建块副本',
-            ),
-          ),
-        ]);
-      }
     }
     final hasRowFormatItems =
         widget.onFormatChanged != null && widget.canChangeBlockFormat;
     if (hasRowFormatItems || widget.blockCount > 1) {
-      if (!widget.canDuplicateBlock && entries.isNotEmpty) {
+      if (entries.isNotEmpty) {
         entries.add(_popupMenuDivider<_ObjectMenuSelection>());
       }
       entries.add(
-        const PopupMenuItem<_ObjectMenuSelection>(
-          value: _ObjectMenuSelection.more(),
+        PopupMenuItem<_ObjectMenuSelection>(
+          value: const _ObjectMenuSelection.more(),
           height: _kPopupMenuItemHeight,
           padding: _kPopupMenuItemPadding,
           child: _PopupMenuItemContent(
-            icon: Icons.more_horiz,
-            label: '更多块操作',
+            icon: hasRowFormatItems ? Icons.transform : Icons.more_horiz,
+            label: hasRowFormatItems ? '转换块类型' : '更多块操作',
           ),
         ),
       );
@@ -11726,6 +11660,10 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
       entries.addAll(<PopupMenuEntry<_ObjectMenuSelection>>[
         _rowFormatMenuItem(_RowBlockFormat.paragraph, '普通文本'),
         _rowFormatMenuItem(_RowBlockFormat.heading, '标题'),
+        _rowFormatMenuItem(_RowBlockFormat.unorderedList, '无序列表'),
+        _rowFormatMenuItem(_RowBlockFormat.orderedList, '有序列表'),
+        _rowFormatMenuItem(_RowBlockFormat.taskList, '任务列表'),
+        _rowFormatMenuItem(_RowBlockFormat.quote, '引用'),
         _rowFormatMenuItem(_RowBlockFormat.code, '代码块'),
       ]);
       if (widget.blockCount > 1) {
@@ -11981,12 +11919,29 @@ QuoteGroupPosition _quoteGroupPositionFor(List<BlockNode> blocks, int index) {
 }
 
 _RowBlockFormat? _rowBlockFormatFor(BlockNode block) {
-  return switch (block) {
-    CodeBlockNode() => _RowBlockFormat.code,
-    TextBlockNode(type: BlockType.heading) => _RowBlockFormat.heading,
-    TextBlockNode() => _RowBlockFormat.paragraph,
-    _ => null,
-  };
+  if (block is CodeBlockNode) {
+    return _RowBlockFormat.code;
+  }
+  if (block is! TextBlockNode) {
+    return null;
+  }
+  if (block.type == BlockType.heading) {
+    return _RowBlockFormat.heading;
+  }
+  if (block.type == BlockType.listItem) {
+    if (block.attributes.checked != null ||
+        block.attributes.listType == 'task' ||
+        block.attributes.listType == 'check') {
+      return _RowBlockFormat.taskList;
+    }
+    return block.attributes.listType == 'ordered'
+        ? _RowBlockFormat.orderedList
+        : _RowBlockFormat.unorderedList;
+  }
+  if (block.attributes.isQuoted || block.type == BlockType.quote) {
+    return _RowBlockFormat.quote;
+  }
+  return _RowBlockFormat.paragraph;
 }
 
 bool _canChangeRowBlockFormat(BlockNode block) {
@@ -12001,9 +11956,29 @@ BlockAttributes _rowTextAttributesFor(
     level: format == _RowBlockFormat.heading ? current.level ?? 1 : null,
     indent: current.indent,
     alignment: current.alignment,
+    listType: switch (format) {
+      _RowBlockFormat.unorderedList => 'bullet',
+      _RowBlockFormat.orderedList => 'ordered',
+      _RowBlockFormat.taskList => 'task',
+      _ => null,
+    },
+    checked:
+        format == _RowBlockFormat.taskList ? current.checked ?? false : null,
+    quoted: format == _RowBlockFormat.quote ? true : null,
     childNote: current.childNote,
     anchor: current.anchor,
   );
+}
+
+BlockType _rowTextBlockTypeFor(_RowBlockFormat format) {
+  return switch (format) {
+    _RowBlockFormat.heading => BlockType.heading,
+    _RowBlockFormat.unorderedList ||
+    _RowBlockFormat.orderedList ||
+    _RowBlockFormat.taskList =>
+      BlockType.listItem,
+    _ => BlockType.paragraph,
+  };
 }
 
 BlockAttributes _rowCodeAttributesFor(BlockAttributes current) {
@@ -19894,13 +19869,6 @@ class _ObjectBlockToolbar extends StatelessWidget {
       runSpacing: _kMinimalFloatingToolbarButtonGap,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: <Widget>[
-        _ObjectActionButton(
-          icon: Icons.copy,
-          tooltip: '复制块引用',
-          onPressed: canDispatch
-              ? () => _dispatch(ObjectBlockAction.copyReference)
-              : null,
-        ),
         if (hasMoreActions)
           _ObjectMoreMenu(
             blockIndex: blockIndex,
@@ -20158,18 +20126,6 @@ class _ObjectMoreMenuState extends State<_ObjectMoreMenu> {
             label: '复制内存图片',
           ),
       ]);
-    }
-    if (widget.canRunMutation && !widget.imageActions) {
-      if (entries.isNotEmpty) {
-        entries.add(_popupMenuDivider<_ObjectMenuSelection>());
-      }
-      entries.add(
-        _objectActionMenuItem(
-          action: ObjectBlockAction.duplicate,
-          icon: Icons.copy_all_outlined,
-          label: '创建块副本',
-        ),
-      );
     }
     if (widget.canRunMutation) {
       if (entries.isNotEmpty) {
@@ -20700,28 +20656,13 @@ class _FileBlockActionMenu extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       onSelected: _dispatch,
       routeSettings: _kPopupMenuRouteSettings,
-      itemBuilder: (context) => <PopupMenuEntry<_ObjectMenuSelection>>[
-        _objectActionMenuItem(
-          action: ObjectBlockAction.copyReference,
-          icon: Icons.link,
-          label: '复制块引用',
-        ),
-        _popupMenuDivider<_ObjectMenuSelection>(),
-        ..._moreItems(),
-      ],
+      itemBuilder: (context) => _moreItems(),
     );
   }
 
   List<PopupMenuEntry<_ObjectMenuSelection>> _moreItems() {
     final canRunMutation = canEdit && onAction != null;
     return <PopupMenuEntry<_ObjectMenuSelection>>[
-      _objectActionMenuItem(
-        action: ObjectBlockAction.duplicate,
-        icon: Icons.copy_all_outlined,
-        label: '创建块副本',
-        enabled: canRunMutation,
-      ),
-      _popupMenuDivider<_ObjectMenuSelection>(),
       _objectActionMenuItem(
         action: ObjectBlockAction.moveUp,
         icon: Icons.arrow_upward,

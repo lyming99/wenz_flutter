@@ -9,7 +9,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
-import 'package:wenz_richtext/src/widgets/lucide_toolbar_icons.dart';
 import 'package:wenz_richtext/src/widgets/mobile_selection_handles_overlay.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
 
@@ -6179,7 +6178,7 @@ void main() {
     expect(image.attributes.alignment, 'left');
   });
 
-  testWidgets('divider block menu copies duplicates moves and deletes', (
+  testWidgets('divider block menu omits copies and still moves and deletes', (
     tester,
   ) async {
     String? clipboardText;
@@ -6236,48 +6235,38 @@ void main() {
     await _waitPastMultiClickWindow(tester);
     await tester.tap(_blockDragHandleFinder('divider1'));
     await tester.pumpAndSettle();
-    expect(_popupMenuItemFinder('复制块引用'), findsOneWidget);
-    expect(_popupMenuItemFinder('创建块副本'), findsOneWidget);
+    expect(_popupMenuItemFinder('复制块引用'), findsNothing);
+    expect(_popupMenuItemFinder('创建块副本'), findsNothing);
+    expect(_popupMenuItemFinder('更多块操作'), findsOneWidget);
 
-    await tester.tap(_popupMenuItemFinder('复制块引用'));
+    await tester.tap(_popupMenuItemFinder('更多块操作'));
     await tester.pumpAndSettle();
-    expect(clipboardText, 'divider');
+    await tester.tap(_popupMenuItemFinder('上移块'));
+    await tester.pumpAndSettle();
+
+    expect(controller.document.blocks.first.id, 'divider1');
+    expect(controller.document.blocks, hasLength(3));
+    expect(clipboardText, isNull);
 
     await _waitPastMultiClickWindow(tester);
     await tester.tap(_blockDragHandleFinder('divider1'));
     await tester.pumpAndSettle();
-    await tester.tap(_popupMenuItemFinder('创建块副本'));
-    await tester.pumpAndSettle();
-
-    expect(controller.document.blocks, hasLength(4));
-    final duplicate = controller.document.blocks[2] as DividerBlockNode;
-    expect(duplicate.id, isNot('divider1'));
-    expect(controller.selection?.extent.blockId, duplicate.id);
-    expect(controller.selection?.extent.blockIndex, 2);
-
-    await _openBlockMoreMenu(tester, duplicate.id);
-    await tester.tap(_popupMenuItemFinder('上移块'));
-    await tester.pumpAndSettle();
-
-    expect(controller.document.blocks[1].id, duplicate.id);
-    expect(controller.document.blocks[2].id, 'divider1');
-    expect(controller.selection?.extent.blockIndex, 1);
-
-    await _openBlockMoreMenu(tester, duplicate.id);
     await tester.tap(_popupMenuItemFinder('删除块'));
     await tester.pumpAndSettle();
 
-    expect(controller.document.blocks, hasLength(3));
-    expect(controller.document.blocks[1].id, 'divider1');
+    expect(controller.document.blocks, hasLength(2));
     expect(
       controller.document.blocks.map((block) => block.id),
-      isNot(contains(duplicate.id)),
+      <String>['p0', 'p1'],
     );
   });
 
-  testWidgets('image block drag handle menu omits only duplicate action', (
+  testWidgets('block drag handle menus omit reference and duplicate actions', (
     tester,
   ) async {
+    await tester.binding.setSurfaceSize(const Size(1000, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     final controller = WenzRichTextController(
       document: const RichTextDocument(
         blocks: <BlockNode>[
@@ -6311,24 +6300,27 @@ void main() {
     );
     await tester.pump();
 
-    Future<void> expectDuplicateEntry(String blockId, Matcher matcher) async {
-      await tester.tap(_blockDragHandleFinder(blockId));
+    Future<void> expectRemovedEntries(String blockId) async {
+      final dragHandle = _blockDragHandleFinder(blockId);
+      await tester.ensureVisible(dragHandle);
       await tester.pumpAndSettle();
-      expect(_popupMenuItemFinder('复制块引用'), findsOneWidget);
-      expect(_popupMenuItemFinder('创建块副本'), matcher);
+      await tester.tap(dragHandle);
+      await tester.pumpAndSettle();
+      expect(_popupMenuItemFinder('复制块引用'), findsNothing);
+      expect(_popupMenuItemFinder('创建块副本'), findsNothing);
       Navigator.of(tester.element(find.byType(WenzRichTextEditor))).pop();
       await tester.pumpAndSettle();
     }
 
-    await expectDuplicateEntry('image1', findsNothing);
     for (final blockId in <String>[
       'p0',
+      'image1',
       'divider1',
       'file1',
       'video1',
       'embed1',
     ]) {
-      await expectDuplicateEntry(blockId, findsOneWidget);
+      await expectRemovedEntries(blockId);
     }
   });
 
@@ -6439,6 +6431,7 @@ void main() {
                   ),
                   selection: objectBlockSelection(blockId, blockIndex),
                 ),
+                padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
                 enableIme: false,
               ),
             ),
@@ -6461,11 +6454,17 @@ void main() {
         const <String>['预览媒体', '更多块操作'],
       );
       _expectToolbarAboveBody(imageToolbarRect, imageFrameRect);
-      _expectToolbarAlignedToFrameEnd(imageToolbarRect, imageFrameRect);
+      _expectToolbarAlignedToFrameEnd(
+        imageToolbarRect,
+        imageFrameRect,
+        endInset: 4,
+      );
 
       await tester.tap(_blockDragHandleFinder('image1'));
       await tester.pumpAndSettle();
-      await tester.tap(_popupMenuItemFinder('复制块引用'));
+      expect(_popupMenuItemFinder('复制块引用'), findsNothing);
+      expect(_popupMenuItemFinder('创建块副本'), findsNothing);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();
       expect(clipboardText, isNull);
 
@@ -6481,11 +6480,17 @@ void main() {
         const <String>['预览媒体', '更多块操作'],
       );
       _expectToolbarAboveBody(videoToolbarRect, videoFrameRect);
-      _expectToolbarAlignedToFrameEnd(videoToolbarRect, videoFrameRect);
+      _expectToolbarAlignedToFrameEnd(
+        videoToolbarRect,
+        videoFrameRect,
+        endInset: 4,
+      );
 
       await tester.tap(_blockDragHandleFinder('video1'));
       await tester.pumpAndSettle();
-      await tester.tap(_popupMenuItemFinder('复制块引用'));
+      expect(_popupMenuItemFinder('复制块引用'), findsNothing);
+      expect(_popupMenuItemFinder('创建块副本'), findsNothing);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();
       expect(clipboardText, isNull);
     },
@@ -6656,13 +6661,13 @@ void main() {
     _expectPopupMenuChrome(tester, '复制块内容');
     for (final label in <String>[
       '复制块内容',
-      '复制块引用',
-      '创建块副本',
-      '更多块操作',
+      '转换块类型',
       '删除块',
     ]) {
       expect(find.text(label), findsOneWidget);
     }
+    expect(find.text('复制块引用'), findsNothing);
+    expect(find.text('创建块副本'), findsNothing);
     expect(find.text('上移块'), findsNothing);
     expect(find.text('下移块'), findsNothing);
 
@@ -6672,7 +6677,7 @@ void main() {
 
     await tester.tap(_blockDragHandleFinder('p0'));
     await tester.pumpAndSettle();
-    await tester.tap(_popupMenuItemFinder('更多块操作'));
+    await tester.tap(_popupMenuItemFinder('转换块类型'));
     await tester.pumpAndSettle();
 
     PopupMenuItem menuItem(String label) => _popupMenuItem(tester, label);
@@ -7159,7 +7164,7 @@ void main() {
       theme.colorScheme.error,
     );
 
-    await tester.tap(_popupMenuItemFinder('更多块操作'));
+    await tester.tap(_popupMenuItemFinder('转换块类型'));
     await tester.pumpAndSettle();
 
     expect(_popupMenuItem(tester, '上移块').enabled, isFalse);
@@ -7309,12 +7314,40 @@ void main() {
     await _openBlockMoreMenu(tester, 'p0');
     expect(_popupMenuItem(tester, '普通文本').enabled, isFalse);
     expect(_popupMenuItem(tester, '标题').enabled, isTrue);
+    expect(_popupMenuItem(tester, '无序列表').enabled, isTrue);
+    expect(_popupMenuItem(tester, '有序列表').enabled, isTrue);
+    expect(_popupMenuItem(tester, '任务列表').enabled, isTrue);
+    expect(_popupMenuItem(tester, '引用').enabled, isTrue);
     expect(_popupMenuItem(tester, '代码块').enabled, isTrue);
     _expectPopupMenuItemSelected(tester, '普通文本');
 
-    await tester.tap(find.text('标题'));
+    await tester.tap(find.text('有序列表'));
     await tester.pumpAndSettle();
     var block = controller.document.blocks.first as TextBlockNode;
+    expect(block.type, BlockType.listItem);
+    expect(block.attributes.listType, 'ordered');
+    expect(block.plainText, 'print(1)');
+
+    await _openBlockMoreMenu(tester, 'p0');
+    expect(_popupMenuItem(tester, '有序列表').enabled, isFalse);
+    await tester.tap(find.text('任务列表'));
+    await tester.pumpAndSettle();
+    block = controller.document.blocks.first as TextBlockNode;
+    expect(block.type, BlockType.listItem);
+    expect(block.attributes.listType, 'task');
+    expect(block.attributes.checked, isFalse);
+
+    await _openBlockMoreMenu(tester, 'p0');
+    await tester.tap(find.text('引用'));
+    await tester.pumpAndSettle();
+    block = controller.document.blocks.first as TextBlockNode;
+    expect(block.type, BlockType.paragraph);
+    expect(block.attributes.isQuoted, isTrue);
+
+    await _openBlockMoreMenu(tester, 'p0');
+    await tester.tap(find.text('标题'));
+    await tester.pumpAndSettle();
+    block = controller.document.blocks.first as TextBlockNode;
     expect(block.type, BlockType.heading);
     expect(block.attributes.level, 1);
     expect(block.plainText, 'print(1)');
@@ -7396,13 +7429,10 @@ void main() {
     expect(find.text('更多块操作'), findsOneWidget);
     expect(find.text('上移块'), findsNothing);
     expect(find.text('下移块'), findsNothing);
+    expect(find.text('复制块引用'), findsNothing);
+    expect(find.text('创建块副本'), findsNothing);
+    expect(clipboardText, isNull);
 
-    await tester.tap(_popupMenuItemFinder('复制块引用'));
-    await tester.pumpAndSettle();
-    expect(clipboardText, 'divider');
-
-    await tester.tap(_blockDragHandleFinder('divider1'));
-    await tester.pumpAndSettle();
     await tester.tap(_popupMenuItemFinder('更多块操作'));
     await tester.pumpAndSettle();
 
@@ -8314,7 +8344,11 @@ void main() {
       fileToolbarRect,
       tester.getRect(find.text('brief.pdf')),
     );
-    _expectToolbarAlignedToFrameEnd(fileToolbarRect, fileCardRect);
+    _expectToolbarAlignedToFrameEnd(
+      fileToolbarRect,
+      fileCardRect,
+      endInset: 1,
+    );
     expect(find.text('4 KB'), findsOneWidget);
     expect(find.text('application/pdf'), findsOneWidget);
     expect(find.text('Uploading'), findsOneWidget);
@@ -8323,13 +8357,11 @@ void main() {
     expect(find.byTooltip('设置文件状态'), findsNothing);
     await _openFileActionMenu(tester);
     expect(
-      tester.getSize(_popupMenuItemFinder('复制块引用')).width,
-      greaterThanOrEqualTo(176),
-    );
-    expect(
       tester.getSize(_popupMenuItemFinder('标记为已上传')).width,
       greaterThanOrEqualTo(176),
     );
+    expect(_popupMenuItemFinder('复制块引用'), findsNothing);
+    expect(_popupMenuItemFinder('创建块副本'), findsNothing);
     final deleteLabel = tester.widget<Text>(find.text('删除块'));
     expect(
       deleteLabel.style?.color,
@@ -8385,14 +8417,10 @@ void main() {
     await tester.pump();
 
     expect(tester.takeException(), isNull);
-    expect(find.byTooltip('复制块引用'), findsOneWidget);
+    expect(find.byTooltip('复制块引用'), findsNothing);
     expect(find.byTooltip('更多块操作'), findsOneWidget);
-    _expectToolbarButtonSize(tester, '复制块引用');
     _expectToolbarButtonSize(tester, '更多块操作');
-    final toolbarRect = _toolbarButtonsRect(
-      tester,
-      const <String>['复制块引用', '更多块操作'],
-    );
+    final toolbarRect = tester.getRect(find.byTooltip('更多块操作'));
     _expectToolbarAboveBody(
       toolbarRect,
       tester.getRect(find.byKey(
@@ -8404,6 +8432,7 @@ void main() {
       tester.getRect(find.byKey(
         const ValueKey<String>('wenz-richtext-embed-card-embed1'),
       )),
+      endInset: 20,
     );
   });
 
@@ -8496,6 +8525,8 @@ void main() {
       expect(find.text(label), findsOneWidget);
     }
     expect(find.text('创建块副本'), findsNothing);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
 
     await pumpEditor(
       WenzRichTextController(
@@ -8510,9 +8541,9 @@ void main() {
     _expectLocalizedTooltip('附件操作');
     await tester.tap(find.byTooltip('附件操作'));
     await tester.pumpAndSettle();
-    expect(find.text('复制块引用'), findsOneWidget);
+    expect(find.text('复制块引用'), findsNothing);
+    expect(find.text('创建块副本'), findsNothing);
     for (final label in <String>[
-      '创建块副本',
       '上移块',
       '下移块',
       '标记为上传中',
@@ -8522,6 +8553,8 @@ void main() {
     ]) {
       expect(find.text(label), findsOneWidget);
     }
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
 
     await pumpEditor(
       WenzRichTextController(
@@ -15382,7 +15415,8 @@ void main() {
 
     await tester.tap(find.byTooltip('更多块操作'));
     await tester.pumpAndSettle();
-    expect(_popupMenuItemFinder('创建块副本'), findsOneWidget);
+    expect(_popupMenuItemFinder('创建块副本'), findsNothing);
+    expect(_popupMenuItemFinder('复制块引用'), findsNothing);
     expect(_popupMenuItemFinder('删除块'), findsOneWidget);
     expect(selectionChanges, 0);
     expect(controller.selection?.start.blockId, 'video1');
@@ -24554,7 +24588,10 @@ Future<void> _openBlockMoreMenu(WidgetTester tester, String blockId) async {
   await _waitPastMultiClickWindow(tester);
   await tester.tap(_blockDragHandleFinder(blockId));
   await tester.pumpAndSettle();
-  await tester.tap(_popupMenuItemFinder('更多块操作'));
+  final transform = _popupMenuItemFinder('转换块类型');
+  await tester.tap(
+    transform.evaluate().isNotEmpty ? transform : _popupMenuItemFinder('更多块操作'),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -24769,11 +24806,15 @@ void _expectToolbarAboveBody(Rect toolbarRect, Rect bodyRect) {
   );
 }
 
-void _expectToolbarAlignedToFrameEnd(Rect toolbarRect, Rect frameRect) {
+void _expectToolbarAlignedToFrameEnd(
+  Rect toolbarRect,
+  Rect frameRect, {
+  double endInset = 0,
+}) {
   expect(toolbarRect.left, greaterThanOrEqualTo(frameRect.left));
   expect(
     toolbarRect.right,
-    moreOrLessEquals(frameRect.right, epsilon: 0.75),
+    moreOrLessEquals(frameRect.right - endInset, epsilon: 0.75),
     reason: 'Object toolbar should align to the block frame end edge.',
   );
 }

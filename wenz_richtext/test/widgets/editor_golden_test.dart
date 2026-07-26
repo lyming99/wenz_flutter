@@ -1,4 +1,4 @@
-﻿import 'dart:ui' show PointerDeviceKind;
+import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -535,8 +535,8 @@ void main() {
     // Collapse button sits in the left gutter at full size, with the same
     // explicit editable rail geometry as the widget regression tests.
     final expandedButtonRect = tester.getRect(expandedButton);
-    final dragHandleRect = tester.getRect(
-        _blockDragHandleFinder('expanded-section'));
+    final dragHandleRect =
+        tester.getRect(_blockDragHandleFinder('expanded-section'));
     expect(expandedButtonRect.width, greaterThan(0));
     expect(expandedButtonRect.height, greaterThan(0));
     expect(
@@ -706,8 +706,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('复制块内容'), findsOneWidget);
-    expect(find.text('复制块引用'), findsOneWidget);
-    expect(find.text('更多块操作'), findsOneWidget);
+    expect(find.text('复制块引用'), findsNothing);
+    expect(find.text('创建块副本'), findsNothing);
+    expect(find.text('转换块类型'), findsOneWidget);
     expect(find.text('删除块'), findsOneWidget);
     final deleteLabel = tester.widget<Text>(find.text('删除块'));
     expect(
@@ -1306,7 +1307,8 @@ void main() {
           CodeBlockNode(
             id: 'advanced-code',
             language: 'dart',
-            code: 'final ids = List.generate(100, (index) => "ticket-\$index");\n'
+            code:
+                'final ids = List.generate(100, (index) => "ticket-\$index");\n'
                 'debugPrint(ids.join(", "));',
           ),
           FileBlockNode(
@@ -1350,8 +1352,7 @@ void main() {
     );
   });
 
-  testWidgets(
-      'golden: read-only heading collapse buttons without drag handles',
+  testWidgets('golden: read-only heading collapse buttons without drag handles',
       (tester) async {
     // Read-only mode: collapse buttons are visible but drag handles are not.
     // The buttons keep the compact no-drag gutter without reserving the
@@ -1873,4 +1874,3 @@ BorderRadius _quoteBackgroundRadius(WidgetTester tester, Finder finder) {
   final borderRadius = decoration.borderRadius ?? BorderRadius.zero;
   return borderRadius.resolve(TextDirection.ltr);
 }
-
