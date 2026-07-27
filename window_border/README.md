@@ -32,6 +32,8 @@ class _MyAppState extends State<MyApp> {
     unawaited(WindowBorder.instance.initialize(
       style: const WindowBorderStyle(
         borderWidth: 2,
+        themeColor: Color(0xFF101010),
+        backgroundColor: 0xFF101010,
         cornerRadius: 14,
         shadowEnabled: true,
         resizeBorderWidth: 8,
@@ -74,7 +76,9 @@ Row(
 
 `cornerRadius` 在 Windows 11 上会映射到 DWM 的“小圆角/标准圆角”偏好，系统不提供任意半径；Windows 10 使用窗口区域模拟指定半径。`shadowEnabled` 使用系统合成器绘制窗口外部阴影，Windows 10、Wayland/X11 上的最终效果可能受桌面合成器影响。最大化时圆角会自动取消。
 
-Windows 默认边框色 `#3C4043` 和原生宿主底色 `#000000` 定义在 `windows/window_border_plugin.cpp`，并由 C++/GDI 绘制。`borderColor` 与 `backgroundColor` 仅作为可选的原生颜色覆盖；省略时不会从 Dart 发送颜色。Flutter 页面是独立渲染表面，其内容背景仍应在 `Scaffold` 或根 Widget 中设置；示例已使用纯黑背景。
+Windows 默认边框色 `#3C4043` 和原生宿主底色 `#000000` 定义在 `windows/window_border_plugin.cpp`，并由 C++/GDI 绘制。Flutter 层可通过 `themeColor` 传入当前主题中紧邻窗口边缘的表面色（通常为 `ThemeData.scaffoldBackgroundColor` 或 `ColorScheme.surface`）；插件会为深色主题混入 20% 白色、为浅色主题混入 15% 黑色，并把得到的对比色发送给原生边框。主题切换后再次调用 `setStyle` 即可立即更新。显式 `borderColor` 的优先级高于 `themeColor`，可用于完全自定义；两者都省略时仍使用各平台的默认边框色。
+
+`backgroundColor` 是可选的原生宿主底色覆盖，通常应与传给 `themeColor` 的 Flutter 表面色相同。Flutter 页面是独立渲染表面，其内容背景仍应在 `Scaffold` 或根 Widget 中设置；示例已使用纯黑背景。
 
 完整示例见 [`example/lib/main.dart`](example/lib/main.dart)。
 

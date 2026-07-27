@@ -21,6 +21,7 @@
 #include <string>
 #include <variant>
 
+#include "dwm_border_color.h"
 #include "flutter_view_layout.h"
 #include "maximized_window_bounds.h"
 
@@ -300,6 +301,9 @@ void WindowBorderPlugin::HandleMethodCall(
       LayoutFlutterView();
     } else if (enabled_ && window_effects_changed) {
       ApplyWindowEffects();
+    }
+    if (enabled_ && border_color_ != previous_border_color) {
+      SetDwmBorderColor(window_, border_color_);
     }
     if (enabled_ && painted_style_changed && window_ != nullptr &&
         IsWindow(window_)) {
@@ -674,6 +678,7 @@ void WindowBorderPlugin::ApplyWindowEffects() {
       shadow_enabled_ ? DWMNCRP_ENABLED : DWMNCRP_DISABLED;
   DwmSetWindowAttribute(window_, DWMWA_NCRENDERING_POLICY,
                         &rendering_policy, sizeof(rendering_policy));
+  SetDwmBorderColor(window_, border_color_);
   const MARGINS shadow_margins = enabled_ && shadow_enabled_ && !maximized
                                      ? MARGINS{1, 1, 1, 1}
                                      : MARGINS{0, 0, 0, 0};
@@ -703,6 +708,7 @@ void WindowBorderPlugin::RestoreWindowEffects() {
   const DWMNCRENDERINGPOLICY rendering_policy = DWMNCRP_USEWINDOWSTYLE;
   DwmSetWindowAttribute(window_, DWMWA_NCRENDERING_POLICY,
                         &rendering_policy, sizeof(rendering_policy));
+  ResetDwmBorderColor(window_);
   const MARGINS margins{0, 0, 0, 0};
   DwmExtendFrameIntoClientArea(window_, &margins);
   native_corner_preference_supported_ = false;

@@ -35,6 +35,8 @@ class _WindowBorderExampleState extends State<WindowBorderExample> {
       await _window.initialize(
         style: const WindowBorderStyle(
           borderWidth: 2,
+          themeColor: Color(0xFF000000),
+          backgroundColor: 0xFF000000,
           cornerRadius: 14,
           shadowEnabled: true,
           resizeBorderWidth: 8,

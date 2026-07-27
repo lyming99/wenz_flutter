@@ -16,3 +16,7 @@
 * Adds configurable rounded corners and compositor-backed external shadows.
 * Uses a Chrome-style neutral dark border and a separate black native host
   background by default.
+* Supports deriving a contrasting native border from a Flutter `themeColor`,
+  with explicit `borderColor` overrides taking precedence.
+* Synchronizes runtime border color changes with the Windows 11 DWM frame
+  instead of updating only the hidden GDI backing pixels.

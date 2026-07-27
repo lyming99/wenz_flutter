@@ -21,6 +21,7 @@ void main() {
     await plugin.initialize(
       style: const WindowBorderStyle(
         borderWidth: 12,
+        themeColor: Color(0xFF101010),
         cornerRadius: 14,
         resizeBorderWidth: 12,
       ),
@@ -29,6 +30,17 @@ void main() {
     await plugin.restore();
     await _waitForState(tester, plugin, WindowState.normal);
     final restoredSize = await _waitForStablePhysicalSize(tester);
+
+    await plugin.setStyle(
+      const WindowBorderStyle(
+        borderWidth: 12,
+        themeColor: Color(0xFFF7F7F8),
+        cornerRadius: 14,
+        resizeBorderWidth: 12,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.view.physicalSize, restoredSize);
 
     await plugin.maximize();
     await _waitForState(tester, plugin, WindowState.maximized);

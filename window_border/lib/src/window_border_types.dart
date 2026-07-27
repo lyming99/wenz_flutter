@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 /// The edge used when starting a native resize operation.
 enum WindowResizeEdge {
   left,
@@ -34,6 +36,7 @@ class WindowBorderStyle {
   const WindowBorderStyle({
     this.borderWidth = 1,
     this.borderColor,
+    this.themeColor,
     this.backgroundColor,
     this.cornerRadius = 0,
     this.shadowEnabled = true,
@@ -56,8 +59,18 @@ class WindowBorderStyle {
 
   /// Optional native border color override encoded as a 32-bit ARGB value.
   ///
-  /// When omitted, each native implementation uses its compiled-in color.
+  /// When this and [themeColor] are both omitted, each native implementation
+  /// uses its compiled-in color.
   final int? borderColor;
+
+  /// The Flutter theme surface color used to derive a native border color.
+  ///
+  /// This is normally the color rendered next to the native border, such as
+  /// [ThemeData.scaffoldBackgroundColor] or [ColorScheme.surface]. A subtle
+  /// contrasting border is derived from it when [borderColor] is omitted.
+  ///
+  /// An explicit [borderColor] always takes precedence.
+  final Color? themeColor;
 
   /// Native host background color encoded as a 32-bit ARGB value.
   ///
@@ -77,9 +90,41 @@ class WindowBorderStyle {
   /// Whether native edge and corner resizing is enabled.
   final bool resizable;
 
+  /// The explicit or theme-derived border color sent to the native platform.
+  int? get resolvedBorderColor {
+    return borderColor ??
+        (themeColor == null ? null : borderColorForTheme(themeColor!));
+  }
+
+  /// Derives a subtle, opaque ARGB border color from a Flutter theme color.
+  ///
+  /// Dark colors are mixed with 20% white and light colors with 15% black.
+  /// The asymmetric blend keeps the outline visible without making it compete
+  /// with the Flutter content.
+  static int borderColorForTheme(Color themeColor) {
+    // Color.value is used for compatibility with this package's Flutter 3.22
+    // minimum. Newer SDKs expose the equivalent value through toARGB32().
+    // ignore: deprecated_member_use
+    final argb = themeColor.value;
+    final red = (argb >> 16) & 0xFF;
+    final green = (argb >> 8) & 0xFF;
+    final blue = argb & 0xFF;
+    final isDark = red * 299 + green * 587 + blue * 114 < 128000;
+    final target = isDark ? 0xFF : 0;
+    final blendPercent = isDark ? 20 : 15;
+
+    int blend(int channel) {
+      return (channel * (100 - blendPercent) + target * blendPercent + 50) ~/
+          100;
+    }
+
+    return 0xFF000000 | (blend(red) << 16) | (blend(green) << 8) | blend(blue);
+  }
+
   WindowBorderStyle copyWith({
     double? borderWidth,
     int? borderColor,
+    Color? themeColor,
     int? backgroundColor,
     double? cornerRadius,
     bool? shadowEnabled,
@@ -89,6 +134,7 @@ class WindowBorderStyle {
     return WindowBorderStyle(
       borderWidth: borderWidth ?? this.borderWidth,
       borderColor: borderColor ?? this.borderColor,
+      themeColor: themeColor ?? this.themeColor,
       backgroundColor: backgroundColor ?? this.backgroundColor,
       cornerRadius: cornerRadius ?? this.cornerRadius,
       shadowEnabled: shadowEnabled ?? this.shadowEnabled,
@@ -98,9 +144,10 @@ class WindowBorderStyle {
   }
 
   Map<String, Object> toMap() {
+    final resolvedBorderColor = this.resolvedBorderColor;
     return <String, Object>{
       'borderWidth': borderWidth,
-      if (borderColor != null) 'borderColor': borderColor!,
+      if (resolvedBorderColor != null) 'borderColor': resolvedBorderColor,
       if (backgroundColor != null) 'backgroundColor': backgroundColor!,
       'cornerRadius': cornerRadius,
       'shadowEnabled': shadowEnabled,

@@ -18,6 +18,8 @@ set(PLUGIN_NAME "window_border_plugin")
 
 # Any new source files that you add to the plugin should be added here.
 list(APPEND PLUGIN_SOURCES
+  "dwm_border_color.cpp"
+  "dwm_border_color.h"
   "flutter_view_layout.cpp"
   "flutter_view_layout.h"
   "maximized_window_bounds.cpp"
@@ -89,6 +91,7 @@ FetchContent_MakeAvailable(googletest)
 # The plugin's C API is not very useful for unit testing, so build the sources
 # directly into the test binary rather than using the DLL.
 add_executable(${TEST_RUNNER}
+  test/dwm_border_color_test.cpp
   test/flutter_view_layout_test.cpp
   test/maximized_window_bounds_test.cpp
   test/window_border_plugin_test.cpp

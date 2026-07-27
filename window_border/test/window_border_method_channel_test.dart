@@ -62,6 +62,39 @@ void main() {
     expect(arguments, isNot(contains('backgroundColor')));
   });
 
+  test('theme colors resolve to contrasting native border colors', () {
+    const darkStyle = WindowBorderStyle(themeColor: Color(0xFF101010));
+    const lightStyle = WindowBorderStyle(themeColor: Color(0xFFF7F7F8));
+
+    expect(darkStyle.resolvedBorderColor, 0xFF404040);
+    expect(darkStyle.toMap()['borderColor'], 0xFF404040);
+    expect(lightStyle.resolvedBorderColor, 0xFFD2D2D3);
+    expect(lightStyle.toMap()['borderColor'], 0xFFD2D2D3);
+  });
+
+  test('setStyle sends the theme-derived color to the native platform',
+      () async {
+    await platform.setStyle(
+      const WindowBorderStyle(themeColor: Color(0xFF101010)),
+    );
+
+    expect(calls.single.method, 'setStyle');
+    expect(
+      calls.single.arguments,
+      containsPair('borderColor', 0xFF404040),
+    );
+  });
+
+  test('an explicit border color takes precedence over the theme color', () {
+    const style = WindowBorderStyle(
+      borderColor: 0xFF112233,
+      themeColor: Color(0xFFF7F7F8),
+    );
+
+    expect(style.resolvedBorderColor, 0xFF112233);
+    expect(style.toMap()['borderColor'], 0xFF112233);
+  });
+
   test('window commands use the expected channel methods', () async {
     await platform.startDragging();
     await platform.startResizing(WindowResizeEdge.bottomRight);
