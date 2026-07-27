@@ -829,7 +829,7 @@ normalisation, and `onCommandExecuted` stay consistent.
 
 ## Widget layer (tier 2)
 
-- `WenzRichTextEditor({controller, shortcutConfiguration, contextMenuConfiguration, blockRenderers, mediaResolver, inlineEmbedRenderer, mentionSearch, onMentionTap, onOpenLink, findController, slashMenuController, accessibility, ...})` — the editor widget.
+- `WenzRichTextEditor({controller, backgroundColor, shortcutConfiguration, contextMenuConfiguration, blockRenderers, mediaResolver, inlineEmbedRenderer, mentionSearch, onMentionTap, onOpenLink, findController, slashMenuController, accessibility, ...})` — the editor widget. `backgroundColor: Colors.transparent` lets embedded hosts keep their own surface visible.
   `enableExternalImageInput` gates both image clipboard flavors and external
   image drops; `enableExternalDragDrop` only gates the desktop external drop
   target. Read-only editors, controllers without edit permission, and mobile

@@ -353,11 +353,12 @@ Code line numbers are a renderer concern, not document content:
   code displays line `1`, blank lines are counted, consecutive newlines produce
   blank numbered rows, and a trailing newline produces a final empty numbered
   row.
-- `_CodeLineNumberGutter` sits to the left of the code text, uses the same
-  monospace family, `13.5px` font size, and `1.6` line height as code content,
-  aligns labels to the right, uses `0x8AE6E6F0`, and keeps `12px` between the
-  gutter and code text. The gutter width is measured from the widest current
-  line number so `9` → `10` → `100` grows without overlapping code content.
+- `_CodeLineNumberGutter` sits to the left of the code text and reuses the
+  resolved code typography exactly: the same monospace family, responsive font
+  size (`13.5px` desktop / `12.5px` compact), and `1.6` line height. It aligns
+  labels to the right, uses `0x8AE6E6F0`, and keeps `12px` between the gutter
+  and code text. The gutter width is measured from the widest current line
+  number so `9` → `10` → `100` grows without overlapping code content.
 - `_CodeLineNumberGutter` registers as a selection exclusion and is not part of
   `_TextSelectionSurface`: it does not participate in text offset mapping,
   selection, caret/composition rectangles, find highlights, Tab indentation,

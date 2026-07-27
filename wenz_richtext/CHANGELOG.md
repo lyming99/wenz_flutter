@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `WenzRichTextEditor` 新增可选 `backgroundColor`，嵌入聊天消息等宿主时可传入透明色，同时保留原有深浅主题默认背景。
+- 修复紧凑布局中代码正文使用 12.5px、行号仍固定为 13.5px 导致长代码块逐行累积错位的问题；行号现在始终复用正文实际解析后的字号与行高。
 - 代码块语法高亮改用 [highlight](https://pub.dev/packages/highlight)（highlight.js 的 Dart 移植）库：`CodeSyntaxHighlighter` 不再使用手写分词器，改为调用 `highlight.parse` 解析并遍历 `Node` 树生成 `TextSpan`，公共 API（`CodeSyntaxHighlighter` / `CodeSyntaxPalette`）的类名、字段与构造签名保持不变，composition 合成下划线行为保留。
 - 新增依赖 `highlight: ^0.7.0`（仅传递依赖 `collection`，纯 Dart，无原生插件）。
 - 支持 20+ 种常见语言（dart / javascript / typescript / python / java / kotlin / swift / go / rust / sql / json / yaml / html / css / markdown / bash，以及 cpp / c# / php / ruby / scala / shell / ini(toml) 等，共 24 种），并通过别名归一化覆盖 `js`/`ts`/`sh`/`md`/`c#`/`html`/`toml` 等常见写法。

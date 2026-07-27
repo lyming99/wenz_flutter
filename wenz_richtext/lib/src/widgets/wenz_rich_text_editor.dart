@@ -1590,6 +1590,7 @@ class WenzRichTextEditor extends StatefulWidget {
     this.blockSpacing = _kDefaultBlockSpacing,
     this.textStyle,
     this.defaultTextColor,
+    this.backgroundColor,
     this.physics,
     this.focusNode,
     this.autofocus = false,
@@ -1648,6 +1649,14 @@ class WenzRichTextEditor extends StatefulWidget {
   /// [TextAttributes.color] still wins, and link text keeps the built-in link
   /// foreground when no inline color is set.
   final Color? defaultTextColor;
+
+  /// Optional fill for the editor's root surface.
+  ///
+  /// When omitted, the editor uses its built-in light/dark surface color.
+  /// Embedded hosts such as chat messages can pass [Colors.transparent] so
+  /// their own container remains visible behind the document.
+  final Color? backgroundColor;
+
   final ScrollPhysics? physics;
   final FocusNode? focusNode;
   final bool autofocus;
@@ -3569,7 +3578,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
                   focusNode,
                   ColoredBox(
                     key: _editorBackgroundKey,
-                    color: _editorBackgroundColor(Theme.of(context)),
+                    color: widget.backgroundColor ??
+                        _editorBackgroundColor(Theme.of(context)),
                     child: TableFloatingToolbarOverlayHost(
                       controller: _tableToolbarOverlayController,
                       child: ObjectBlockToolbarOverlayHost(
@@ -14446,11 +14456,12 @@ class _CodeBlockRenderer extends StatelessWidget {
       codeStyle,
       compositionRange,
     );
+    // Keep the gutter on the exact typography resolved for the code surface.
+    // In compact layouts the code font scales down through [EditorTokens];
+    // reapplying the desktop constants here makes every row slightly taller
+    // and the mismatch accumulates visibly in long code blocks.
     final lineNumberStyle = codeStyle.copyWith(
       color: const Color(WenzCodeBlockLineNumbers.color),
-      fontFamily: WenzCodeBlockLineNumbers.fontFamily,
-      fontSize: WenzCodeBlockLineNumbers.fontSize,
-      height: WenzCodeBlockLineNumbers.lineHeight,
     );
     final lineNumberLabels = WenzCodeBlockLineNumbers.labelsForCode(block.code);
     final lineNumberText = lineNumberLabels.join('\n');

@@ -103,6 +103,18 @@ void main() {
         same(resolver),
       );
     });
+
+    test('buildEditor forwards an embedded surface background override', () {
+      final bootstrap =
+          WenzEditorBootstrap.create(const WenzEditorConfiguration());
+      addTearDown(bootstrap.dispose);
+
+      final editor = bootstrap.buildEditor(
+        backgroundColor: Colors.transparent,
+      );
+
+      expect(editor.backgroundColor, Colors.transparent);
+    });
   });
 
   group('default desktop toolbar factory', () {

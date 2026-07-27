@@ -721,7 +721,7 @@ stretch the default image renderer.
 
 `buildEditor({...})` pass-through appearance params (all optional, all forwarded
 verbatim to `WenzRichTextEditor`): `padding`, `blockSpacing`, `textStyle`,
-`defaultTextColor`, `physics`, `focusNode`, `autofocus`, `readOnly`,
+`defaultTextColor`, `backgroundColor`, `physics`, `focusNode`, `autofocus`, `readOnly`,
 `showDebugOverlay`, `enableIme`. Desktop toolbar presentation can additionally
 be overridden per build with `desktopToolbarMode`, `desktopToolbarActions`,
 `desktopToolbarStyle`, or a custom `desktopSelectionToolbarBuilder`.
