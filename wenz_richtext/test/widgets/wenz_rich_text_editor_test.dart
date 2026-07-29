@@ -563,6 +563,128 @@ void main() {
     expect(commandSeen, isA<InsertTextCommand>());
   });
 
+  testWidgets(
+      'code-block paste prefers literal plain text over rich clipboard flavors',
+      (tester) async {
+    const pastedCode = 'first();\nsecond();';
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          CodeBlockNode(id: 'code1', code: 'ab', language: 'dart'),
+        ],
+      ),
+      selection: collapsedCodeSelection('code1', 0, 1),
+    );
+
+    await _pumpPasteEditor(
+      tester,
+      controller,
+      reader: const _FakeExternalImageClipboardReader(
+        ExternalImageClipboardData(
+          plainText: pastedCode,
+          html: '<h1>Wrong HTML block</h1>',
+          markdown: '# Wrong Markdown block',
+        ),
+      ),
+    );
+
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyV);
+    await tester.pump();
+
+    expect(controller.document.blocks, hasLength(1));
+    final block = controller.document.blocks.single as CodeBlockNode;
+    expect(block.code, 'a${pastedCode}b');
+    expect(block.language, 'dart');
+    expect(
+      controller.selection,
+      collapsedCodeSelection('code1', 0, 1 + pastedCode.length),
+    );
+    expect(controller.hasFocus, isTrue);
+  });
+
+  testWidgets('structured paste leaves the caret after inserted content',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'ab')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 1),
+    );
+
+    await _pumpPasteEditor(
+      tester,
+      controller,
+      reader: const _FakeExternalImageClipboardReader(
+        ExternalImageClipboardData(
+          plainText: 'X\nY',
+          html: '<p>X</p><p>Y</p>',
+        ),
+      ),
+    );
+
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyV);
+    await tester.pump();
+
+    expect(controller.document.blocks, hasLength(2));
+    expect(controller.document.blocks[0].plainText, 'aX');
+    expect(controller.document.blocks[1].plainText, 'Yb');
+    expect(controller.selection?.extent.blockIndex, 1);
+    expect(controller.selection?.extent.offset, 1);
+    expect(controller.hasFocus, isTrue);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyZ, character: 'z');
+    await tester.pump();
+    expect(controller.document.blocks[1].plainText, 'Yzb');
+    expect(controller.selection?.extent.offset, 2);
+  });
+
+  testWidgets('single-block HTML paste includes the retained text prefix',
+      (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'beforeafter')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 6),
+    );
+
+    await _pumpPasteEditor(
+      tester,
+      controller,
+      reader: const _FakeExternalImageClipboardReader(
+        ExternalImageClipboardData(
+          plainText: 'XY',
+          html: '<p><strong>XY</strong></p>',
+        ),
+      ),
+    );
+
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyV);
+    await tester.pump();
+
+    expect(controller.document.plainText, 'beforeXYafter');
+    expect(
+      controller.selection,
+      collapsedTextSelection('p1', 0, 8),
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyZ, character: 'z');
+    await tester.pump();
+    expect(controller.document.plainText, 'beforeXYzafter');
+    expect(controller.selection?.extent.offset, 9);
+  });
+
   testWidgets('paste inserts external clipboard images before text fallback',
       (tester) async {
     final controller = WenzRichTextController(
@@ -5226,7 +5348,7 @@ void main() {
     expect(WenzCodeBlockLineNumbers.gutterScrollsHorizontallyWithCode, isFalse);
 
     expect(WenzCodeBlockLineNumbers.gutterTextAlign, TextAlign.right);
-    expect(WenzCodeBlockLineNumbers.fontFamily, 'JetBrains Mono');
+    expect(WenzCodeBlockLineNumbers.fontFamily, 'inherit');
     expect(WenzCodeBlockLineNumbers.fontSize, 13.5);
     expect(WenzCodeBlockLineNumbers.lineHeight, 1.6);
     expect(WenzCodeBlockLineNumbers.color, 0x8AE6E6F0);
@@ -5281,10 +5403,14 @@ void main() {
     expect(const PlainTextCodec().encode(document), code);
     expect(const MarkdownCodec().encode(document),
         '```dart\nalpha\n\nbeta\n\n```');
+    final html = const HtmlCodec().encode(document);
     expect(
-      const HtmlCodec().encode(document),
-      '<pre><code class="language-dart">alpha\n\nbeta\n</code></pre>',
+      html,
+      contains(
+        '<code class="language-dart">alpha\n\nbeta\n</code></pre>',
+      ),
     );
+    expect(html, isNot(contains('lineNumber')));
 
     final codePath = PositionPath.blockCode('code1');
     final codeSelection = DocumentSelection(
@@ -5673,6 +5799,7 @@ void main() {
             child: WenzRichTextEditor(
               controller: controller,
               enableIme: false,
+              textStyle: const TextStyle(fontFamily: 'BodyFont', fontSize: 18),
             ),
           ),
         ),
@@ -5689,7 +5816,7 @@ void main() {
 
     final codeSpan = _richTextSpan(tester, longCode);
     expect(codeSpan.style?.color, _codeBlockText);
-    expect(codeSpan.style?.fontFamily, 'JetBrains Mono');
+    expect(codeSpan.style?.fontFamily, 'BodyFont');
     expect(codeSpan.style?.fontSize, 13.5);
     expect(codeSpan.style?.height, 1.6);
 
@@ -5697,6 +5824,13 @@ void main() {
       find.byKey(const ValueKey<String>('wenz-richtext-code-scroll-code1')),
     );
     expect(scroll.scrollDirection, Axis.horizontal);
+    final scrollbar = tester.widget<Scrollbar>(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-code-scrollbar-code1'),
+      ),
+    );
+    expect(scrollbar.thumbVisibility, isTrue);
+    expect(scrollbar.interactive, isTrue);
     expect(find.text('dart'), findsOneWidget);
     expect(find.byTooltip('切换代码语言'), findsOneWidget);
     final blockRect = tester.getRect(
@@ -5712,6 +5846,72 @@ void main() {
     );
     expect(codeRect.top, greaterThan(copyButtonRect.bottom));
     expect(copyButtonRect.right, lessThanOrEqualTo(blockRect.right));
+  });
+
+  testWidgets('code block can wrap long lines without horizontal scrolling', (
+    tester,
+  ) async {
+    const firstLine =
+        'final veryLongIdentifier = List.generate(200, (index) => index).join(",");';
+    const code = '$firstLine\nreturn value;';
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          CodeBlockNode(id: 'wrapped', code: code, language: 'dart'),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 300,
+            child: WenzRichTextEditor(
+              controller: controller,
+              enableIme: false,
+              codeBlockWordWrap: true,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-code-wrap-wrapped'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-code-scroll-wrapped'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-code-scrollbar-wrapped'),
+      ),
+      findsNothing,
+    );
+
+    final codeFinder = _richText(code);
+    final visualLines = _richTextLineMetrics(tester, codeFinder);
+    expect(visualLines.length, greaterThan(2));
+    final labels = _codeLineNumberText(tester, 'wrapped').split('\n');
+    expect(labels, hasLength(visualLines.length));
+    expect(labels.where((label) => label.isNotEmpty), <String>['1', '2']);
+
+    final blockRect = tester.getRect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-code-block-wrapped'),
+      ),
+    );
+    final codeRect = tester.getRect(codeFinder);
+    expect(codeRect.right, lessThanOrEqualTo(blockRect.right));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('code block header handles narrow edge cases', (tester) async {
@@ -5863,7 +6063,10 @@ void main() {
     final lineNumberText =
         tester.widget<Text>(_codeLineNumberFinder('hundred'));
     expect(lineNumberText.textAlign, TextAlign.right);
-    expect(lineNumberText.style?.fontFamily, 'JetBrains Mono');
+    expect(
+      lineNumberText.style?.fontFamily,
+      _richTextSpan(tester, hundredLineCode).style?.fontFamily,
+    );
     expect(lineNumberText.style?.fontSize, 13.5);
     expect(lineNumberText.style?.height, 1.6);
     expect(lineNumberText.style?.color, const Color(0x8AE6E6F0));

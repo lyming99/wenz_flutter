@@ -932,6 +932,31 @@ void main() {
     },
   );
 
+  test('delete backward removes todo style from the first task item', () {
+    final session = DocumentSession(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'todo1',
+            type: BlockType.listItem,
+            attributes: BlockAttributes(listType: 'task', checked: false),
+            content: <InlineNode>[TextRun(text: 'First todo')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('todo1', 0, 0),
+    );
+
+    CommandExecutor(session).execute(const DeleteBackwardCommand());
+
+    final block = session.document.blocks.single as TextBlockNode;
+    expect(block.type, BlockType.paragraph);
+    expect(block.attributes.listType, isNull);
+    expect(block.attributes.checked, isNull);
+    expect(block.plainText, 'First todo');
+    expect(session.selection, collapsedTextSelection('todo1', 0, 0));
+  });
+
   test('delete backward removes character inside callout body', () {
     final session = DocumentSession(
       document: const RichTextDocument(

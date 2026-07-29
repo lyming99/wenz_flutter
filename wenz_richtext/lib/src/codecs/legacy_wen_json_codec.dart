@@ -123,7 +123,7 @@ class LegacyWenJsonCodec {
       case 'code':
         return CodeBlockNode(
           id: id,
-          code: _asString(json['code']),
+          code: _asRawString(json['code']),
           language: _asString(json['language']),
           attributes: _blockAttributes(json),
         );
@@ -400,6 +400,13 @@ String _asString(Object? value) {
     return value.trim();
   }
   return value.toString().trim();
+}
+
+String _asRawString(Object? value) {
+  if (value == null) {
+    return '';
+  }
+  return value is String ? value : value.toString();
 }
 
 String? _nullableString(Object? value) {

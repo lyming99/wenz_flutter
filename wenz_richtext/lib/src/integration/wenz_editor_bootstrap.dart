@@ -534,6 +534,7 @@ class WenzEditorBootstrap {
     FocusNode? focusNode,
     bool autofocus = false,
     bool? readOnly,
+    bool codeBlockWordWrap = false,
     bool showDebugOverlay = false,
     bool enableIme = true,
     WenzDesktopToolbarMode? desktopToolbarMode,
@@ -588,6 +589,7 @@ class WenzEditorBootstrap {
       autofocus: autofocus,
       readOnly:
           readOnly ?? (configuration.permission == WenzEditorPermission.read),
+      codeBlockWordWrap: codeBlockWordWrap,
       showDebugOverlay: showDebugOverlay,
       enableIme: enableIme,
       shortcutConfiguration: effectiveShortcutConfiguration,

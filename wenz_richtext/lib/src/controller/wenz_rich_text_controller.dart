@@ -888,14 +888,17 @@ class WenzRichTextController extends ChangeNotifier {
     bool applyMarkdownShortcuts = true,
     bool applyAutoLinkUrls = true,
   }) {
+    final effectiveAttributes =
+        attributes.isEmpty ? _inlineCodeTypingAttributesAtCaret() : attributes;
     if (_revisionModeEnabled) {
-      return insertRevisionText(text, attributes: attributes);
+      return insertRevisionText(text, attributes: effectiveAttributes);
     }
-    final change = execute(InsertTextCommand(text, attributes: attributes));
+    final change =
+        execute(InsertTextCommand(text, attributes: effectiveAttributes));
     var latestChange = change;
     if (_shouldApplyMarkdownShortcut(
       text,
-      attributes,
+      effectiveAttributes,
       applyMarkdownShortcuts,
       change,
     )) {
@@ -906,7 +909,7 @@ class WenzRichTextController extends ChangeNotifier {
     }
     if (_shouldApplyAutoLinkUrls(
       text,
-      attributes,
+      effectiveAttributes,
       applyAutoLinkUrls,
       latestChange,
     )) {
@@ -916,6 +919,62 @@ class WenzRichTextController extends ChangeNotifier {
       }
     }
     return latestChange;
+  }
+
+  TextAttributes _inlineCodeTypingAttributesAtCaret() {
+    final target = selection;
+    if (target == null || !target.isCollapsed) {
+      return const TextAttributes();
+    }
+    final position = target.extent;
+    if (position.blockIndex < 0 ||
+        position.blockIndex >= document.blocks.length) {
+      return const TextAttributes();
+    }
+    final block = document.blocks[position.blockIndex];
+    if (position.path.isTableCellText) {
+      final cellTextBlock = tableCellTextBlockForPosition(document, position);
+      return cellTextBlock == null
+          ? const TextAttributes()
+          : _inlineCodeAttributesAtOffset(
+              cellTextBlock.content,
+              position.offset,
+            );
+    }
+    if (!position.path.isBlockText) return const TextAttributes();
+    if (block is TextBlockNode) {
+      return _inlineCodeAttributesAtOffset(
+        block.content,
+        position.offset,
+      );
+    }
+    if (block is CalloutBlockNode) {
+      return _inlineCodeAttributesAtOffset(
+        block.content,
+        position.offset,
+      );
+    }
+    return const TextAttributes();
+  }
+
+  TextAttributes _inlineCodeAttributesAtOffset(
+    List<InlineNode> content,
+    int offset,
+  ) {
+    var cursor = 0;
+    for (final node in content) {
+      final length = inlineLength(node);
+      final nodeEnd = cursor + length;
+      if (node is TextRun &&
+          cursor < offset &&
+          offset < nodeEnd &&
+          node.attributes.inlineCode == true) {
+        return const TextAttributes(inlineCode: true);
+      }
+      if (nodeEnd >= offset) break;
+      cursor = nodeEnd;
+    }
+    return const TextAttributes();
   }
 
   bool _shouldApplyMarkdownShortcut(

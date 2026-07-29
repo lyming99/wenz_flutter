@@ -429,7 +429,9 @@ void main() {
       expect(paste.isBlocks, isTrue);
       expect((paste.blocks[0] as TextBlockNode).type, BlockType.heading);
       expect((paste.blocks[0] as TextBlockNode).attributes.level, 2);
-      expect((paste.blocks[1] as TextBlockNode).type, BlockType.quote);
+      final quote = paste.blocks[1] as TextBlockNode;
+      expect(quote.type, BlockType.paragraph);
+      expect(quote.attributes.quoted, isTrue);
     });
 
     test('code block range copies plain text slice', () {
@@ -750,7 +752,7 @@ void main() {
       expect(second.file, 'C:/tmp/second.webp');
       expect(second.caption, 'second');
       expect(second.altText, 'second alt');
-      expect(paste.text, 'first\nsecond');
+      expect(paste.text, '[image: first]\n[image: second]');
     });
 
     test('external image descriptions return null when none are insertable',
@@ -892,6 +894,8 @@ void main() {
       expect((controller.document.blocks[1] as TextBlockNode).type,
           BlockType.listItem);
       expect(controller.document.blocks[1].plainText, 'item');
+      expect(controller.selection?.extent.blockIndex, 1);
+      expect(controller.selection?.extent.offset, 4);
     });
 
     test('pasteHtml into an empty paragraph preserves block structure', () {
@@ -907,6 +911,40 @@ void main() {
       expect(heading.type, BlockType.heading);
       expect(heading.attributes.level, 2);
       expect(controller.document.blocks[1].plainText, 'body');
+      expect(controller.selection?.extent.blockIndex, 1);
+      expect(controller.selection?.extent.offset, 4);
+    });
+
+    test('single structured block keeps caret after pasted text', () {
+      final controller = WenzRichTextController(
+        document: _doc('beforeafter'),
+        selection: collapsedTextSelection('p1', 0, 6),
+      );
+
+      controller.pasteMarkdown('**XY**');
+
+      expect(controller.document.blocks, hasLength(1));
+      expect(controller.document.plainText, 'beforeXYafter');
+      expect(
+        controller.selection,
+        collapsedTextSelection('p1', 0, 8),
+      );
+    });
+
+    test('single structured block replacement includes retained prefix', () {
+      final controller = WenzRichTextController(
+        document: _doc('leftOLDright'),
+        selection: textSelection('p1', 0, 4, 7),
+      );
+
+      controller.pasteHtml('<p><strong>new</strong></p>');
+
+      expect(controller.document.blocks, hasLength(1));
+      expect(controller.document.plainText, 'leftnewright');
+      expect(
+        controller.selection,
+        collapsedTextSelection('p1', 0, 7),
+      );
     });
 
     test('paste rich payload preserves attributes', () {
@@ -941,6 +979,7 @@ void main() {
           .firstWhere((r) => r.text == 'bold');
       expect(pastedRun.attributes.bold, isTrue);
       expect(pastedRun.attributes.color, 0xFFD81B60);
+      expect(controller.selection?.extent.offset, 5);
     });
 
     test('paste rich payload re-inserts an inline embed', () {
@@ -1142,6 +1181,8 @@ void main() {
       final second = controller.document.blocks[1] as TextBlockNode;
       expect(first.plainText, 'abold');
       expect(second.plainText, 'itb');
+      expect(controller.selection?.extent.blockIndex, 1);
+      expect(controller.selection?.extent.offset, 2);
       // bold preserved on the 'bo' slice, italic on the 'it' slice.
       final boldRun = first.content.whereType<TextRun>().firstWhere(
             (r) => r.text.contains('bo'),
@@ -1195,6 +1236,8 @@ void main() {
       expect(controller.document.blocks, hasLength(2));
       expect(controller.document.blocks[0].plainText, 'aX');
       expect(controller.document.blocks[1].plainText, 'Yc');
+      expect(controller.selection?.extent.blockIndex, 1);
+      expect(controller.selection?.extent.offset, 1);
     });
 
     test('cross-block copy-paste round-trips through cut', () {

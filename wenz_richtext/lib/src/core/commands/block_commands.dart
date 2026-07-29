@@ -648,7 +648,9 @@ class PasteBlocksCommand extends EditorCommand {
   int _endOffsetForMerge(List<InlineNode> beforeSlice, List<BlockNode> pasted) {
     final last = pasted.last;
     if (last is TextBlockNode) {
-      return inlineNodesLength(last.content);
+      final prefixLength =
+          pasted.length == 1 ? inlineNodesLength(beforeSlice) : 0;
+      return prefixLength + inlineNodesLength(last.content);
     }
     return 0;
   }

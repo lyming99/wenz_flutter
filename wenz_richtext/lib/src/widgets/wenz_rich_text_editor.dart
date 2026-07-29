@@ -24,6 +24,7 @@ import '../core/model/persistent_block_list.dart';
 import '../core/model/table_model.dart';
 import '../core/position/document_position.dart';
 import '../input/clipboard_debug_log.dart';
+import '../input/clipboard_service.dart';
 import '../input/composition_state.dart';
 import '../input/editor_text_input_client.dart';
 import '../input/external_image_insertion.dart';
@@ -1232,7 +1233,10 @@ final class WenzCodeBlockLineNumbers {
   static const bool participatesInTextOffsetMapping = false;
   static const bool gutterScrollsHorizontallyWithCode = false;
   static const TextAlign gutterTextAlign = TextAlign.right;
-  static const String fontFamily = 'JetBrains Mono';
+
+  /// Code blocks inherit the host editor's body font. This marker is retained
+  /// for callers that expose the rendering policy in diagnostics.
+  static const String fontFamily = 'inherit';
   static const double fontSize = _kCodeBlockFontSize;
   static const double lineHeight = _kCodeBlockLineHeight;
   static const int color = _kCodeLineNumberColor;
@@ -1267,6 +1271,30 @@ class _SharedLayoutCacheScope extends InheritedWidget {
   @override
   bool updateShouldNotify(_SharedLayoutCacheScope oldWidget) =>
       cache != oldWidget.cache;
+}
+
+/// Exposes the host-selected code-block overflow policy to built-in renderers.
+///
+/// Keeping this as inherited view state avoids threading a presentation-only
+/// flag through the document model, codecs, controller, and every virtual-list
+/// block wrapper. Custom renderers remain unaffected.
+class _CodeBlockLayoutScope extends InheritedWidget {
+  const _CodeBlockLayoutScope({
+    required this.wordWrap,
+    required super.child,
+  });
+
+  final bool wordWrap;
+
+  static bool wordWrapOf(BuildContext context) {
+    final scope =
+        context.dependOnInheritedWidgetOfExactType<_CodeBlockLayoutScope>();
+    return scope?.wordWrap ?? false;
+  }
+
+  @override
+  bool updateShouldNotify(_CodeBlockLayoutScope oldWidget) =>
+      wordWrap != oldWidget.wordWrap;
 }
 
 class _FormulaEditRequestController {
@@ -1595,6 +1623,7 @@ class WenzRichTextEditor extends StatefulWidget {
     this.focusNode,
     this.autofocus = false,
     this.readOnly = false,
+    this.codeBlockWordWrap = false,
     this.showDebugOverlay = false,
     this.enableIme = true,
     this.shortcutConfiguration = const EditorShortcutConfiguration(),
@@ -1661,6 +1690,13 @@ class WenzRichTextEditor extends StatefulWidget {
   final FocusNode? focusNode;
   final bool autofocus;
   final bool readOnly;
+
+  /// Whether built-in code blocks soft-wrap long lines to their viewport.
+  ///
+  /// Defaults to `false`, preserving code columns and exposing a visible
+  /// horizontal scrollbar when content overflows. Hosts can enable this as a
+  /// reading preference without changing the document or serialized Markdown.
+  final bool codeBlockWordWrap;
 
   /// When true, overlays the active block's id, index, path, and caret offset
   /// for debugging selection behaviour. Does not affect layout or offsets.
@@ -3554,37 +3590,40 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           },
           child: _SharedLayoutCacheScope(
             cache: _layoutCache,
-            child: Focus(
-              focusNode: focusNode,
-              autofocus: widget.autofocus,
-              onKeyEvent: _handleKeyEvent,
-              child: Semantics(
-                container: true,
-                explicitChildNodes: true,
-                enabled: true,
-                textField: true,
-                readOnly: widget.readOnly,
-                focusable: true,
-                focused: focusNode.hasPrimaryFocus,
-                multiline: true,
-                label: widget.accessibility
-                    .effectiveLabel(readOnly: widget.readOnly),
-                hint: widget.accessibility
-                    .effectiveHint(readOnly: widget.readOnly),
-                onTap: () => focusNode.requestFocus(),
-                onFocus: () => focusNode.requestFocus(),
-                child: _withHighContrastFocusHighlight(
-                  context,
-                  focusNode,
-                  ColoredBox(
-                    key: _editorBackgroundKey,
-                    color: widget.backgroundColor ??
-                        _editorBackgroundColor(Theme.of(context)),
-                    child: TableFloatingToolbarOverlayHost(
-                      controller: _tableToolbarOverlayController,
-                      child: ObjectBlockToolbarOverlayHost(
-                        controller: _objectBlockToolbarOverlayController,
-                        child: _buildExternalImageDropTarget(editorSurface),
+            child: _CodeBlockLayoutScope(
+              wordWrap: widget.codeBlockWordWrap,
+              child: Focus(
+                focusNode: focusNode,
+                autofocus: widget.autofocus,
+                onKeyEvent: _handleKeyEvent,
+                child: Semantics(
+                  container: true,
+                  explicitChildNodes: true,
+                  enabled: true,
+                  textField: true,
+                  readOnly: widget.readOnly,
+                  focusable: true,
+                  focused: focusNode.hasPrimaryFocus,
+                  multiline: true,
+                  label: widget.accessibility
+                      .effectiveLabel(readOnly: widget.readOnly),
+                  hint: widget.accessibility
+                      .effectiveHint(readOnly: widget.readOnly),
+                  onTap: () => focusNode.requestFocus(),
+                  onFocus: () => focusNode.requestFocus(),
+                  child: _withHighContrastFocusHighlight(
+                    context,
+                    focusNode,
+                    ColoredBox(
+                      key: _editorBackgroundKey,
+                      color: widget.backgroundColor ??
+                          _editorBackgroundColor(Theme.of(context)),
+                      child: TableFloatingToolbarOverlayHost(
+                        controller: _tableToolbarOverlayController,
+                        child: ObjectBlockToolbarOverlayHost(
+                          controller: _objectBlockToolbarOverlayController,
+                          child: _buildExternalImageDropTarget(editorSurface),
+                        ),
                       ),
                     ),
                   ),
@@ -8581,6 +8620,24 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     final snapshot = await _clipboardAdapter.read(
       includeExternalImages: widget.enableExternalImageInput,
     );
+    if (!mounted) {
+      return;
+    }
+    if (_isCodeBlockPasteTarget) {
+      final codeText = _plainTextForCodePaste(snapshot);
+      if (codeText != null) {
+        WenzClipboardDebugLog.event(
+          'editor.paste-route',
+          fields: <String, Object?>{
+            'route': 'code-plain-text',
+            'value': WenzClipboardDebugLog.text(codeText),
+          },
+        );
+        widget.controller.pasteText(codeText);
+        _finishPaste();
+        return;
+      }
+    }
     final wenzRichText = snapshot.wenzRichTextForPaste;
     if (wenzRichText != null) {
       WenzClipboardDebugLog.event(
@@ -8593,6 +8650,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       final parsed = widget.controller.clipboardService.parse(wenzRichText);
       if (parsed.hasContent) {
         widget.controller.pasteParsedClipboard(parsed);
+        _finishPaste();
         return;
       }
       WenzClipboardDebugLog.event(
@@ -8606,6 +8664,9 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     }
 
     final images = await _prepareExternalImages(snapshot.images);
+    if (!mounted) {
+      return;
+    }
     if (images.isNotEmpty) {
       WenzClipboardDebugLog.event(
         'editor.paste-route',
@@ -8631,6 +8692,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         },
       );
       widget.controller.pasteHtml(html);
+      _finishPaste();
       return;
     }
     final markdown = snapshot.markdown;
@@ -8643,6 +8705,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         },
       );
       widget.controller.pasteMarkdown(markdown);
+      _finishPaste();
       return;
     }
     final plainText = snapshot.plainText;
@@ -8661,6 +8724,69 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       },
     );
     widget.controller.pasteText(plainText);
+    _finishPaste();
+  }
+
+  bool get _isCodeBlockPasteTarget {
+    final selection = widget.controller.selection;
+    if (selection == null) {
+      return false;
+    }
+    final start = selection.start;
+    final end = selection.end;
+    if (start.blockIndex != end.blockIndex ||
+        start.blockId != end.blockId ||
+        start.path != end.path ||
+        !start.path.isBlockCode ||
+        start.path.blockId != start.blockId) {
+      return false;
+    }
+    final blockIndex = start.blockIndex;
+    if (blockIndex < 0 ||
+        blockIndex >= widget.controller.document.blocks.length) {
+      return false;
+    }
+    final block = widget.controller.document.blocks[blockIndex];
+    return block is CodeBlockNode && block.id == start.blockId;
+  }
+
+  String? _plainTextForCodePaste(RichClipboardSnapshot snapshot) {
+    final plainText = snapshot.plainText;
+    if (plainText != null &&
+        plainText.isNotEmpty &&
+        !hasWenzClipboardPrefix(plainText)) {
+      return plainText;
+    }
+    final wenzRichText = snapshot.wenzRichTextForPaste;
+    if (wenzRichText != null) {
+      final parsed = widget.controller.clipboardService.parse(wenzRichText);
+      if (parsed.hasContent) {
+        return parsed.text;
+      }
+    }
+    final markdown = snapshot.markdown;
+    if (markdown != null && markdown.isNotEmpty) {
+      return markdown;
+    }
+    final html = snapshot.html;
+    if (html != null && html.isNotEmpty) {
+      final parsed = widget.controller.clipboardService.parse(
+        html,
+        format: ClipboardPasteFormat.html,
+      );
+      if (parsed.hasContent) {
+        return parsed.text;
+      }
+    }
+    return null;
+  }
+
+  void _finishPaste() {
+    if (!mounted) {
+      return;
+    }
+    widget.controller.requestFocus();
+    _inputClient.syncBuffer();
   }
 
   RichClipboardAdapter get _clipboardAdapter {
@@ -8706,7 +8832,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
       selection: resolvedSelection,
     );
     if (result.isSuccess) {
-      widget.controller.requestFocus();
+      _finishPaste();
     }
   }
 
@@ -12071,6 +12197,8 @@ Widget _defaultCodeBlockRenderer(
     compositionState: rc.compositionState,
     registry: rc.registry,
     showCaret: rc.showCaret,
+    wordWrap: _CodeBlockLayoutScope.wordWrapOf(context),
+    textStyle: rc.textStyle,
     showDebugOverlay: rc.showDebugOverlay,
     onLanguageChanged: rc.onCodeLanguageChanged,
     onCodeCopied: rc.onCodeCopied,
@@ -14389,6 +14517,8 @@ class _CodeBlockRenderer extends StatelessWidget {
     required this.compositionState,
     required this.registry,
     required this.showCaret,
+    required this.wordWrap,
+    this.textStyle,
     this.showDebugOverlay = false,
     this.onLanguageChanged,
     this.onCodeCopied,
@@ -14402,6 +14532,8 @@ class _CodeBlockRenderer extends StatelessWidget {
   final CompositionState? compositionState;
   final BlockGeometryRegistry registry;
   final bool showCaret;
+  final bool wordWrap;
+  final TextStyle? textStyle;
   final bool showDebugOverlay;
   final ValueChanged<String>? onLanguageChanged;
   final Future<void> Function(String code)? onCodeCopied;
@@ -14414,28 +14546,12 @@ class _CodeBlockRenderer extends StatelessWidget {
     final tokens = EditorTokens.resolve(context);
     final codeBlockBackground = _codeBlockBackgroundColor(theme);
     final codeBlockText = _codeBlockTextColor(theme);
-    final codeStyle = theme.textTheme.bodyMedium?.copyWith(
-          color: codeBlockText,
-          fontFamily: 'JetBrains Mono',
-          fontFamilyFallback: const <String>[
-            'Fira Code',
-            'Consolas',
-            'monospace',
-          ],
-          fontSize: tokens.codeBlockFontSize,
-          height: _kCodeBlockLineHeight,
-        ) ??
-        TextStyle(
-          color: codeBlockText,
-          fontFamily: 'JetBrains Mono',
-          fontFamilyFallback: const <String>[
-            'Fira Code',
-            'Consolas',
-            'monospace',
-          ],
-          fontSize: tokens.codeBlockFontSize,
-          height: _kCodeBlockLineHeight,
-        );
+    final codeStyle =
+        (textStyle ?? theme.textTheme.bodyMedium ?? const TextStyle()).copyWith(
+      color: codeBlockText,
+      fontSize: tokens.codeBlockFontSize,
+      height: _kCodeBlockLineHeight,
+    );
     final compositionRange = _localCompositionRange(
       compositionState,
       block.id,
@@ -14463,8 +14579,6 @@ class _CodeBlockRenderer extends StatelessWidget {
     final lineNumberStyle = codeStyle.copyWith(
       color: const Color(WenzCodeBlockLineNumbers.color),
     );
-    final lineNumberLabels = WenzCodeBlockLineNumbers.labelsForCode(block.code);
-    final lineNumberText = lineNumberLabels.join('\n');
     return _withBlockSemantics(
       block,
       DecoratedBox(
@@ -14525,10 +14639,21 @@ class _CodeBlockRenderer extends StatelessWidget {
                         effectiveLineNumberWidth -
                         effectiveLineNumberGap,
                   );
-                  final contentWidth = math.max(
-                    scrollViewportWidth,
-                    _measureInlineSpanWidth(codeSpan, textDirection) + 1,
-                  );
+                  final lineNumberText = wordWrap
+                      ? _wrappedCodeLineNumberLabels(
+                          code: block.code,
+                          span: codeSpan,
+                          textDirection: textDirection,
+                          maxWidth: scrollViewportWidth,
+                        ).join('\n')
+                      : WenzCodeBlockLineNumbers.labelsForCode(block.code)
+                          .join('\n');
+                  final contentWidth = wordWrap
+                      ? scrollViewportWidth
+                      : math.max(
+                          scrollViewportWidth,
+                          _measureInlineSpanWidth(codeSpan, textDirection) + 1,
+                        );
                   final minHeight =
                       (codeStyle.fontSize ?? tokens.codeBlockFontSize) *
                           _kBlockMinHeightFactor;
@@ -14552,6 +14677,7 @@ class _CodeBlockRenderer extends StatelessWidget {
                           codeLength: block.code.length,
                           codeSpan: codeSpan,
                           contentWidth: contentWidth,
+                          wordWrap: wordWrap,
                           minHeight: minHeight,
                           selection: selection,
                           showCaret: showCaret,
@@ -14660,6 +14786,7 @@ class _CodeScrollableTextSurface extends StatefulWidget {
     required this.codeLength,
     required this.codeSpan,
     required this.contentWidth,
+    required this.wordWrap,
     required this.minHeight,
     required this.selection,
     required this.showCaret,
@@ -14674,6 +14801,7 @@ class _CodeScrollableTextSurface extends StatefulWidget {
   final int codeLength;
   final InlineSpan codeSpan;
   final double contentWidth;
+  final bool wordWrap;
   final double minHeight;
   final DocumentSelection? selection;
   final bool showCaret;
@@ -14689,35 +14817,63 @@ class _CodeScrollableTextSurface extends StatefulWidget {
 class _CodeScrollableTextSurfaceState
     extends State<_CodeScrollableTextSurface> {
   final GlobalKey _viewportKey = GlobalKey();
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final textSurface = _TextSelectionSurface(
+      blockId: widget.blockId,
+      blockIndex: widget.blockIndex,
+      path: widget.path,
+      textLength: widget.codeLength,
+      textSpan: widget.codeSpan,
+      offsetMapper: _InlineOffsetMapper.identity(widget.codeLength),
+      textAlign: TextAlign.start,
+      minHeight: widget.minHeight,
+      selection: widget.selection,
+      showCaret: widget.showCaret,
+      registry: widget.registry,
+      showDebugOverlay: widget.showDebugOverlay,
+      selectionHighlightColor: const Color(
+        _kCodeBlockSelectionHighlightColor,
+      ),
+      findRanges: widget.findRanges,
+      hitTestKey: _viewportKey,
+      clampHitTestToVisibleBounds: true,
+    );
+    if (widget.wordWrap) {
+      return SizedBox(
+        key: _viewportKey,
+        width: double.infinity,
+        child: KeyedSubtree(
+          key: ValueKey<String>('wenz-richtext-code-wrap-${widget.blockId}'),
+          child: textSurface,
+        ),
+      );
+    }
     return SizedBox(
       key: _viewportKey,
-      child: SingleChildScrollView(
-        key: ValueKey<String>('wenz-richtext-code-scroll-${widget.blockId}'),
-        scrollDirection: Axis.horizontal,
-        child: SizedBox(
-          width: widget.contentWidth,
-          child: _TextSelectionSurface(
-            blockId: widget.blockId,
-            blockIndex: widget.blockIndex,
-            path: widget.path,
-            textLength: widget.codeLength,
-            textSpan: widget.codeSpan,
-            offsetMapper: _InlineOffsetMapper.identity(widget.codeLength),
-            textAlign: TextAlign.start,
-            minHeight: widget.minHeight,
-            selection: widget.selection,
-            showCaret: widget.showCaret,
-            registry: widget.registry,
-            showDebugOverlay: widget.showDebugOverlay,
-            selectionHighlightColor: const Color(
-              _kCodeBlockSelectionHighlightColor,
-            ),
-            findRanges: widget.findRanges,
-            hitTestKey: _viewportKey,
-            clampHitTestToVisibleBounds: true,
+      child: Scrollbar(
+        key: ValueKey<String>(
+          'wenz-richtext-code-scrollbar-${widget.blockId}',
+        ),
+        controller: _scrollController,
+        thumbVisibility: true,
+        interactive: true,
+        scrollbarOrientation: ScrollbarOrientation.bottom,
+        child: SingleChildScrollView(
+          key: ValueKey<String>('wenz-richtext-code-scroll-${widget.blockId}'),
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: widget.contentWidth,
+            child: textSurface,
           ),
         ),
       ),
@@ -14733,6 +14889,51 @@ double _measureInlineSpanWidth(InlineSpan span, TextDirection textDirection) {
   final width = painter.width;
   painter.dispose();
   return width.isFinite ? width : 0;
+}
+
+List<String> _wrappedCodeLineNumberLabels({
+  required String code,
+  required InlineSpan span,
+  required TextDirection textDirection,
+  required double maxWidth,
+}) {
+  if (!maxWidth.isFinite || maxWidth <= 0) {
+    return WenzCodeBlockLineNumbers.labelsForCode(code);
+  }
+  final painter = TextPainter(
+    text: span,
+    textDirection: textDirection,
+  )..layout(maxWidth: maxWidth);
+  final metrics = painter.computeLineMetrics();
+  if (metrics.isEmpty) {
+    painter.dispose();
+    return const <String>['1'];
+  }
+
+  var scannedOffset = 0;
+  var logicalLine = WenzCodeBlockLineNumbers.firstNumber;
+  final labels = <String>[];
+  for (final line in metrics) {
+    final lineCenterY =
+        line.baseline - line.ascent + (line.ascent + line.descent) / 2;
+    final visualStart = painter
+        .getPositionForOffset(Offset(-100000, lineCenterY))
+        .offset
+        .clamp(0, code.length)
+        .toInt();
+    while (scannedOffset < visualStart) {
+      if (code.codeUnitAt(scannedOffset) == 0x0A) {
+        logicalLine += 1;
+      }
+      scannedOffset += 1;
+    }
+    final startsLogicalLine = visualStart == 0 ||
+        (visualStart <= code.length &&
+            code.codeUnitAt(visualStart - 1) == 0x0A);
+    labels.add(startsLogicalLine ? '$logicalLine' : '');
+  }
+  painter.dispose();
+  return labels;
 }
 
 class _BlockFloatingToolbarSurface extends StatelessWidget {

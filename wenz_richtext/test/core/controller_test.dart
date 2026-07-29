@@ -29,6 +29,69 @@ void main() {
     expect(controller.canUndo, isTrue);
   });
 
+  test('typing inside inline code inherits the inline-code mark', () {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'before '),
+              TextRun(
+                text: 'code',
+                attributes: TextAttributes(inlineCode: true),
+              ),
+              TextRun(text: ' after'),
+            ],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 9),
+    );
+
+    controller.insertText('X');
+
+    final block = controller.document.blocks.single as TextBlockNode;
+    expect(block.plainText, 'before coXde after');
+    final insertedRun = block.content.whereType<TextRun>().firstWhere(
+          (run) => run.text.contains('X'),
+        );
+    expect(insertedRun.attributes.inlineCode, isTrue);
+    expect(controller.selection?.extent.offset, 10);
+  });
+
+  test('typing at an inline-code boundary keeps following text plain', () {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[
+              TextRun(text: 'before '),
+              TextRun(
+                text: 'code',
+                attributes: TextAttributes(inlineCode: true),
+              ),
+              TextRun(text: ' after'),
+            ],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 11),
+    );
+
+    controller.insertText('X');
+
+    final block = controller.document.blocks.single as TextBlockNode;
+    expect(block.plainText, 'before codeX after');
+    final insertedRun = block.content.whereType<TextRun>().firstWhere(
+          (run) => run.text.contains('X'),
+        );
+    expect(insertedRun.attributes.inlineCode, isNot(true));
+  });
+
   test('controller undo and redo notify and restore document', () {
     final controller = WenzRichTextController(
       document: const RichTextDocument(
@@ -436,7 +499,8 @@ void main() {
       expect(controller.selection, collapsedTextSelection('after-code', 3, 0));
     });
 
-    test('inserts below a table cell selection at the top-level table boundary', () {
+    test('inserts below a table cell selection at the top-level table boundary',
+        () {
       final controller = WenzRichTextController(
         document: _mixedInsertionDocument(),
         selection: _tableCellSelection(blockIndex: 3, offset: 2),
