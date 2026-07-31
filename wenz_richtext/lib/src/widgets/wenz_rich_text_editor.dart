@@ -516,6 +516,9 @@ const int _kCodeBlockTextColor = 0xFFE6E6F0;
 const int _kCodeBlockSelectionHighlightColor = 0x944C7DFF;
 const int _kCodeLineNumberColor = 0x8AE6E6F0;
 const double _kCodeLineNumberGap = 12.0;
+
+/// 行号 gutter 最大占代码块内容区宽度的比例，防止行号过多时挤压代码内容。
+const double _kCodeLineNumberMaxWidthRatio = 0.25;
 const int _kCodeLanguageTagColor = 0xB38A8AFF;
 
 // Menu and floating toolbar tokens are documented in
@@ -14625,9 +14628,13 @@ class _CodeBlockRenderer extends StatelessWidget {
                         textDirection,
                       ) +
                       1;
+                  // 行号宽度不超过内容区的 _kCodeLineNumberMaxWidthRatio 比例，
+                  // 防止行数过多时行号挤压代码内容区域导致溢出。
+                  final lineNumberMaxWidth =
+                      availableWidth * _kCodeLineNumberMaxWidthRatio;
                   final effectiveLineNumberWidth = math.min(
                     lineNumberWidth,
-                    availableWidth,
+                    lineNumberMaxWidth,
                   );
                   final effectiveLineNumberGap = math.min(
                     WenzCodeBlockLineNumbers.gapToCode,
@@ -14759,18 +14766,21 @@ class _CodeLineNumberGutterState extends State<_CodeLineNumberGutter> {
         minWidth: widget.width,
         maxWidth: widget.width,
       ),
-      child: Align(
-        alignment: AlignmentDirectional.topEnd,
-        child: Text(
-          widget.text,
-          key: ValueKey<String>(
-            'wenz-richtext-code-line-numbers-${widget.blockId}',
-          ),
-          textAlign: WenzCodeBlockLineNumbers.gutterTextAlign,
-          style: widget.style,
-          strutStyle: StrutStyle.fromTextStyle(
-            widget.style,
-            forceStrutHeight: true,
+      child: ClipRect(
+        child: Align(
+          alignment: AlignmentDirectional.topEnd,
+          child: Text(
+            widget.text,
+            key: ValueKey<String>(
+              'wenz-richtext-code-line-numbers-${widget.blockId}',
+            ),
+            textAlign: WenzCodeBlockLineNumbers.gutterTextAlign,
+            style: widget.style,
+            strutStyle: StrutStyle.fromTextStyle(
+              widget.style,
+              forceStrutHeight: true,
+            ),
+            overflow: TextOverflow.clip,
           ),
         ),
       ),
@@ -15310,6 +15320,17 @@ class _TableBlockRenderer extends StatelessWidget {
                             ),
                           ),
                       ],
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      painter: _TableOuterBorderPainter(
+                        radius: _kTableSurfaceRadius,
+                        color: tableBorderColor,
+                        strokeWidth: 1.0,
+                      ),
                     ),
                   ),
                 ),
@@ -16164,14 +16185,51 @@ Border _tableCellBorder({
   required Color color,
 }) {
   final side = BorderSide(color: color);
+  final isLeftEdge = cell.columnIndex == 0;
+  final isRightEdge = cell.columnIndex + cell.columnSpan >= columnCount;
+  final isTopEdge = cell.rowIndex == 0;
+  final isBottomEdge = cell.rowIndex + cell.rowSpan >= rowCount;
+
   return Border(
-    top: side,
-    left: side,
-    right: cell.columnIndex + cell.columnSpan >= columnCount
-        ? side
-        : BorderSide.none,
-    bottom: cell.rowIndex + cell.rowSpan >= rowCount ? side : BorderSide.none,
+    top: !isTopEdge ? side : BorderSide.none,
+    left: !isLeftEdge ? side : BorderSide.none,
+    right: !isRightEdge ? side : BorderSide.none,
+    bottom: !isBottomEdge ? side : BorderSide.none,
   );
+}
+
+class _TableOuterBorderPainter extends CustomPainter {
+  const _TableOuterBorderPainter({
+    required this.radius,
+    required this.color,
+    required this.strokeWidth,
+  });
+
+  final double radius;
+  final Color color;
+  final double strokeWidth;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(radius),
+    );
+
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..isAntiAlias = true;
+
+    canvas.drawRRect(rrect.deflate(strokeWidth / 2), paint);
+  }
+
+  @override
+  bool shouldRepaint(_TableOuterBorderPainter oldDelegate) =>
+      oldDelegate.color != color ||
+      oldDelegate.radius != radius ||
+      oldDelegate.strokeWidth != strokeWidth;
 }
 
 class _TableGridMetrics {
