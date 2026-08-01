@@ -1047,6 +1047,48 @@ class WenzRichTextController extends ChangeNotifier {
     return execute(DeleteSelectionCommand(selection));
   }
 
+  /// Moves [selection] to [destination] as one undoable rich-text edit.
+  ///
+  /// The source range is copied through the editor's structured clipboard
+  /// representation before it is removed, so inline marks and cross-block
+  /// structure survive the move. Dropping inside the selected range is a
+  /// no-op. Rectangular table-cell selections and revision mode are not
+  /// movable because neither has a single linear insertion point.
+  ChangeSet moveSelection({
+    required DocumentSelection selection,
+    required DocumentPosition destination,
+  }) {
+    if (_revisionModeEnabled ||
+        this.selection != selection ||
+        !_isMovableTextSelection(selection) ||
+        !_isValidMoveTextPosition(document, selection.base) ||
+        !_isValidMoveTextPosition(document, selection.extent) ||
+        !_isValidMoveTextPosition(document, destination) ||
+        _positionIsInsideOrAtSelection(destination, selection)) {
+      return _noopChangeSet();
+    }
+    final payload = clipboardService.copyPayload(document, selection);
+    if (payload == null) {
+      return _noopChangeSet();
+    }
+    final paste = selection.start.blockIndex == selection.end.blockIndex &&
+            selection.start.path == selection.end.path &&
+            selection.start.path.isBlockCode
+        ? ClipboardPaste.plain(payload.plainText)
+        : clipboardService.parse(payload.wenzRichText);
+    if (!paste.hasContent) {
+      return _noopChangeSet();
+    }
+    return execute(
+      _MoveSelectionCommand(
+        source: selection,
+        destination: destination,
+        paste: paste,
+        newBlockId: 'move-${_pasteBlockCounter()}',
+      ),
+    );
+  }
+
   ChangeSet deleteBackward() {
     if (_revisionModeEnabled) {
       return markDeletionRevision(
@@ -2795,6 +2837,300 @@ class _SelectionScopedCommand extends EditorCommand {
       session.selection = previousSelection;
     }
     return result;
+  }
+}
+
+class _MoveSelectionCommand extends EditorCommand {
+  const _MoveSelectionCommand({
+    required this.source,
+    required this.destination,
+    required this.paste,
+    required this.newBlockId,
+  });
+
+  final DocumentSelection source;
+  final DocumentPosition destination;
+  final ClipboardPaste paste;
+  final String newBlockId;
+
+  @override
+  String get description => 'moveSelection';
+
+  @override
+  bool get breaksMergeRun => true;
+
+  @override
+  CommandResult execute(DocumentSession session) {
+    if (session.selection != source ||
+        !_isMovableTextSelection(source) ||
+        !_isValidMoveTextPosition(session.document, source.base) ||
+        !_isValidMoveTextPosition(session.document, source.extent) ||
+        !_isValidMoveTextPosition(session.document, destination) ||
+        _positionIsInsideOrAtSelection(destination, source) ||
+        !paste.hasContent) {
+      return const CommandResult(recordHistory: false);
+    }
+
+    final originalDocument = session.document;
+    final originalSelection = session.selection;
+    final deleteResult = DeleteSelectionCommand(source).execute(session);
+    if (deleteResult.selection != null) {
+      session.selection = deleteResult.selection;
+    }
+    if (identical(originalDocument, session.document) ||
+        session.selection == null) {
+      return const CommandResult(recordHistory: false);
+    }
+
+    final insertionPosition = _positionAfterMoveSourceDeletion(
+      source: source,
+      destination: destination,
+      document: session.document,
+      deletionCaret: session.selection!.extent,
+    );
+    if (insertionPosition == null ||
+        !_isValidMoveTextPosition(session.document, insertionPosition)) {
+      session.document = originalDocument;
+      session.selection = originalSelection;
+      return const CommandResult(recordHistory: false);
+    }
+
+    session.selection = DocumentSelection(
+      base: insertionPosition,
+      extent: insertionPosition,
+    );
+    final documentAfterDeletion = session.document;
+    _insertMovedPaste(session, paste, newBlockId: newBlockId);
+    if (identical(documentAfterDeletion, session.document)) {
+      session.document = originalDocument;
+      session.selection = originalSelection;
+      return const CommandResult(recordHistory: false);
+    }
+
+    final insertionEnd = session.selection?.extent;
+    if (insertionEnd == null) {
+      session.document = originalDocument;
+      session.selection = originalSelection;
+      return const CommandResult(recordHistory: false);
+    }
+    final normalizedStart = _normalizeMovePosition(
+      session.document,
+      insertionPosition,
+    );
+    final normalizedEnd = _normalizeMovePosition(
+      session.document,
+      insertionEnd,
+    );
+    final movedSelection = normalizedStart != null &&
+            normalizedEnd != null &&
+            normalizedStart.compareTo(normalizedEnd) <= 0
+        ? DocumentSelection(base: normalizedStart, extent: normalizedEnd)
+        : DocumentSelection(base: insertionEnd, extent: insertionEnd);
+    return CommandResult(
+      selection: movedSelection,
+      metadata: <String, Object?>{
+        'sourceBlockId': source.start.blockId,
+        'destinationBlockId': destination.blockId,
+        'movedTextLength': paste.text.length,
+      },
+    );
+  }
+}
+
+bool _isMovableTextSelection(DocumentSelection selection) {
+  if (selection.isCollapsed ||
+      !_isMoveTextPath(selection.base.path) ||
+      !_isMoveTextPath(selection.extent.path)) {
+    return false;
+  }
+  final tableRange = selection.tableCellRange;
+  if (tableRange != null) {
+    return tableRange.isSingleCell &&
+        selection.base.path == selection.extent.path;
+  }
+  if (selection.base.path.isTableCellText ||
+      selection.extent.path.isTableCellText) {
+    return false;
+  }
+  return selection.base.blockIndex != selection.extent.blockIndex ||
+      selection.base.path == selection.extent.path;
+}
+
+bool _isMoveTextPath(PositionPath path) {
+  return path.isBlockText || path.isBlockCode || path.isTableCellText;
+}
+
+bool _positionIsInsideOrAtSelection(
+  DocumentPosition position,
+  DocumentSelection selection,
+) {
+  return position.compareTo(selection.start) >= 0 &&
+      position.compareTo(selection.end) <= 0;
+}
+
+bool _isValidMoveTextPosition(
+  RichTextDocument document,
+  DocumentPosition position,
+) {
+  if (!_isMoveTextPath(position.path) ||
+      position.blockIndex < 0 ||
+      position.blockIndex >= document.blocks.length ||
+      position.offset < 0) {
+    return false;
+  }
+  final block = document.blocks[position.blockIndex];
+  if (block.id != position.blockId || position.path.blockId != block.id) {
+    return false;
+  }
+  if (position.path.isBlockText) {
+    final length = switch (block) {
+      TextBlockNode() => inlineNodesLength(block.content),
+      CalloutBlockNode() => inlineNodesLength(block.content),
+      _ => -1,
+    };
+    return length >= 0 && position.offset <= length;
+  }
+  if (position.path.isBlockCode) {
+    return block is CodeBlockNode && position.offset <= block.code.length;
+  }
+  final textBlock = tableCellTextBlockForPosition(document, position);
+  return textBlock != null &&
+      position.offset <= inlineNodesLength(textBlock.content);
+}
+
+DocumentPosition? _positionAfterMoveSourceDeletion({
+  required DocumentSelection source,
+  required DocumentPosition destination,
+  required RichTextDocument document,
+  required DocumentPosition deletionCaret,
+}) {
+  final start = source.start;
+  final end = source.end;
+  final isSingleSurface = start.blockIndex == end.blockIndex &&
+      start.blockId == end.blockId &&
+      start.path == end.path;
+  if (isSingleSurface &&
+      destination.blockId == end.blockId &&
+      destination.path == end.path &&
+      destination.offset > end.offset) {
+    return _normalizeMovePosition(
+      document,
+      destination.copyWith(
+        offset: destination.offset - (end.offset - start.offset),
+      ),
+    );
+  }
+
+  final spansBlocks = start.blockIndex != end.blockIndex;
+  if (spansBlocks &&
+      destination.blockId == end.blockId &&
+      destination.path == end.path &&
+      destination.offset > end.offset) {
+    final retainedEnd = _normalizeMovePosition(
+      document,
+      destination.copyWith(offset: destination.offset - end.offset),
+    );
+    if (retainedEnd != null) {
+      return retainedEnd;
+    }
+    final mapped = deletionCaret.copyWith(
+      offset: deletionCaret.offset + destination.offset - end.offset,
+    );
+    return _normalizeMovePosition(document, mapped);
+  }
+
+  return _normalizeMovePosition(document, destination);
+}
+
+DocumentPosition? _normalizeMovePosition(
+  RichTextDocument document,
+  DocumentPosition position,
+) {
+  final blockIndex = document.blocks.indexWhere(
+    (block) => block.id == position.blockId,
+  );
+  if (blockIndex < 0) {
+    return null;
+  }
+  final normalized = position.copyWith(blockIndex: blockIndex);
+  return _isValidMoveTextPosition(document, normalized) ? normalized : null;
+}
+
+void _insertMovedPaste(
+  DocumentSession session,
+  ClipboardPaste paste, {
+  required String newBlockId,
+}) {
+  final position = session.selection?.extent;
+  if (position == null) {
+    return;
+  }
+  final targetBlock = position.blockIndex >= 0 &&
+          position.blockIndex < session.document.blocks.length
+      ? session.document.blocks[position.blockIndex]
+      : null;
+  if (position.path.isBlockCode ||
+      (position.path.isTableCellText && paste.isBlocks) ||
+      (targetBlock is CalloutBlockNode && paste.isBlocks)) {
+    _executeMoveSubcommand(session, InsertTextCommand(paste.text));
+    return;
+  }
+  if (paste.isBlocks) {
+    _executeMoveSubcommand(
+      session,
+      PasteBlocksCommand(paste.blocks, newBlockId: newBlockId),
+    );
+    return;
+  }
+  if (paste.isRich) {
+    for (final run in paste.inlineRuns) {
+      if (run is TextRun && run.text.isNotEmpty) {
+        _executeMoveSubcommand(
+          session,
+          InsertTextCommand(run.text, attributes: run.attributes),
+        );
+      } else if (run is InlineEmbed) {
+        _executeMoveSubcommand(
+          session,
+          InsertInlineEmbedCommand(
+            embedType: run.embedType,
+            data: run.data,
+          ),
+        );
+      }
+    }
+    return;
+  }
+
+  final text = paste.plainText ?? '';
+  if (text.isEmpty) {
+    return;
+  }
+  if (position.path.isBlockCode || position.path.isTableCellText) {
+    _executeMoveSubcommand(session, InsertTextCommand(text));
+    return;
+  }
+  final lines = text.split('\n');
+  for (var index = 0; index < lines.length; index++) {
+    if (index > 0) {
+      _executeMoveSubcommand(
+        session,
+        EnterCommand(newBlockId: '$newBlockId-$index'),
+      );
+    }
+    if (lines[index].isNotEmpty) {
+      _executeMoveSubcommand(session, InsertTextCommand(lines[index]));
+    }
+  }
+}
+
+void _executeMoveSubcommand(
+  DocumentSession session,
+  EditorCommand command,
+) {
+  final result = command.execute(session);
+  if (result.selection != null) {
+    session.selection = result.selection;
   }
 }
 

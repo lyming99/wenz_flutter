@@ -5831,6 +5831,22 @@ void main() {
     );
     expect(scrollbar.thumbVisibility, isTrue);
     expect(scrollbar.interactive, isTrue);
+    expect(scrollbar.scrollbarOrientation, ScrollbarOrientation.bottom);
+    final scrollRect = tester.getRect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-code-scroll-code1'),
+      ),
+    );
+    final scrollbarRect = tester.getRect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-code-scrollbar-code1'),
+      ),
+    );
+    expect(
+      scrollbarRect.bottom - scrollRect.bottom,
+      moreOrLessEquals(12),
+      reason: 'the horizontal scrollbar needs its own strip below the code',
+    );
     expect(find.text('dart'), findsOneWidget);
     expect(find.byTooltip('切换代码语言'), findsOneWidget);
     final blockRect = tester.getRect(
@@ -5839,6 +5855,12 @@ void main() {
     final codeRect = tester.getRect(_richText(longCode));
     final languageRect = tester.getRect(find.text('dart'));
     final copyButtonRect = tester.getRect(find.byTooltip('复制代码内容'));
+    expect(codeRect.bottom, lessThanOrEqualTo(scrollRect.bottom));
+    expect(
+      blockRect.bottom - scrollbarRect.bottom,
+      moreOrLessEquals(6),
+      reason: 'the dedicated scrollbar strip should sit at the block bottom',
+    );
     expect(languageRect.left, greaterThanOrEqualTo(blockRect.left));
     expect(
       (copyButtonRect.center.dy - languageRect.center.dy).abs(),
@@ -5913,6 +5935,142 @@ void main() {
     expect(codeRect.right, lessThanOrEqualTo(blockRect.right));
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'code scrollbar drag does not reach editor selection or focus',
+    (tester) async {
+      const code =
+          'final veryLongIdentifier = List.generate(300, (index) => index).join(",");';
+      final initialSelection = collapsedCodeSelection('scroll-owner', 0, 8);
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            CodeBlockNode(
+              id: 'scroll-owner',
+              code: code,
+              language: 'dart',
+            ),
+          ],
+        ),
+        selection: initialSelection,
+      );
+      final focusNode = FocusNode();
+      addTearDown(focusNode.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 320,
+              child: WenzRichTextEditor(
+                controller: controller,
+                focusNode: focusNode,
+                enableIme: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final scrollFinder = find.byKey(
+        const ValueKey<String>(
+          'wenz-richtext-code-scroll-scroll-owner',
+        ),
+      );
+      final horizontalScroll = tester.widget<SingleChildScrollView>(
+        scrollFinder,
+      );
+      final horizontalController = horizontalScroll.controller!;
+      expect(horizontalController.position.maxScrollExtent, greaterThan(0));
+      final viewportRect = tester.getRect(scrollFinder);
+      expect(
+        _resolvedMouseCursor(
+          tester,
+          Offset(viewportRect.left + 8, viewportRect.center.dy),
+        ),
+        SystemMouseCursors.text,
+        reason: 'only the scrollbar strip should suppress the editor I-beam',
+      );
+
+      final stripFinder = find.byKey(
+        const ValueKey<String>(
+          'wenz-richtext-code-scrollbar-strip-scroll-owner',
+        ),
+      );
+      final stripRect = tester.getRect(stripFinder);
+      expect(stripRect.height, moreOrLessEquals(12));
+      final scrollbarFinder = find.byKey(
+        const ValueKey<String>(
+          'wenz-richtext-code-scrollbar-scroll-owner',
+        ),
+      );
+      final scrollbarPaintFinder = find.descendant(
+        of: scrollbarFinder,
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is CustomPaint &&
+              widget.foregroundPainter is ScrollbarPainter,
+        ),
+      );
+      expect(scrollbarPaintFinder, findsOneWidget);
+      final scrollbarPaint = tester.widget<CustomPaint>(
+        scrollbarPaintFinder,
+      );
+      final scrollbarPainter =
+          scrollbarPaint.foregroundPainter! as ScrollbarPainter;
+      final scrollbarPaintBox = tester.renderObject<RenderBox>(
+        scrollbarPaintFinder,
+      );
+      final thumbPoints = <Offset>[
+        for (var y = 0.0; y <= scrollbarPaintBox.size.height; y += 1)
+          for (var x = 0.0; x <= scrollbarPaintBox.size.width; x += 1)
+            if (scrollbarPainter.hitTestOnlyThumbInteractive(
+              Offset(x, y),
+              PointerDeviceKind.mouse,
+            ))
+              Offset(x, y),
+      ];
+      expect(thumbPoints, isNotEmpty);
+      final thumbLeft = thumbPoints.map((point) => point.dx).reduce(math.min);
+      final thumbRight = thumbPoints.map((point) => point.dx).reduce(math.max);
+      final thumbTop = thumbPoints.map((point) => point.dy).reduce(math.min);
+      final thumbBottom = thumbPoints.map((point) => point.dy).reduce(math.max);
+      final thumbStart = scrollbarPaintBox.localToGlobal(
+        Offset(
+          (thumbLeft + thumbRight) / 2,
+          (thumbTop + thumbBottom) / 2,
+        ),
+      );
+      expect(stripRect.contains(thumbStart), isTrue);
+      expect(
+        _resolvedMouseCursor(tester, thumbStart),
+        SystemMouseCursors.basic,
+        reason: 'the scrollbar must not expose the editor I-beam cursor',
+      );
+
+      final gesture = await tester.startGesture(
+        thumbStart,
+        kind: PointerDeviceKind.mouse,
+      );
+      await gesture.moveBy(const Offset(80, 0));
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+
+      expect(horizontalController.offset, greaterThan(0));
+      expect(
+        controller.selection,
+        initialSelection,
+        reason: 'the scrollbar drag must not place or extend a text caret',
+      );
+      expect(
+        focusNode.hasFocus,
+        isFalse,
+        reason: 'scrollbar interaction must not focus the editor',
+      );
+    },
+  );
 
   testWidgets('code block header handles narrow edge cases', (tester) async {
     await tester.binding.setSurfaceSize(const Size(260, 640));
@@ -17641,6 +17799,69 @@ void main() {
       find.byKey(const ValueKey<String>('wenz-richtext-selection-highlight')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('mouse dragging selected text moves it to the drop caret', (
+    tester,
+  ) async {
+    final source = textSelection('p1', 0, 1, 4);
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'abcdef')],
+          ),
+        ],
+      ),
+      selection: source,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final gesture = await tester.startGesture(
+      _globalTextOffset(tester, 'abcdef', 2),
+      kind: PointerDeviceKind.mouse,
+    );
+    await gesture.moveTo(_globalTextOffset(tester, 'abcdef', 6));
+    await tester.pump();
+
+    expect(controller.document.plainText, 'abcdef');
+    expect(
+      find.byKey(
+        const ValueKey<String>(
+          'wenz-richtext-selection-move-drop-indicator',
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    await gesture.up();
+    await tester.pump();
+
+    expect(controller.document.plainText, 'aefbcd');
+    expect(controller.selection, textSelection('p1', 0, 3, 6));
+    expect(
+      find.byKey(
+        const ValueKey<String>(
+          'wenz-richtext-selection-move-drop-indicator',
+        ),
+      ),
+      findsNothing,
+    );
+    expect(controller.undo(), isTrue);
+    expect(controller.document.plainText, 'abcdef');
   });
 
   testWidgets('Shift-click extends a collapsed caret to the clicked offset', (

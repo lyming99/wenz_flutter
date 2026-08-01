@@ -691,6 +691,173 @@ void main() {
     expect(controller.selection, collapsedTextSelection('p2', 3, 6));
   });
 
+  group('controller selected-text move', () {
+    test('moves a styled inline range forward as one undoable edit', () {
+      final source = textSelection('p1', 0, 1, 4);
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[
+                TextRun(text: 'a'),
+                TextRun(
+                  text: 'bc',
+                  attributes: TextAttributes(bold: true),
+                ),
+                TextRun(text: 'def'),
+              ],
+            ),
+          ],
+        ),
+        selection: source,
+      );
+
+      final change = controller.moveSelection(
+        selection: source,
+        destination: DocumentPosition.text(
+          blockId: 'p1',
+          blockIndex: 0,
+          offset: 6,
+        ),
+      );
+
+      final block = controller.document.blocks.single as TextBlockNode;
+      expect(change.description, 'moveSelection');
+      expect(change.metadata, containsPair('movedTextLength', 3));
+      expect(block.plainText, 'aefbcd');
+      expect(
+        block.content
+            .whereType<TextRun>()
+            .firstWhere((run) => run.text == 'bc')
+            .attributes
+            .bold,
+        isTrue,
+      );
+      expect(controller.selection, textSelection('p1', 0, 3, 6));
+
+      expect(controller.undo(), isTrue);
+      expect(controller.document.plainText, 'abcdef');
+      expect(controller.selection, source);
+      expect(controller.canUndo, isFalse);
+    });
+
+    test('moves a range backward without applying the forward offset shift',
+        () {
+      final source = textSelection('p1', 0, 3, 5);
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'abcdef')],
+            ),
+          ],
+        ),
+        selection: source,
+      );
+
+      controller.moveSelection(
+        selection: source,
+        destination: DocumentPosition.text(
+          blockId: 'p1',
+          blockIndex: 0,
+          offset: 0,
+        ),
+      );
+
+      expect(controller.document.plainText, 'deabcf');
+      expect(controller.selection, textSelection('p1', 0, 0, 2));
+    });
+
+    test('dropping inside the source selection is a no-op', () {
+      final source = textSelection('p1', 0, 1, 4);
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'abcdef')],
+            ),
+          ],
+        ),
+        selection: source,
+      );
+
+      final change = controller.moveSelection(
+        selection: source,
+        destination: DocumentPosition.text(
+          blockId: 'p1',
+          blockIndex: 0,
+          offset: 2,
+        ),
+      );
+
+      expect(change.isNoop, isTrue);
+      expect(controller.document.plainText, 'abcdef');
+      expect(controller.selection, source);
+      expect(controller.canUndo, isFalse);
+    });
+
+    test('maps a drop in the trailing block after a cross-block deletion', () {
+      final source = DocumentSelection(
+        base: DocumentPosition.text(
+          blockId: 'p1',
+          blockIndex: 0,
+          offset: 1,
+        ),
+        extent: DocumentPosition.text(
+          blockId: 'p2',
+          blockIndex: 1,
+          offset: 2,
+        ),
+      );
+      final controller = WenzRichTextController(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'p1',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'abc')],
+            ),
+            TextBlockNode(
+              id: 'p2',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'def')],
+            ),
+            TextBlockNode(
+              id: 'p3',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'ghi')],
+            ),
+          ],
+        ),
+        selection: source,
+      );
+
+      controller.moveSelection(
+        selection: source,
+        destination: DocumentPosition.text(
+          blockId: 'p2',
+          blockIndex: 1,
+          offset: 3,
+        ),
+      );
+
+      expect(controller.document.plainText, 'afbc\nde\nghi');
+      expect(controller.document.blocks, hasLength(3));
+      expect(controller.selection?.start.blockId, 'p1');
+      expect(controller.selection?.start.offset, 2);
+      expect(controller.selection?.end.offset, 2);
+      expect(controller.undo(), isTrue);
+      expect(controller.document.plainText, 'abc\ndef\nghi');
+      expect(controller.selection, source);
+    });
+  });
+
   test('controller sets and clears text color through public API', () {
     final controller = WenzRichTextController(
       document: const RichTextDocument(

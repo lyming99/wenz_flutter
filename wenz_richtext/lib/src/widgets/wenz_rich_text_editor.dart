@@ -84,6 +84,9 @@ const _accessibilityFocusHighlightKey = ValueKey<String>(
 const _blockReorderDropIndicatorKey = ValueKey<String>(
   'wenz-richtext-block-reorder-drop-indicator',
 );
+const _selectionMoveDropIndicatorKey = ValueKey<String>(
+  'wenz-richtext-selection-move-drop-indicator',
+);
 const _externalImageDropOverlayKey = ValueKey<String>(
   'wenz-richtext-external-image-drop-overlay',
 );
@@ -511,6 +514,9 @@ const double _kCodeBlockHeaderHeight = 36.0;
 const double _kCodeBlockHeaderPaddingHorizontal = 10.0;
 const double _kCodeBlockHeaderToolbarEndPadding = 4.0;
 const double _kCodeBlockRadius = 12.0;
+// Material scrollbars paint over their child. Keep a dedicated strip below the
+// horizontal viewport so the thumb never covers the final line of code.
+const double _kCodeBlockScrollbarClearance = 12.0;
 const int _kCodeBlockBackgroundColor = 0xFF1E1E2E;
 const int _kCodeBlockTextColor = 0xFFE6E6F0;
 const int _kCodeBlockSelectionHighlightColor = 0x944C7DFF;
@@ -1955,6 +1961,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   late final SharedTextLayoutCache _layoutCache = SharedTextLayoutCache();
   final GlobalKey _editorOverlayKey = GlobalKey();
   DocumentPosition? _mobileCaretToolbarPosition;
+  DocumentPosition? _selectionMoveDropPosition;
   OverlayEntry? _slashMenuOverlayEntry;
   bool _slashMenuOverlaySyncScheduled = false;
   bool _contextMenuOpen = false;
@@ -2409,7 +2416,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     if (mounted &&
         (widget.slashMenuController?.isOpen == true ||
             _mentionSearchTrigger != null ||
-            _formulaEditTarget != null)) {
+            _formulaEditTarget != null ||
+            _selectionMoveDropPosition != null)) {
       _scheduleSlashMenuOverlaySync();
       setState(() {});
     }
@@ -3344,6 +3352,10 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           useMobileTouchGestures: useMobileSelectionUi,
           onSelectionChanged: _handleSelectionChanged,
           currentSelection: widget.controller.selection,
+          onSelectionMovePreviewChanged:
+              canEdit ? _handleSelectionMovePreviewChanged : null,
+          onSelectionMoveRequested:
+              canEdit ? _handleSelectionMoveRequested : null,
           shouldDeferTapSelection: _shouldDeferInlineVideoResolverTapSelection,
           shouldCommitDeferredTapSelection:
               _shouldCommitInlineVideoResolverTapSelection,
@@ -3357,6 +3369,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
           onLinkOpen: widget.onOpenLink == null ? null : _openHoveredLink,
           child: editor,
         ),
+        if (_selectionMoveDropPosition != null)
+          _buildSelectionMoveDropIndicator(context),
         if (_formulaEditTarget != null)
           Positioned.fill(
             child: GestureDetector(
@@ -4296,6 +4310,62 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     } else {
       _inputClient.syncBuffer();
     }
+  }
+
+  void _handleSelectionMovePreviewChanged(DocumentPosition? position) {
+    if (_selectionMoveDropPosition == position) {
+      return;
+    }
+    setState(() {
+      _selectionMoveDropPosition = position;
+    });
+  }
+
+  void _handleSelectionMoveRequested(
+    DocumentSelection selection,
+    DocumentPosition destination,
+  ) {
+    _selectionMoveDropPosition = null;
+    _skipNextCaretScrollIntoView = true;
+    final change = widget.controller.moveSelection(
+      selection: selection,
+      destination: destination,
+    );
+    if (!change.isNoop) {
+      _inputClient.syncBuffer();
+    }
+  }
+
+  Widget _buildSelectionMoveDropIndicator(BuildContext context) {
+    final position = _selectionMoveDropPosition;
+    final overlayBox =
+        _editorOverlayKey.currentContext?.findRenderObject() as RenderBox?;
+    final caretRect =
+        position == null ? null : _registry.caretRectForPosition(position);
+    if (overlayBox == null ||
+        !overlayBox.hasSize ||
+        caretRect == null ||
+        caretRect.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final topLeft = overlayBox.globalToLocal(caretRect.topLeft);
+    return Positioned(
+      left: topLeft.dx - 1,
+      top: topLeft.dy,
+      child: IgnorePointer(
+        child: SizedBox(
+          key: _selectionMoveDropIndicatorKey,
+          width: 2,
+          height: math.max(caretRect.height, 16.0),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary,
+              borderRadius: BorderRadius.circular(1),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   bool _shouldRestoreTextInputForSelection(DocumentSelection selection) {
@@ -12200,6 +12270,7 @@ Widget _defaultCodeBlockRenderer(
     compositionState: rc.compositionState,
     registry: rc.registry,
     showCaret: rc.showCaret,
+    canEdit: rc.canEdit,
     wordWrap: _CodeBlockLayoutScope.wordWrapOf(context),
     textStyle: rc.textStyle,
     showDebugOverlay: rc.showDebugOverlay,
@@ -14520,6 +14591,7 @@ class _CodeBlockRenderer extends StatelessWidget {
     required this.compositionState,
     required this.registry,
     required this.showCaret,
+    required this.canEdit,
     required this.wordWrap,
     this.textStyle,
     this.showDebugOverlay = false,
@@ -14535,6 +14607,7 @@ class _CodeBlockRenderer extends StatelessWidget {
   final CompositionState? compositionState;
   final BlockGeometryRegistry registry;
   final bool showCaret;
+  final bool canEdit;
   final bool wordWrap;
   final TextStyle? textStyle;
   final bool showDebugOverlay;
@@ -14582,6 +14655,11 @@ class _CodeBlockRenderer extends StatelessWidget {
     final lineNumberStyle = codeStyle.copyWith(
       color: const Color(WenzCodeBlockLineNumbers.color),
     );
+    // Reuse the existing bottom inset for the scrollbar strip, preserving the
+    // code block's overall height while moving the thumb below the text.
+    final codeBlockBottomPadding = wordWrap
+        ? _kCodeBlockPaddingVertical
+        : _kCodeBlockPaddingVertical - _kCodeBlockScrollbarClearance;
     return _withBlockSemantics(
       block,
       DecoratedBox(
@@ -14594,9 +14672,11 @@ class _CodeBlockRenderer extends StatelessWidget {
           borderRadius: BorderRadius.circular(_kCodeBlockRadius),
         ),
         child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: tokens.codeBlockPaddingHorizontal,
-            vertical: _kCodeBlockPaddingVertical,
+          padding: EdgeInsets.fromLTRB(
+            tokens.codeBlockPaddingHorizontal,
+            _kCodeBlockPaddingVertical,
+            tokens.codeBlockPaddingHorizontal,
+            codeBlockBottomPadding,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -14688,6 +14768,7 @@ class _CodeBlockRenderer extends StatelessWidget {
                           minHeight: minHeight,
                           selection: selection,
                           showCaret: showCaret,
+                          canEdit: canEdit,
                           registry: registry,
                           showDebugOverlay: showDebugOverlay,
                           findRanges: _findRangesForPath(
@@ -14800,6 +14881,7 @@ class _CodeScrollableTextSurface extends StatefulWidget {
     required this.minHeight,
     required this.selection,
     required this.showCaret,
+    required this.canEdit,
     required this.registry,
     required this.showDebugOverlay,
     required this.findRanges,
@@ -14815,6 +14897,7 @@ class _CodeScrollableTextSurface extends StatefulWidget {
   final double minHeight;
   final DocumentSelection? selection;
   final bool showCaret;
+  final bool canEdit;
   final BlockGeometryRegistry registry;
   final bool showDebugOverlay;
   final List<_FindHighlightRange> findRanges;
@@ -14867,8 +14950,10 @@ class _CodeScrollableTextSurfaceState
         ),
       );
     }
-    return SizedBox(
-      key: _viewportKey,
+    return MouseRegion(
+      // ScrollbarPainter owns the thumb hit before its child is visited, so
+      // this ancestor supplies the non-editing cursor for that painted area.
+      cursor: SystemMouseCursors.basic,
       child: Scrollbar(
         key: ValueKey<String>(
           'wenz-richtext-code-scrollbar-${widget.blockId}',
@@ -14877,15 +14962,96 @@ class _CodeScrollableTextSurfaceState
         thumbVisibility: true,
         interactive: true,
         scrollbarOrientation: ScrollbarOrientation.bottom,
-        child: SingleChildScrollView(
-          key: ValueKey<String>('wenz-richtext-code-scroll-${widget.blockId}'),
-          controller: _scrollController,
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            width: widget.contentWidth,
-            child: textSurface,
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            MouseRegion(
+              cursor: widget.canEdit
+                  ? SystemMouseCursors.text
+                  : SystemMouseCursors.basic,
+              child: SizedBox(
+                key: _viewportKey,
+                child: SingleChildScrollView(
+                  key: ValueKey<String>(
+                    'wenz-richtext-code-scroll-${widget.blockId}',
+                  ),
+                  controller: _scrollController,
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: widget.contentWidth,
+                    child: textSurface,
+                  ),
+                ),
+              ),
+            ),
+            _CodeScrollbarInteractionStrip(
+              blockId: widget.blockId,
+              registry: widget.registry,
+            ),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+/// Gives the horizontal scrollbar exclusive ownership of its bottom strip.
+///
+/// [Scrollbar] handles thumb drags in the gesture arena, while the editor's
+/// document-level selection surface observes raw pointer events from every
+/// descendant. Registering this strip as a selection exclusion makes the
+/// selection surface ignore the complete pointer sequence that starts here,
+/// so one drag cannot both scroll the code and place/extend an editor caret.
+class _CodeScrollbarInteractionStrip extends StatefulWidget {
+  const _CodeScrollbarInteractionStrip({
+    required this.blockId,
+    required this.registry,
+  });
+
+  final String blockId;
+  final BlockGeometryRegistry registry;
+
+  @override
+  State<_CodeScrollbarInteractionStrip> createState() =>
+      _CodeScrollbarInteractionStripState();
+}
+
+class _CodeScrollbarInteractionStripState
+    extends State<_CodeScrollbarInteractionStrip> {
+  final GlobalKey _selectionExclusionKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    widget.registry.registerSelectionExclusion(_selectionExclusionKey);
+  }
+
+  @override
+  void didUpdateWidget(covariant _CodeScrollbarInteractionStrip oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.registry != widget.registry) {
+      oldWidget.registry.unregisterSelectionExclusion(_selectionExclusionKey);
+      widget.registry.registerSelectionExclusion(_selectionExclusionKey);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.registry.unregisterSelectionExclusion(_selectionExclusionKey);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      key: ValueKey<String>(
+        'wenz-richtext-code-scrollbar-strip-${widget.blockId}',
+      ),
+      cursor: SystemMouseCursors.basic,
+      child: SizedBox(
+        key: _selectionExclusionKey,
+        height: _kCodeBlockScrollbarClearance,
       ),
     );
   }

@@ -39,6 +39,11 @@ typedef MobileCaretToolbarRequestHandler = void Function(
 /// leave it behind.
 typedef MobileCaretToolbarDismissHandler = void Function();
 
+typedef SelectionMoveRequestHandler = void Function(
+  DocumentSelection selection,
+  DocumentPosition destination,
+);
+
 class SelectionContextMenuRequest {
   const SelectionContextMenuRequest({
     required this.globalPosition,
@@ -91,6 +96,8 @@ class SelectionGestureOverlay extends StatefulWidget {
     required this.onSelectionChanged,
     this.useMobileTouchGestures = false,
     this.currentSelection,
+    this.onSelectionMovePreviewChanged,
+    this.onSelectionMoveRequested,
     this.shouldDeferTapSelection,
     this.shouldCommitDeferredTapSelection,
     this.shouldRequestFocusForTapSelection,
@@ -119,6 +126,12 @@ class SelectionGestureOverlay extends StatefulWidget {
   /// extension gestures. When absent, pointer selection keeps the normal
   /// click/drag semantics.
   final DocumentSelection? currentSelection;
+
+  /// Reports the current insertion target while selected text is being moved.
+  final ValueChanged<DocumentPosition?>? onSelectionMovePreviewChanged;
+
+  /// Moves the current non-collapsed selection to a mouse drop position.
+  final SelectionMoveRequestHandler? onSelectionMoveRequested;
 
   /// Allows a block renderer with its own tap recognizers to delay the editor's
   /// tap selection update until after the current pointer sequence finishes.
@@ -199,6 +212,8 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   // computes the proper bounding-box rectangle.
   DocumentPosition? _dragBase;
   bool _isDragging = false;
+  bool _isMovingSelection = false;
+  DocumentSelection? _selectionMoveSource;
   Offset? _dragOrigin;
   Offset? _lastDragPosition;
   int? _selectionExcludedPointer;
@@ -339,6 +354,9 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   /// elsewhere the editable surface shows the text (I-beam) cursor and a
   /// read-only surface keeps the default arrow.
   MouseCursor _resolvedCursor() {
+    if (_isMovingSelection) {
+      return SystemMouseCursors.grabbing;
+    }
     if (_overScrollbar) {
       return SystemMouseCursors.click;
     }
@@ -378,6 +396,7 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   }
 
   void _onPointerDown(PointerDownEvent event) {
+    _clearSelectionMoveState();
     if (widget.useMobileTouchGestures &&
         event.kind == PointerDeviceKind.touch) {
       widget.onMobileCaretToolbarDismissed?.call();
@@ -463,6 +482,9 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
       _lastTapTime = now;
       _lastTapPosition = position;
     }
+    _selectionMoveSource = shiftBase == null
+        ? _selectionMoveCandidateFor(event, _tapAnchor)
+        : null;
     if (_tapCount < 2) {
       _dragOrigin = position;
       _dragBase = shiftBase ?? _tapAnchor;
@@ -488,6 +510,55 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
       return null;
     }
     return widget.currentSelection?.base;
+  }
+
+  DocumentSelection? _selectionMoveCandidateFor(
+    PointerDownEvent event,
+    DocumentPosition? hit,
+  ) {
+    if (widget.readOnly ||
+        widget.onSelectionMoveRequested == null ||
+        _tapCount != 1 ||
+        hit == null ||
+        (event.kind != PointerDeviceKind.mouse &&
+            event.kind != PointerDeviceKind.stylus) ||
+        (event.buttons & kPrimaryMouseButton) == 0) {
+      return null;
+    }
+    final keyboard = HardwareKeyboard.instance;
+    if (keyboard.isShiftPressed ||
+        keyboard.isControlPressed ||
+        keyboard.isMetaPressed ||
+        keyboard.isAltPressed) {
+      return null;
+    }
+    final selection = widget.currentSelection;
+    if (selection == null ||
+        selection.isCollapsed ||
+        !_isMovableTextSelection(selection)) {
+      return null;
+    }
+    return hit.compareTo(selection.start) >= 0 &&
+            hit.compareTo(selection.end) < 0
+        ? selection
+        : null;
+  }
+
+  bool _isMovableTextSelection(DocumentSelection selection) {
+    final basePath = selection.base.path;
+    final extentPath = selection.extent.path;
+    if (!_isTextInputPath(basePath) || !_isTextInputPath(extentPath)) {
+      return false;
+    }
+    final tableRange = selection.tableCellRange;
+    if (tableRange != null) {
+      return tableRange.isSingleCell && basePath == extentPath;
+    }
+    if (basePath.isTableCellText || extentPath.isTableCellText) {
+      return false;
+    }
+    return selection.base.blockIndex != selection.extent.blockIndex ||
+        basePath == extentPath;
   }
 
   /// Resolves whether a mouse/stylus pointer-down at [event] should open the
@@ -554,9 +625,13 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
         return;
       }
       _isDragging = true;
+      if (_selectionMoveSource != null) {
+        _isMovingSelection = true;
+        setState(() {});
+      }
     }
     _lastDragPosition = position;
-    _extendSelection(position);
+    _updateActiveDrag(position);
     _syncScrollToEdge(position);
     _maybeStartAutoScroll(position);
   }
@@ -565,6 +640,7 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     if (_selectionExcludedPointer == event.pointer) {
       _selectionExcludedPointer = null;
       _isShiftSelecting = false;
+      _clearSelectionMoveState();
       return;
     }
     if (_touchScrollPointer == event.pointer) {
@@ -577,19 +653,28 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
       _dragOrigin = null;
       _lastDragPosition = null;
       _tapAnchor = null;
+      _clearSelectionMoveState();
       return;
     }
     _stopAutoScroll();
     final position = event.position;
     final wasDragging = _isDragging;
+    final wasMovingSelection = _isMovingSelection;
+    final selectionMoveSource = _selectionMoveSource;
     final tapCount = _tapCount;
     final longPressSelected = _longPressWordSelected;
     final isShiftSelecting = _isShiftSelecting;
     final shiftBase = _dragBase;
     _isDragging = false;
+    _isMovingSelection = false;
+    _selectionMoveSource = null;
     _longPressWordSelected = false;
     _dragOrigin = null;
     _lastDragPosition = null;
+    widget.onSelectionMovePreviewChanged?.call(null);
+    if (wasMovingSelection) {
+      setState(() {});
+    }
 
     // A Ctrl/Cmd+click on a link: open it and bail before the tap/selection
     // placement below, so neither requestFocus nor onSelectionChanged fires and
@@ -601,6 +686,26 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
       _tapAnchor = null;
       _isShiftSelecting = false;
       widget.onLinkOpen?.call(pendingLink);
+      return;
+    }
+
+    if (wasMovingSelection && selectionMoveSource != null) {
+      final destination = widget.registry.positionFromGlobalOffset(position);
+      _dragBase = null;
+      _tapAnchor = null;
+      _isShiftSelecting = false;
+      if (destination != null &&
+          _isTextInputPath(destination.path) &&
+          !_positionIsInsideOrAtSelection(
+            destination,
+            selectionMoveSource,
+          )) {
+        widget.focusNode.requestFocus();
+        widget.onSelectionMoveRequested?.call(
+          selectionMoveSource,
+          destination,
+        );
+      }
       return;
     }
 
@@ -795,6 +900,42 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     _lastDragPosition = null;
     _tapAnchor = null;
     _linkOpenPending = null;
+    _clearSelectionMoveState();
+  }
+
+  void _clearSelectionMoveState() {
+    final wasMoving = _isMovingSelection;
+    _isMovingSelection = false;
+    _selectionMoveSource = null;
+    widget.onSelectionMovePreviewChanged?.call(null);
+    if (wasMoving && mounted) {
+      setState(() {});
+    }
+  }
+
+  void _updateActiveDrag(Offset global) {
+    if (_isMovingSelection) {
+      final source = _selectionMoveSource;
+      final destination = widget.registry.positionFromGlobalOffset(global);
+      widget.onSelectionMovePreviewChanged?.call(
+        source == null ||
+                destination == null ||
+                !_isTextInputPath(destination.path) ||
+                _positionIsInsideOrAtSelection(destination, source)
+            ? null
+            : destination,
+      );
+      return;
+    }
+    _extendSelection(global);
+  }
+
+  bool _positionIsInsideOrAtSelection(
+    DocumentPosition position,
+    DocumentSelection selection,
+  ) {
+    return position.compareTo(selection.start) >= 0 &&
+        position.compareTo(selection.end) <= 0;
   }
 
   /// Extends the selection from [_dragBase] to the position resolved at
@@ -1010,7 +1151,7 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
       }
       final pointer = _lastDragPosition;
       if (pointer != null) {
-        _extendSelection(pointer);
+        _updateActiveDrag(pointer);
       }
     });
   }
