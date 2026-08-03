@@ -100,7 +100,10 @@ lib/
       MaterialApp(
         home: Scaffold(
           body: MediaQuery(
-            data: const MediaQueryData(size: Size(420, 560)),
+            data: const MediaQueryData(
+              size: Size(420, 560),
+              textScaler: TextScaler.linear(1.5),
+            ),
             child: WenzRichTextEditor(
               controller: controller,
               readOnly: true,
@@ -146,6 +149,26 @@ lib/
     final codeOrigin = renderedCode.localToGlobal(Offset.zero);
 
     for (var index = 0; index < codeStarts.length; index++) {
+      final label = '${index + 1}';
+      if (label.length > 1) {
+        final firstDigitY = gutter
+            .getOffsetForCaret(
+              TextPosition(offset: gutterStarts[index]),
+              Rect.zero,
+            )
+            .dy;
+        final lastDigitY = gutter
+            .getOffsetForCaret(
+              TextPosition(offset: gutterStarts[index] + label.length - 1),
+              Rect.zero,
+            )
+            .dy;
+        expect(
+          lastDigitY,
+          firstDigitY,
+          reason: 'line number $label must not wrap between digits',
+        );
+      }
       final gutterY = gutterOrigin.dy +
           gutter
               .getOffsetForCaret(

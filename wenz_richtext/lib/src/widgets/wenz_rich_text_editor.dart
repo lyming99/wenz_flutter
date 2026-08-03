@@ -14856,6 +14856,12 @@ class _CodeLineNumberGutterState extends State<_CodeLineNumberGutter> {
               'wenz-richtext-code-line-numbers-${widget.blockId}',
             ),
             textAlign: WenzCodeBlockLineNumbers.gutterTextAlign,
+            // The code surface is painted by RichText, whose default scaler is
+            // noScaling. Keep its gutter on that same scale so application UI
+            // font scaling cannot make the labels wider/taller than the width
+            // and line height measured for the code surface.
+            textScaler: TextScaler.noScaling,
+            softWrap: false,
             style: widget.style,
             strutStyle: StrutStyle.fromTextStyle(
               widget.style,
