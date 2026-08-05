@@ -94,7 +94,8 @@ class ChatMessage {
   }
 
   @override
-  int get hashCode => Object.hash(id, role, content, timestamp, tokenCount, error);
+  int get hashCode =>
+      Object.hash(id, role, content, timestamp, tokenCount, error);
 }
 
 // ---------------------------------------------------------------------------

@@ -349,12 +349,12 @@ class MoveCaretByWordCommand extends EditorCommand {
       // paragraph (same escape hatch as the other caret commands).
       if (direction == CaretMovementDirection.forward &&
           _isAtTrailingLeaf(session.document, origin)) {
-        final appended =
-            _appendParagraphAfter(session, origin.blockIndex);
+        final appended = _appendParagraphAfter(session, origin.blockIndex);
         if (appended != null) {
           if (expandSelection) {
             return CommandResult(
-              selection: DocumentSelection(base: anchor, extent: appended.extent),
+              selection:
+                  DocumentSelection(base: anchor, extent: appended.extent),
             );
           }
           return CommandResult(selection: appended);
@@ -411,8 +411,7 @@ class MoveCaretToBlockBoundaryCommand extends EditorCommand {
     // position so the caret lands at the boundary without a selection.
     // When expanding, the origin is the current extent to extend from.
     final origin = expandSelection ? selection.extent : anchor;
-    final tableCellLength =
-        _tableCellLength(session.document, origin);
+    final tableCellLength = _tableCellLength(session.document, origin);
     if (tableCellLength != null) {
       final targetOffset =
           direction == CaretMovementDirection.backward ? 0 : tableCellLength;

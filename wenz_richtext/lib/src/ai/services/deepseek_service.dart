@@ -31,10 +31,9 @@ class DeepSeekService extends AIService {
       ),
       // Inject thinking field for DeepSeek-R1.
       'thinking': {
-        'type':
-            deepseekConfig.thinkingMode == DeepSeekThinkingMode.enabled
-                ? 'enabled'
-                : 'disabled',
+        'type': deepseekConfig.thinkingMode == DeepSeekThinkingMode.enabled
+            ? 'enabled'
+            : 'disabled',
       },
     };
 
@@ -61,10 +60,9 @@ class DeepSeekService extends AIService {
         systemPrompt: systemPrompt,
       ),
       'thinking': {
-        'type':
-            deepseekConfig.thinkingMode == DeepSeekThinkingMode.enabled
-                ? 'enabled'
-                : 'disabled',
+        'type': deepseekConfig.thinkingMode == DeepSeekThinkingMode.enabled
+            ? 'enabled'
+            : 'disabled',
       },
     };
 

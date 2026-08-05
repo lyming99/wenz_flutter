@@ -395,7 +395,7 @@ class _ExampleVideoPlayerState extends State<ExampleVideoPlayer> {
   }
 
   void _listenToPlayback(ExampleVideoPlayback playback) {
-    void onStreamError(Object _, StackTrace __) {
+    void onStreamError(Object _, StackTrace _) {
       if (identical(_playback, playback)) {
         _showSourceError(_sourceGeneration);
       }
@@ -634,12 +634,12 @@ class _ExampleVideoPlayerState extends State<ExampleVideoPlayer> {
 
   Future<void> _cancelSubscriptions() async {
     final subscriptions = <StreamSubscription<dynamic>>[
-      if (_positionSub != null) _positionSub!,
-      if (_durationSub != null) _durationSub!,
-      if (_playingSub != null) _playingSub!,
-      if (_completedSub != null) _completedSub!,
-      if (_bufferingSub != null) _bufferingSub!,
-      if (_errorSub != null) _errorSub!,
+      ?_positionSub,
+      ?_durationSub,
+      ?_playingSub,
+      ?_completedSub,
+      ?_bufferingSub,
+      ?_errorSub,
     ];
     _positionSub = null;
     _durationSub = null;

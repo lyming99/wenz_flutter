@@ -83,7 +83,6 @@ class _WenzOutlinePanelState extends State<WenzOutlinePanel> {
     }
     return null;
   }
-
 }
 
 // ---------------------------------------------------------------------------
@@ -297,9 +296,7 @@ class _WenzOutlineTreeState extends State<WenzOutlineTree> {
   void _collapseAllTreeItems() {
     setState(() {
       _collapsedBlockIds = Set<String>.unmodifiable(
-        widget.items
-            .where(_isTreeCollapsible)
-            .map((item) => item.blockId),
+        widget.items.where(_isTreeCollapsible).map((item) => item.blockId),
       );
       _focusedIndex = _clampFocusedIndex(_visibleItems.length);
     });
@@ -345,8 +342,7 @@ class _WenzOutlineTreeState extends State<WenzOutlineTree> {
                     return _OutlineItemRow(
                       item: item,
                       isActive: item.blockId == widget.activeBlockId,
-                      isFocused:
-                          widget.enableKeyboardNavigation &&
+                      isFocused: widget.enableKeyboardNavigation &&
                           index == _focusedIndex,
                       canToggleCollapse: _isTreeCollapsible(item),
                       onSelect: widget.onSelect,

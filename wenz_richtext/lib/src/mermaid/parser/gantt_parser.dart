@@ -84,7 +84,8 @@ class GanttParser {
       }
 
       // Parse task
-      final task = _parseTask(line, tasks, defaultStartDate, dateFormat, currentSection);
+      final task =
+          _parseTask(line, tasks, defaultStartDate, dateFormat, currentSection);
       if (task != null) {
         tasks.add(task);
         if (currentSection != null) {

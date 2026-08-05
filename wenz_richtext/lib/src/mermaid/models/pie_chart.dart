@@ -1,4 +1,5 @@
 /// Data models for Pie Chart diagrams
+library;
 
 /// Represents a single slice in a pie chart
 class PieSlice {

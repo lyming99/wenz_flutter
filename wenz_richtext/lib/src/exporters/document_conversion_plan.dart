@@ -1,4 +1,4 @@
-﻿import '../core/model/rich_text_document.dart';
+import '../core/model/rich_text_document.dart';
 
 /// External document formats that are intentionally kept outside core codecs.
 enum WenzDocumentFormat {
@@ -164,7 +164,8 @@ const WenzDocumentConversionPlan wenzPdfImportPlan = WenzDocumentConversionPlan(
 );
 
 /// DOCX export is provided by an application adapter or backend worker.
-const WenzDocumentConversionPlan wenzDocxExportPlan = WenzDocumentConversionPlan(
+const WenzDocumentConversionPlan wenzDocxExportPlan =
+    WenzDocumentConversionPlan(
   format: WenzDocumentFormat.docx,
   direction: WenzDocumentConversionDirection.exportDocument,
   owner: WenzDocumentConversionOwner.applicationAdapter,
@@ -186,7 +187,8 @@ const WenzDocumentConversionPlan wenzDocxExportPlan = WenzDocumentConversionPlan
 );
 
 /// DOCX import is provided by an application adapter or backend worker.
-const WenzDocumentConversionPlan wenzDocxImportPlan = WenzDocumentConversionPlan(
+const WenzDocumentConversionPlan wenzDocxImportPlan =
+    WenzDocumentConversionPlan(
   format: WenzDocumentFormat.docx,
   direction: WenzDocumentConversionDirection.importDocument,
   owner: WenzDocumentConversionOwner.applicationAdapter,

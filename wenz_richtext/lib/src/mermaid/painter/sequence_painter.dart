@@ -63,12 +63,13 @@ class SequencePainter extends MermaidPainter {
     }
   }
 
-  void _drawLifeline(Canvas canvas, MermaidNode node, double startY, double endY) {
+  void _drawLifeline(
+      Canvas canvas, MermaidNode node, double startY, double endY) {
     final centerX = node.x + node.width / 2;
 
     final paint = Paint()
-      ..color = Color(style.defaultEdgeStyle.strokeColor ??
-          MermaidColors.defaultEdgeColor)
+      ..color = Color(
+          style.defaultEdgeStyle.strokeColor ?? MermaidColors.defaultEdgeColor)
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 
@@ -132,8 +133,8 @@ class SequencePainter extends MermaidPainter {
     }
 
     // Draw label
-    final textStyle = TextStyle(
-      color: const Color(0xFF37474F), // Dark blue-gray text
+    const textStyle = TextStyle(
+      color: Color(0xFF37474F), // Dark blue-gray text
       fontSize: 14.0,
       fontWeight: FontWeight.w600,
     );
@@ -167,8 +168,8 @@ class SequencePainter extends MermaidPainter {
       canvas.drawRRect(rrect, strokePaint);
     }
 
-    final textStyle = TextStyle(
-      color: const Color(0xFF37474F),
+    const textStyle = TextStyle(
+      color: Color(0xFF37474F),
       fontSize: 14.0,
       fontWeight: FontWeight.w600,
     );

@@ -329,7 +329,7 @@ class TableCellRange {
     required this.endRow,
     required this.startColumn,
     required this.endColumn,
-  }) : assert(startRow <= endRow,
+  })  : assert(startRow <= endRow,
             'startRow ($startRow) must be <= endRow ($endRow)'),
         assert(startColumn <= endColumn,
             'startColumn ($startColumn) must be <= endColumn ($endColumn)'),

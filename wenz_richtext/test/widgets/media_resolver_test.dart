@@ -100,8 +100,7 @@ void main() {
       expect(find.byIcon(Icons.image_outlined), findsOneWidget);
     });
 
-    testWidgets('network image source remains resolver driven',
-        (tester) async {
+    testWidgets('network image source remains resolver driven', (tester) async {
       final controller = WenzRichTextController(
         document: const RichTextDocument(
           blocks: <BlockNode>[
@@ -129,8 +128,7 @@ void main() {
       expect(find.byIcon(Icons.image_outlined), findsNothing);
     });
 
-    testWidgets('resolver image output fills intrinsic frames',
-        (tester) async {
+    testWidgets('resolver image output fills intrinsic frames', (tester) async {
       final controller = WenzRichTextController(
         document: const RichTextDocument(
           blocks: <BlockNode>[
@@ -418,8 +416,7 @@ void main() {
       expect(surface, findsNothing);
     });
 
-    testWidgets('no resolver: placeholder hides visible copy',
-        (tester) async {
+    testWidgets('no resolver: placeholder hides visible copy', (tester) async {
       final controller = WenzRichTextController(
         document: const RichTextDocument(
           blocks: <BlockNode>[
@@ -449,8 +446,7 @@ void main() {
       );
     });
 
-    testWidgets('uploading image placeholder hides visible copy',
-        (tester) async {
+    testWidgets('image placeholder hides visible copy', (tester) async {
       final controller = WenzRichTextController(
         document: const RichTextDocument(
           blocks: <BlockNode>[
@@ -458,7 +454,6 @@ void main() {
               id: 'img1',
               assetId: 'hero',
               file: 'hero.png',
-              uploadStatus: FileUploadStatus.uploading,
             ),
           ],
         ),
@@ -1295,9 +1290,11 @@ void main() {
       expect(find.text('无法显示该图片，请重新上传'), findsNothing);
       // Both slots surface image_outlined for screen-reader parity; the empty
       // and failure states are distinguished by tone, not visible copy.
-      final imageIcons = tester.widgetList<Icon>(
-        find.byIcon(Icons.image_outlined),
-      ).toList();
+      final imageIcons = tester
+          .widgetList<Icon>(
+            find.byIcon(Icons.image_outlined),
+          )
+          .toList();
       expect(imageIcons, hasLength(2));
       expect(imageIcons.map((icon) => icon.color).toSet(), hasLength(2));
       expect(tester.takeException(), isA<StateError>());
@@ -1335,8 +1332,7 @@ void main() {
       expect(tester.takeException(), isA<StateError>());
     });
 
-    testWidgets('video frame normalizes unsafe aspect ratios',
-        (tester) async {
+    testWidgets('video frame normalizes unsafe aspect ratios', (tester) async {
       final controller = WenzRichTextController(
         document: const RichTextDocument(
           blocks: <BlockNode>[
@@ -1670,41 +1666,41 @@ class _DiverseImageFrameResolver implements MediaResolver {
       return null;
     }
     return switch (block.id) {
-      'fill' => SizedBox.expand(
-          key: const ValueKey<String>('resolver-host-image-fill'),
-          child: const ColoredBox(color: Colors.teal),
+      'fill' => const SizedBox.expand(
+          key: ValueKey<String>('resolver-host-image-fill'),
+          child: ColoredBox(color: Colors.teal),
         ),
-      'oversized' => SizedBox.expand(
-          key: const ValueKey<String>('resolver-host-image-oversized'),
+      'oversized' => const SizedBox.expand(
+          key: ValueKey<String>('resolver-host-image-oversized'),
           child: Align(
             alignment: Alignment.topLeft,
             child: SizedBox(
-              key: const ValueKey<String>('resolver-leaf-image-oversized'),
+              key: ValueKey<String>('resolver-leaf-image-oversized'),
               width: 1200,
               height: 900,
-              child: const ColoredBox(color: Colors.orange),
+              child: ColoredBox(color: Colors.orange),
             ),
           ),
         ),
-      'tiny' => SizedBox.expand(
-          key: const ValueKey<String>('resolver-host-image-tiny'),
+      'tiny' => const SizedBox.expand(
+          key: ValueKey<String>('resolver-host-image-tiny'),
           child: Center(
             child: SizedBox(
-              key: const ValueKey<String>('resolver-leaf-image-tiny'),
+              key: ValueKey<String>('resolver-leaf-image-tiny'),
               width: 24,
               height: 16,
-              child: const ColoredBox(color: Colors.pink),
+              child: ColoredBox(color: Colors.pink),
             ),
           ),
         ),
-      'imageLike' => SizedBox.expand(
-          key: const ValueKey<String>('resolver-host-image-imageLike'),
+      'imageLike' => const SizedBox.expand(
+          key: ValueKey<String>('resolver-host-image-imageLike'),
           child: FittedBox(
             fit: BoxFit.cover,
             child: SizedBox(
               width: 360,
               height: 240,
-              child: const ColoredBox(color: Colors.indigo),
+              child: ColoredBox(color: Colors.indigo),
             ),
           ),
         ),

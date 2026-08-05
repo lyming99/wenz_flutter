@@ -143,7 +143,8 @@ void main() {
 
       expect(docChanges, 1);
       expect(seen!.plainText, 'Fresh');
-      expect(selectionChanges, 0, reason: 'replaceDocument leaves selection to caller');
+      expect(selectionChanges, 0,
+          reason: 'replaceDocument leaves selection to caller');
 
       controller.dispose();
     });
@@ -202,7 +203,8 @@ void main() {
       controller.dispose();
     });
 
-    test('executeCommand (registry) fires onCommandExecuted with built command', () {
+    test('executeCommand (registry) fires onCommandExecuted with built command',
+        () {
       final controller = WenzRichTextController(
         document: _doc(),
         selection: collapsedTextSelection('p1', 0, 0),
@@ -230,7 +232,9 @@ void main() {
       controller.dispose();
     });
 
-    test('onCommandExecuted receives the exact command instance passed to execute', () {
+    test(
+        'onCommandExecuted receives the exact command instance passed to execute',
+        () {
       final controller = WenzRichTextController(
         document: _doc(),
         selection: collapsedTextSelection('p1', 0, 0),

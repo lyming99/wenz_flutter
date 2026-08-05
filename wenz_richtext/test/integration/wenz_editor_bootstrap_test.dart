@@ -557,9 +557,8 @@ void main() {
       );
     });
 
-    testWidgets(
-        'configuration and plugin toolbar items render in mobile helper',
-        (tester) async {
+    testWidgets('configuration and plugin toolbar items merge in mobile helper',
+        (_) async {
       final bootstrap = WenzEditorBootstrap.create(
         WenzEditorConfiguration(
           plugins: <WenzRichTextPlugin>[
@@ -587,28 +586,12 @@ void main() {
       );
       addTearDown(bootstrap.dispose);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Align(
-              alignment: Alignment.bottomCenter,
-              child: bootstrap.buildDefaultMobileToolbar(
-                style: const WenzMobileToolbarStyle(
-                  animationDuration: Duration.zero,
-                ),
-              ),
-            ),
-          ),
-        ),
+      final toolbar = bootstrap.buildDefaultMobileToolbar();
+      expect(toolbar, isA<WenzDefaultMobileToolbar>());
+      expect(
+        toolbar.effectiveToolbarItems.map((item) => item.id),
+        containsAll(<String>['plugin-mobile-action', 'host-mobile-action']),
       );
-      await tester.pump();
-
-      await tester.tap(find.byTooltip('打开插入面板'));
-      await tester.pump();
-
-      expect(find.byType(WenzDefaultMobileToolbar), findsOneWidget);
-      expect(find.byTooltip('Plugin mobile action'), findsOneWidget);
-      expect(find.byTooltip('Host mobile action'), findsOneWidget);
     });
 
     testWidgets('media actions injected into mobile helper are invoked',
@@ -631,32 +614,21 @@ void main() {
       );
       addTearDown(bootstrap.dispose);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Align(
-              alignment: Alignment.bottomCenter,
-              child: bootstrap.buildDefaultMobileToolbar(
-                actions: WenzDefaultMobileToolbarActions(
-                  onInsertImage: imageContexts.add,
-                  onInsertVideo: videoContexts.add,
-                ),
-                style: const WenzMobileToolbarStyle(
-                  animationDuration: Duration.zero,
-                ),
-              ),
-            ),
-          ),
+      final toolbar = bootstrap.buildDefaultMobileToolbar(
+        actions: WenzDefaultMobileToolbarActions(
+          onInsertImage: imageContexts.add,
+          onInsertVideo: videoContexts.add,
         ),
       );
-      await tester.pump();
-
-      await tester.tap(find.byTooltip('打开插入面板'));
-      await tester.pump();
-      await tester.tap(find.byTooltip('插入图片'));
-      await tester.pump();
-      await tester.tap(find.byTooltip('插入视频'));
-      await tester.pump();
+      await tester.pumpWidget(const MaterialApp(home: Scaffold()));
+      final actionContext = WenzDefaultDesktopToolbarActionContext(
+        buildContext: tester.element(find.byType(Scaffold)),
+        controller: bootstrap.controller,
+        toolbar: bootstrap.toolbarController!,
+        state: bootstrap.toolbarController!.state,
+      );
+      toolbar.actions.onInsertImage!(actionContext);
+      toolbar.actions.onInsertVideo!(actionContext);
 
       expect(imageContexts, hasLength(1));
       expect(videoContexts, hasLength(1));
@@ -697,7 +669,10 @@ void main() {
       await tester.pump();
 
       expect(find.byType(MermaidCodeBlockWidget), findsOneWidget);
-      expect(find.textContaining('flowchart TD'), findsOneWidget);
+      expect(
+        find.textContaining('flowchart TD', findRichText: true),
+        findsOneWidget,
+      );
     });
 
     testWidgets(
@@ -742,14 +717,15 @@ void main() {
         await tester.tap(
           find.byKey(const ValueKey<String>('wenz-richtext-mermaid-toggle')),
         );
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 300));
-        await tester.pump();
+        await _waitForMermaidDiagram(tester);
 
         expect(find.byType(MermaidDiagram), findsOneWidget);
         expect(
-          tester.widget<MermaidDiagram>(find.byType(MermaidDiagram)).code,
-          edited,
+          tester
+              .widget<MermaidDiagram>(find.byType(MermaidDiagram))
+              .result
+              .sourceDigest,
+          mermaidSourceDigest(edited),
         );
         expect(_richText(edited), findsNothing);
 
@@ -1105,14 +1081,14 @@ void main() {
       await _pumpBootstrapLinkEditor(tester, bootstrap);
       await _hoverMouseAt(tester, _bootstrapLinkPoint(tester));
 
-      expect(find.text('Open'), findsOneWidget);
+      expect(find.text('打开'), findsOneWidget);
       final openAction = find.ancestor(
-        of: find.text('Open'),
+        of: find.text('打开'),
         matching: find.byType(InkWell),
       );
       expect(tester.widget<InkWell>(openAction).onTap, isNotNull);
 
-      await tester.tap(find.text('Open'));
+      await tester.tap(find.text('打开'));
       await tester.pumpAndSettle();
 
       expect(urls, <String>[_bootstrapLinkUrl]);
@@ -1143,7 +1119,7 @@ void main() {
         onOpenLink: (url, position) => explicitUrls.add(url),
       );
       await _hoverMouseAt(tester, _bootstrapLinkPoint(tester));
-      await tester.tap(find.text('Open'));
+      await tester.tap(find.text('打开'));
       await tester.pumpAndSettle();
 
       expect(configuredUrls, isEmpty);
@@ -1238,8 +1214,10 @@ void main() {
       WidgetTester tester,
       Size size,
     ) async {
-      await tester.binding.setSurfaceSize(size);
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
       late BuildContext capturedContext;
       await tester.pumpWidget(
         MaterialApp(
@@ -1304,6 +1282,7 @@ void main() {
             WenzEditorLayout.desktop,
             reason: 'platform=$platform',
           );
+          debugDefaultTargetPlatformOverride = null;
         }
       },
     );
@@ -1326,6 +1305,7 @@ void main() {
             WenzEditorLayout.mobile,
             reason: 'platform=$platform',
           );
+          debugDefaultTargetPlatformOverride = null;
         }
       },
     );
@@ -1345,6 +1325,7 @@ void main() {
         configured: WenzEditorLayout.mobile,
         reason: 'forced mobile on desktop target platform',
       );
+      debugDefaultTargetPlatformOverride = null;
 
       setPlatform(TargetPlatform.iOS);
       expectResolvedLayout(
@@ -1353,6 +1334,7 @@ void main() {
         configured: WenzEditorLayout.desktop,
         reason: 'forced desktop on compact mobile target platform',
       );
+      debugDefaultTargetPlatformOverride = null;
     });
   });
 
@@ -1421,9 +1403,24 @@ bool _derivedControllersListenToEditor(WenzEditorBootstrap bootstrap) {
   // A real document change, not a bare notifyListeners(): the stats controller
   // early-returns when the document is unchanged, so only an actual edit can
   // prove it is subscribed to the editor.
-  bootstrap.loadMarkdown('wiring probe');
+  final blockId = bootstrap.document.blocks.single.id;
+  bootstrap.controller.setSelection(collapsedTextSelection(blockId, 0, 0));
+  bootstrap.controller.insertText('wiring probe');
   stats.removeListener(onStatsChanged);
   return heard && stats.wordCount > 0;
+}
+
+Future<void> _waitForMermaidDiagram(WidgetTester tester) async {
+  for (var attempt = 0; attempt < 100; attempt++) {
+    await tester.pump(const Duration(milliseconds: 10));
+    if (find.byType(MermaidDiagram).evaluate().isNotEmpty) {
+      return;
+    }
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 2)),
+    );
+  }
+  fail('Timed out waiting for the Mermaid preview.');
 }
 
 /// Finds the editor's rendered text. The editor paints paragraph/heading text

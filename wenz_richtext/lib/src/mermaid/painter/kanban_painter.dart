@@ -166,7 +166,8 @@ class KanbanPainter extends CustomPainter {
     titlePainter.layout(maxWidth: width - 80);
     titlePainter.paint(
       canvas,
-      Offset(topLeft.dx + 12, topLeft.dy + height / 2 - titlePainter.height / 2),
+      Offset(
+          topLeft.dx + 12, topLeft.dy + height / 2 - titlePainter.height / 2),
     );
 
     // Draw WIP limit badge
@@ -188,9 +189,8 @@ class KanbanPainter extends CustomPainter {
     Offset center,
   ) {
     final isOverLimit = current > limit;
-    final bgColor = isOverLimit
-        ? 0xFFF44336
-        : (current == limit ? 0xFFFFC107 : 0xFF4CAF50);
+    final bgColor =
+        isOverLimit ? 0xFFF44336 : (current == limit ? 0xFFFFC107 : 0xFF4CAF50);
 
     // Draw badge background
     const badgeRadius = 18.0;
@@ -437,7 +437,8 @@ class KanbanPainter extends CustomPainter {
     if (parts.length == 1) {
       return parts[0].substring(0, 1).toUpperCase();
     } else {
-      return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
+      return (parts[0].substring(0, 1) + parts[1].substring(0, 1))
+          .toUpperCase();
     }
   }
 
@@ -454,7 +455,8 @@ class KanbanPainter extends CustomPainter {
     }
 
     final availableWidth = size.width - padding * 2;
-    final columnWidth = (availableWidth - columnSpacing * (columnCount - 1)) / columnCount;
+    final columnWidth =
+        (availableWidth - columnSpacing * (columnCount - 1)) / columnCount;
     return columnWidth.clamp(200.0, 350.0).toDouble();
   }
 

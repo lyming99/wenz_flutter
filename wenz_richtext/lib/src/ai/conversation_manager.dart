@@ -272,8 +272,7 @@ class ConversationManager extends ChangeNotifier {
 
   Future<void> _persist() async {
     final file = await _conversationsFile;
-    final list =
-        _conversations.map((c) => c.toJson()).toList();
+    final list = _conversations.map((c) => c.toJson()).toList();
     await file.writeAsString(json.encode(list));
   }
 

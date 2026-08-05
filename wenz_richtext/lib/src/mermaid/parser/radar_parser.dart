@@ -72,7 +72,8 @@ class RadarParser {
 
       if (trimmedLine.toLowerCase().startsWith('graticule ')) {
         final value = trimmedLine.substring(10).trim().toLowerCase();
-        graticule = value == 'circle' ? RadarGraticule.circle : RadarGraticule.polygon;
+        graticule =
+            value == 'circle' ? RadarGraticule.circle : RadarGraticule.polygon;
         continue;
       }
 

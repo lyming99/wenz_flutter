@@ -218,7 +218,8 @@ class OpenAIConfig extends AIConfig {
   }
 
   @override
-  int get hashCode => Object.hash(super.hashCode, thinkingDepth, organizationId);
+  int get hashCode =>
+      Object.hash(super.hashCode, thinkingDepth, organizationId);
 }
 
 // ---------------------------------------------------------------------------

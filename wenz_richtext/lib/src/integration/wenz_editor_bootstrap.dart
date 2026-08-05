@@ -55,6 +55,7 @@ class WenzEditorBootstrap {
     required this.slashMenuRegistry,
     required this.toolbarItemRegistry,
     required this.pluginShortcutConfigurations,
+    required this.installedPlugins,
     required this.toolbarController,
     required this.slashMenuController,
     required this.findReplaceController,
@@ -133,9 +134,7 @@ class WenzEditorBootstrap {
     final plugins = <WenzRichTextPlugin>[
       ...configuration.plugins,
       if (configuration.enableMermaidDiagrams && !hasConfiguredMermaidPlugin)
-        const MermaidDiagramPlugin(
-          config: MermaidDiagramConfig(),
-        ),
+        MermaidDiagramPlugin(config: const MermaidDiagramConfig()),
     ];
     installWenzRichTextPlugins(
       plugins: plugins,
@@ -198,6 +197,7 @@ class WenzEditorBootstrap {
       slashMenuRegistry: slashMenuRegistry,
       toolbarItemRegistry: toolbarItemRegistry,
       pluginShortcutConfigurations: pluginShortcutConfigurations,
+      installedPlugins: plugins,
       toolbarController: toolbarController,
       slashMenuController: slashMenuController,
       findReplaceController: findReplaceController,
@@ -239,6 +239,10 @@ class WenzEditorBootstrap {
   /// host [WenzEditorConfiguration.shortcutConfiguration] (host wins) when the
   /// editor widget is built.
   final List<EditorShortcutConfiguration> pluginShortcutConfigurations;
+
+  /// Installed plugin instances, retained so editor-scoped resources can be
+  /// released with the bootstrap.
+  final List<WenzRichTextPlugin> installedPlugins;
 
   /// The derived toolbar controller, or `null` when
   /// [WenzEditorConfiguration.enableToolbar] is `false`.
@@ -645,6 +649,9 @@ class WenzEditorBootstrap {
     findReplaceController?.dispose();
     outlineController?.dispose();
     slashMenuController?.dispose();
+    for (final plugin in installedPlugins.reversed) {
+      plugin.dispose();
+    }
     controller.dispose();
   }
 }

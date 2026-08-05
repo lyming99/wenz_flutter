@@ -143,7 +143,8 @@ class FlowchartParser {
     } else {
       // Use the text as both id and label
       final parts = trimmed.split(RegExp(r'\s+'));
-      _currentSubgraphId = parts.isNotEmpty ? parts[0] : 'subgraph_${_subgraphs.length}';
+      _currentSubgraphId =
+          parts.isNotEmpty ? parts[0] : 'subgraph_${_subgraphs.length}';
       _currentSubgraphLabel = trimmed;
     }
 
@@ -192,7 +193,8 @@ class FlowchartParser {
   void _parseNodeOrEdge(String line) {
     // Split line by arrows to get individual node-edge pairs
     // Arrows: -->, ==>, ---, -.->
-    final arrowRegex = RegExp(r'\s*(==>|-->|---|\.\.\.|===|-.->|-\.->|---->|====|---)\s*(\|[^|]*\|)?\s*');
+    final arrowRegex = RegExp(
+        r'\s*(==>|-->|---|\.\.\.|===|-.->|-\.->|---->|====|---)\s*(\|[^|]*\|)?\s*');
 
     final parts = <String>[];
     final arrows = <_ArrowInfo>[];
@@ -234,7 +236,8 @@ class FlowchartParser {
         final node = _parseNode(parts[i]);
         if (node != null) {
           // Only add node if not exists, or update if new one has shape/label info
-          if (!_nodes.containsKey(node.id) || _shouldUpdateNode(_nodes[node.id]!, node)) {
+          if (!_nodes.containsKey(node.id) ||
+              _shouldUpdateNode(_nodes[node.id]!, node)) {
             _nodes[node.id] = node;
           }
           _trackNodeForSubgraph(node.id);
@@ -272,7 +275,8 @@ class FlowchartParser {
       return true;
     }
     // Update if new node has a non-rectangle shape
-    if (existing.shape == NodeShape.rectangle && newNode.shape != NodeShape.rectangle) {
+    if (existing.shape == NodeShape.rectangle &&
+        newNode.shape != NodeShape.rectangle) {
       return true;
     }
     return false;

@@ -224,8 +224,7 @@ class _MobileSelectionHandlesOverlayState
       children: <Widget>[
         _buildHandle(tip: startTip, isStart: true, color: handleColor),
         _buildHandle(tip: endTip, isStart: false, color: handleColor),
-        if (showToolbar)
-          _buildSelectionToolbar(startTip, endTip, containerBox),
+        if (showToolbar) _buildSelectionToolbar(startTip, endTip, containerBox),
       ],
     );
   }
@@ -259,7 +258,7 @@ class _MobileSelectionHandlesOverlayState
               Offset(0, media.size.height - media.viewInsets.bottom),
             )
             .dy;
-    final visibleTop = 0.0;
+    const visibleTop = 0.0;
     final visibleBottom = math.min(containerBox.size.height, keyboardTop);
     if (!visibleBottom.isFinite ||
         visibleBottom <= visibleTop ||
@@ -277,8 +276,7 @@ class _MobileSelectionHandlesOverlayState
     final toolbarWidth = measuredSize?.width ??
         math.min(_kEstimatedCaretToolbarWidth, containerBox.size.width);
     final aboveSpace = caretTop.dy - visibleTop - _kSelectionToolbarGap;
-    final belowSpace =
-        visibleBottom - caretBottom.dy - _kSelectionToolbarGap;
+    final belowSpace = visibleBottom - caretBottom.dy - _kSelectionToolbarGap;
     final double top;
     if (aboveSpace >= toolbarHeight) {
       top = caretTop.dy - _kSelectionToolbarGap - toolbarHeight;
@@ -387,7 +385,7 @@ class _MobileSelectionHandlesOverlayState
               Offset(0, media.size.height - media.viewInsets.bottom),
             )
             .dy;
-    final visibleTop = 0.0;
+    const visibleTop = 0.0;
     final visibleBottom = math.min(containerBox.size.height, keyboardTop);
     if (!visibleBottom.isFinite ||
         visibleBottom <= visibleTop ||
@@ -452,7 +450,8 @@ class _MobileSelectionHandlesOverlayState
     required bool isStart,
     required Color color,
   }) {
-    final centerDy = isStart ? tip.dy - _kHandleRadius : tip.dy + _kHandleRadius;
+    final centerDy =
+        isStart ? tip.dy - _kHandleRadius : tip.dy + _kHandleRadius;
     final center = Offset(tip.dx, centerDy);
     final left = center.dx - _kHandleHitExtent / 2;
     final top = center.dy - _kHandleHitExtent / 2;
@@ -464,7 +463,8 @@ class _MobileSelectionHandlesOverlayState
         // and does not also drive the editor's content selection drag.
         behavior: HitTestBehavior.opaque,
         onPanStart: (_) => _onHandlePanStart(isStart),
-        onPanUpdate: (details) => _onHandlePanUpdate(isStart, details.globalPosition),
+        onPanUpdate: (details) =>
+            _onHandlePanUpdate(isStart, details.globalPosition),
         onPanEnd: (_) => _onHandlePanEnd(),
         onPanCancel: _onHandlePanEnd,
         child: SizedBox(

@@ -121,8 +121,7 @@ class V1ToV2DocumentMigration extends DocumentMigration {
     final blocks = result['blocks'];
     if (blocks is List) {
       result['blocks'] = <Object?>[
-        for (var i = 0; i < blocks.length; i++)
-          _migrateBlock(blocks[i], i),
+        for (var i = 0; i < blocks.length; i++) _migrateBlock(blocks[i], i),
       ];
     }
     result['version'] = 2;

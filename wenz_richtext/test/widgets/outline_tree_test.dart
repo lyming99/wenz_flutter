@@ -270,8 +270,7 @@ void main() {
 
   // --- P003: heading level badge ---
 
-  testWidgets('renders H1–H6 level badges on each heading row',
-      (tester) async {
+  testWidgets('renders H1–H6 level badges on each heading row', (tester) async {
     final items = <OutlineItem>[
       _item(blockId: 'h1', level: 1, title: 'One'),
       _item(blockId: 'h2', level: 2, title: 'Two'),
@@ -288,7 +287,8 @@ void main() {
 
   // --- P004: expand / collapse all ---
 
-  testWidgets('shows expand/collapse all buttons when there are collapsible items',
+  testWidgets(
+      'shows expand/collapse all buttons when there are collapsible items',
       (tester) async {
     final collapsible = _item(
       blockId: 'h1',
@@ -383,7 +383,8 @@ void main() {
 
   // --- P005: keyboard navigation ---
 
-  testWidgets('moves focused index on ArrowUp/ArrowDown when keyboard navigation enabled',
+  testWidgets(
+      'moves focused index on ArrowUp/ArrowDown when keyboard navigation enabled',
       (tester) async {
     final items = <OutlineItem>[
       _item(blockId: 'h1', level: 1, title: 'First'),

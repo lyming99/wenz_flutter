@@ -188,9 +188,8 @@ class _WenzDesktopSelectionToolbarOverlayState
 
     final selectionCenterX = (startTop.dx + endBottom.dx) / 2;
     final minLeft = widget.viewportInset;
-    final maxLeft = containerBox.size.width -
-        widget.viewportInset -
-        toolbarWidth;
+    final maxLeft =
+        containerBox.size.width - widget.viewportInset - toolbarWidth;
     final left = (selectionCenterX - toolbarWidth / 2)
         .clamp(minLeft, math.max(minLeft, maxLeft))
         .toDouble();

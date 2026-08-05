@@ -33,9 +33,10 @@ class GanttPainter extends CustomPainter {
     final titleHeight = ganttData.title != null ? 40.0 : 0.0;
 
     // Layout constants
-    final taskRowHeight = deviceConfig?.deviceType == DeviceType.mobile ? 28.0 : 32.0;
+    final taskRowHeight =
+        deviceConfig?.deviceType == DeviceType.mobile ? 28.0 : 32.0;
     final labelWidth = _calculateLabelWidth(size.width);
-    final headerHeight = 50.0;
+    const headerHeight = 50.0;
     final timelineWidth = size.width - labelWidth - padding * 2;
 
     // Calculate date range
@@ -111,7 +112,8 @@ class GanttPainter extends CustomPainter {
   /// Draws the chart title
   void _drawTitle(Canvas canvas, String title, double centerX, double y) {
     final textStyle = TextStyle(
-      color: Color(style.defaultNodeStyle.textColor ?? MermaidColors.defaultTextColor),
+      color: Color(
+          style.defaultNodeStyle.textColor ?? MermaidColors.defaultTextColor),
       fontSize: 16.0,
       fontWeight: FontWeight.bold,
       fontFamily: style.fontFamily,
@@ -154,7 +156,7 @@ class GanttPainter extends CustomPainter {
 
     // Draw bottom border
     final borderPaint = Paint()
-      ..color = Color(GanttChartColors.gridLineColor)
+      ..color = const Color(GanttChartColors.gridLineColor)
       ..strokeWidth = 1.0;
 
     canvas.drawLine(
@@ -170,13 +172,16 @@ class GanttPainter extends CustomPainter {
 
     if (showDays && totalDays <= 60) {
       // Show individual days
-      _drawDayMarkers(canvas, topLeft, width, height, minDate, totalDays, dayWidth, fontSize);
+      _drawDayMarkers(canvas, topLeft, width, height, minDate, totalDays,
+          dayWidth, fontSize);
     } else if (showWeeks || totalDays <= 120) {
       // Show weeks
-      _drawWeekMarkers(canvas, topLeft, width, height, minDate, totalDays, dayWidth, fontSize);
+      _drawWeekMarkers(canvas, topLeft, width, height, minDate, totalDays,
+          dayWidth, fontSize);
     } else {
       // Show months
-      _drawMonthMarkers(canvas, topLeft, width, height, minDate, totalDays, dayWidth, fontSize);
+      _drawMonthMarkers(canvas, topLeft, width, height, minDate, totalDays,
+          dayWidth, fontSize);
     }
   }
 
@@ -192,7 +197,8 @@ class GanttPainter extends CustomPainter {
     double fontSize,
   ) {
     final textStyle = TextStyle(
-      color: Color(style.defaultNodeStyle.textColor ?? MermaidColors.defaultTextColor),
+      color: Color(
+          style.defaultNodeStyle.textColor ?? MermaidColors.defaultTextColor),
       fontSize: fontSize * 0.9,
       fontFamily: style.fontFamily,
     );
@@ -204,7 +210,7 @@ class GanttPainter extends CustomPainter {
       // Draw vertical grid line
       final linePaint = Paint()
         ..color = mermaidColorWithOpacity(
-          Color(GanttChartColors.gridLineColor),
+          const Color(GanttChartColors.gridLineColor),
           0.5,
         )
         ..strokeWidth = 0.5;
@@ -227,7 +233,8 @@ class GanttPainter extends CustomPainter {
 
         textPainter.paint(
           canvas,
-          Offset(x + (dayWidth - textPainter.width) / 2, topLeft.dy + height - 20),
+          Offset(
+              x + (dayWidth - textPainter.width) / 2, topLeft.dy + height - 20),
         );
       }
 
@@ -262,7 +269,8 @@ class GanttPainter extends CustomPainter {
     double fontSize,
   ) {
     final textStyle = TextStyle(
-      color: Color(style.defaultNodeStyle.textColor ?? MermaidColors.defaultTextColor),
+      color: Color(
+          style.defaultNodeStyle.textColor ?? MermaidColors.defaultTextColor),
       fontSize: fontSize * 0.9,
       fontFamily: style.fontFamily,
     );
@@ -280,7 +288,7 @@ class GanttPainter extends CustomPainter {
       if (x >= topLeft.dx && x <= topLeft.dx + width) {
         // Draw week marker line
         final linePaint = Paint()
-          ..color = Color(GanttChartColors.gridLineColor)
+          ..color = const Color(GanttChartColors.gridLineColor)
           ..strokeWidth = 1.0;
 
         canvas.drawLine(
@@ -344,7 +352,8 @@ class GanttPainter extends CustomPainter {
     double fontSize,
   ) {
     final textStyle = TextStyle(
-      color: Color(style.defaultNodeStyle.textColor ?? MermaidColors.defaultTextColor),
+      color: Color(
+          style.defaultNodeStyle.textColor ?? MermaidColors.defaultTextColor),
       fontSize: fontSize,
       fontWeight: FontWeight.bold,
       fontFamily: style.fontFamily,
@@ -360,7 +369,7 @@ class GanttPainter extends CustomPainter {
 
           // Draw month divider line
           final linePaint = Paint()
-            ..color = Color(GanttChartColors.gridLineColor)
+            ..color = const Color(GanttChartColors.gridLineColor)
             ..strokeWidth = 1.5;
 
           canvas.drawLine(
@@ -427,7 +436,7 @@ class GanttPainter extends CustomPainter {
 
       // Draw horizontal grid line
       final gridPaint = Paint()
-        ..color = Color(GanttChartColors.gridLineColor)
+        ..color = const Color(GanttChartColors.gridLineColor)
         ..strokeWidth = 0.5;
 
       canvas.drawLine(
@@ -437,7 +446,8 @@ class GanttPainter extends CustomPainter {
       );
 
       // Draw task label
-      _drawTaskLabel(canvas, task.name, topLeft.dx, y, labelWidth, taskRowHeight, fontSize);
+      _drawTaskLabel(canvas, task.name, topLeft.dx, y, labelWidth,
+          taskRowHeight, fontSize);
 
       // Draw task bar
       final taskStartDays = task.startDate.difference(minDate).inDays;
@@ -450,7 +460,8 @@ class GanttPainter extends CustomPainter {
 
       if (task.status == GanttTaskStatus.milestone) {
         // Draw milestone as diamond
-        _drawMilestone(canvas, barX, barY + barHeight / 2, barHeight / 2, task.status);
+        _drawMilestone(
+            canvas, barX, barY + barHeight / 2, barHeight / 2, task.status);
       } else {
         // Draw task bar
         _drawTaskBar(canvas, barX, barY, barWidth, barHeight, task.status);
@@ -459,12 +470,13 @@ class GanttPainter extends CustomPainter {
 
     // Draw vertical separator between labels and timeline
     final separatorPaint = Paint()
-      ..color = Color(GanttChartColors.gridLineColor)
+      ..color = const Color(GanttChartColors.gridLineColor)
       ..strokeWidth = 1.0;
 
     canvas.drawLine(
       Offset(topLeft.dx + labelWidth, topLeft.dy),
-      Offset(topLeft.dx + labelWidth, topLeft.dy + ganttData.tasks.length * taskRowHeight),
+      Offset(topLeft.dx + labelWidth,
+          topLeft.dy + ganttData.tasks.length * taskRowHeight),
       separatorPaint,
     );
   }
@@ -480,7 +492,8 @@ class GanttPainter extends CustomPainter {
     double fontSize,
   ) {
     final textStyle = TextStyle(
-      color: Color(style.defaultNodeStyle.textColor ?? MermaidColors.defaultTextColor),
+      color: Color(
+          style.defaultNodeStyle.textColor ?? MermaidColors.defaultTextColor),
       fontSize: fontSize,
       fontFamily: style.fontFamily,
     );
@@ -579,7 +592,7 @@ class GanttPainter extends CustomPainter {
 
     // Draw vertical line
     final linePaint = Paint()
-      ..color = Color(GanttChartColors.todayMarkerColor)
+      ..color = const Color(GanttChartColors.todayMarkerColor)
       ..strokeWidth = 2.0;
 
     canvas.drawLine(
@@ -590,7 +603,7 @@ class GanttPainter extends CustomPainter {
 
     // Draw "Today" label
     final textStyle = TextStyle(
-      color: Color(GanttChartColors.todayMarkerColor),
+      color: const Color(GanttChartColors.todayMarkerColor),
       fontSize: 10.0,
       fontWeight: FontWeight.bold,
       fontFamily: style.fontFamily,
@@ -606,7 +619,7 @@ class GanttPainter extends CustomPainter {
     // Draw background for label
     final bgPaint = Paint()
       ..color = mermaidColorWithOpacity(
-        Color(GanttChartColors.todayMarkerColor),
+        const Color(GanttChartColors.todayMarkerColor),
         0.1,
       )
       ..style = PaintingStyle.fill;
@@ -633,8 +646,18 @@ class GanttPainter extends CustomPainter {
   /// Gets month name abbreviation
   String _getMonthName(int month) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
     ];
     return months[month - 1];
   }
@@ -654,19 +677,22 @@ class GanttChartLayout {
   final MermaidDeviceConfig? deviceConfig;
 
   /// Computes the size needed to render the Gantt chart
-  Size computeLayout(GanttChartData ganttData, MermaidStyle style, Size availableSize) {
+  Size computeLayout(
+      GanttChartData ganttData, MermaidStyle style, Size availableSize) {
     if (ganttData.tasks.isEmpty) {
       return const Size(400, 200);
     }
 
     final padding = style.padding;
     final titleHeight = ganttData.title != null ? 50.0 : 0.0;
-    final headerHeight = 50.0;
-    final taskRowHeight = deviceConfig?.deviceType == DeviceType.mobile ? 28.0 : 32.0;
+    const headerHeight = 50.0;
+    final taskRowHeight =
+        deviceConfig?.deviceType == DeviceType.mobile ? 28.0 : 32.0;
 
     // Calculate minimum width based on date range
     final totalDays = ganttData.totalDays;
-    final minDayWidth = deviceConfig?.deviceType == DeviceType.mobile ? 8.0 : 15.0;
+    final minDayWidth =
+        deviceConfig?.deviceType == DeviceType.mobile ? 8.0 : 15.0;
     final minTimelineWidth = totalDays * minDayWidth;
 
     // Calculate label width
@@ -678,16 +704,19 @@ class GanttChartLayout {
         maxLabelWidth = estimatedWidth;
       }
     }
-    final labelWidth =
-        (maxLabelWidth + 20).clamp(100.0, 250.0).toDouble();
+    final labelWidth = (maxLabelWidth + 20).clamp(100.0, 250.0).toDouble();
 
     // Calculate total size
     final minWidth = labelWidth + minTimelineWidth + padding * 2;
-    final minHeight = titleHeight + headerHeight + ganttData.tasks.length * taskRowHeight + padding * 2;
+    final minHeight = titleHeight +
+        headerHeight +
+        ganttData.tasks.length * taskRowHeight +
+        padding * 2;
 
     // Constrain to available size
     final width = math.max(minWidth, math.min(availableSize.width, 1200.0));
-    final height = math.max(minHeight, math.min(minHeight, availableSize.height));
+    final height =
+        math.max(minHeight, math.min(minHeight, availableSize.height));
 
     return Size(width, height);
   }

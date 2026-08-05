@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -18,7 +18,8 @@ const Color _kSlashMenuSurfaceBorderColorLight = Color(0xFFDADCE0);
 const Color _kSlashMenuSurfaceBorderColorDark = Color(0xFF4A4C50);
 const EdgeInsets _kSlashMenuPadding = EdgeInsets.all(6);
 const double _kSlashMenuItemRadius = 8.0;
-const EdgeInsets _kSlashMenuItemOuterPadding = EdgeInsets.symmetric(vertical: 1);
+const EdgeInsets _kSlashMenuItemOuterPadding =
+    EdgeInsets.symmetric(vertical: 1);
 const EdgeInsets _kSlashMenuItemPadding = EdgeInsets.symmetric(
   horizontal: 10,
   vertical: 7,

@@ -4,6 +4,7 @@ analyzer:
   exclude:
     - .autoplan-runtime/**
     - _temp/**
+    - example/build/**
     - hosted/**
 
 linter:

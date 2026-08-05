@@ -135,17 +135,13 @@ class _WenzLinkHoverOverlayState extends State<WenzLinkHoverOverlay> {
     // Centre on the link and clamp into the container so long URLs near an edge
     // do not overflow the editor. `clamp` returns `num`, so convert for
     // [Positioned] (matching the formula/table anchor pattern).
-    final maxLeft =
-        (widget.containerWidth - width).clamp(0.0, double.infinity);
-    final left = (widget.linkRect.center.dx - width / 2)
-        .clamp(0.0, maxLeft)
-        .toDouble();
+    final maxLeft = (widget.containerWidth - width).clamp(0.0, double.infinity);
+    final left =
+        (widget.linkRect.center.dx - width / 2).clamp(0.0, maxLeft).toDouble();
     // Prefer above the link; flip below when there is no room above the top of
     // the stack (e.g. a link on the first visible line).
     final aboveTop = widget.linkRect.top - widget.gap - height;
-    final top = aboveTop >= 0
-        ? aboveTop
-        : widget.linkRect.bottom + widget.gap;
+    final top = aboveTop >= 0 ? aboveTop : widget.linkRect.bottom + widget.gap;
 
     return Positioned(
       left: left,

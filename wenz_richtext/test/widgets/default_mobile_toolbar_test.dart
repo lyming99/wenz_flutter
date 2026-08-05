@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
-import 'package:wenz_richtext/src/widgets/lucide_toolbar_icons.dart';
 
 import '../helpers/selection_test_helpers.dart';
 

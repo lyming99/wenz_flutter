@@ -53,8 +53,8 @@ class KanbanParser {
 
       // Parse column: columnId[Column Title] or columnId[Column Title] wip:N
       // Columns should NOT be deeply indented (max 2 spaces for formatting)
-      final columnMatch =
-          RegExp(r'^(\w+)\[([^\]]+)\](?:\s+wip:(\d+))?$').firstMatch(trimmedLine);
+      final columnMatch = RegExp(r'^(\w+)\[([^\]]+)\](?:\s+wip:(\d+))?$')
+          .firstMatch(trimmedLine);
       if (columnMatch != null && !line.startsWith('    ')) {
         // Save previous column
         if (currentColumn != null) {
@@ -64,8 +64,9 @@ class KanbanParser {
 
         final columnId = columnMatch.group(1)!;
         final columnTitle = columnMatch.group(2)!;
-        final wipLimit =
-            columnMatch.group(3) != null ? int.tryParse(columnMatch.group(3)!) : null;
+        final wipLimit = columnMatch.group(3) != null
+            ? int.tryParse(columnMatch.group(3)!)
+            : null;
 
         currentColumn = KanbanColumn(
           id: columnId,

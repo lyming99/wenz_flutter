@@ -1,4 +1,5 @@
 /// Internal pure Dart Mermaid renderer used by Wenz rich text widgets.
+library;
 
 export '../widgets/mermaid/mermaid_diagram.dart';
 export 'config/responsive_config.dart';
@@ -37,3 +38,5 @@ export 'parser/radar_parser.dart';
 export 'parser/sequence_parser.dart';
 export 'parser/timeline_parser.dart';
 export 'parser/xy_chart_parser.dart';
+export 'render/native_mermaid_render_service.dart';
+export 'render/render_models.dart';

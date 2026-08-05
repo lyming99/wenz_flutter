@@ -218,7 +218,9 @@ void main() {
     expect(session.selection?.extent.offset, 0);
   });
 
-  test('insert text block at selection inserts empty paragraphs above and below', () {
+  test(
+      'insert text block at selection inserts empty paragraphs above and below',
+      () {
     final belowSession = DocumentSession(
       document: _twoParagraphDocument(),
       selection: collapsedTextSelection('p1', 0, 3),
@@ -267,7 +269,9 @@ void main() {
     expect(aboveSession.selection, collapsedTextSelection('new-above', 1, 0));
   });
 
-  test('insert text block at selection no-ops without a valid top-level selection', () {
+  test(
+      'insert text block at selection no-ops without a valid top-level selection',
+      () {
     final missingSelection = DocumentSession(document: _twoParagraphDocument());
     final missingExecutor = CommandExecutor(missingSelection);
 
@@ -543,7 +547,8 @@ void main() {
     expect(second.attributes.checked, isFalse);
   });
 
-  test('enter after checked ordered todo keeps numbering and resets checked', () {
+  test('enter after checked ordered todo keeps numbering and resets checked',
+      () {
     final session = DocumentSession(
       document: const RichTextDocument(
         blocks: <BlockNode>[

@@ -116,7 +116,8 @@ class TimelinePainter extends CustomPainter {
         style: TextStyle(
           fontSize: deviceConfig?.fontSize ?? 16.0,
           fontWeight: FontWeight.bold,
-          color: Color(style.defaultNodeStyle.textColor ?? TimelineChartColors.textColor),
+          color: Color(style.defaultNodeStyle.textColor ??
+              TimelineChartColors.textColor),
         ),
       ),
       textDirection: TextDirection.ltr,
@@ -128,7 +129,7 @@ class TimelinePainter extends CustomPainter {
   /// Draws the horizontal timeline line
   void _drawTimelineLine(Canvas canvas, double startX, double endX, double y) {
     final paint = Paint()
-      ..color = Color(TimelineChartColors.primaryColor)
+      ..color = const Color(TimelineChartColors.primaryColor)
       ..strokeWidth = 3.0
       ..style = PaintingStyle.stroke;
 
@@ -219,7 +220,7 @@ class TimelinePainter extends CustomPainter {
           text: event.title,
           style: TextStyle(
             fontSize: fontSize,
-            color: Color(TimelineChartColors.textColor),
+            color: const Color(TimelineChartColors.textColor),
             fontWeight: FontWeight.w500,
             height: 1.2, // Line height for better readability
           ),
@@ -270,7 +271,7 @@ class TimelinePainter extends CustomPainter {
             style: TextStyle(
               fontSize: fontSize - 1,
               color: mermaidColorWithOpacity(
-                Color(TimelineChartColors.textColor),
+                const Color(TimelineChartColors.textColor),
                 0.7,
               ),
               fontStyle: FontStyle.italic,
@@ -286,7 +287,8 @@ class TimelinePainter extends CustomPainter {
           canvas,
           Offset(centerX - descPainter.width / 2, currentY),
         );
-        currentY += descPainter.height + 8; // Increase spacing after description
+        currentY +=
+            descPainter.height + 8; // Increase spacing after description
       }
     }
   }

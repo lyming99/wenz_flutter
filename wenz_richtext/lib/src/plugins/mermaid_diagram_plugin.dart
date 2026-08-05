@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 
 import '../core/model/block_node.dart';
+import '../mermaid/render/native_mermaid_render_service.dart';
+import '../mermaid/render/render_models.dart';
 import '../widgets/mermaid/mermaid_code_block_widget.dart';
 import 'editor_plugin.dart';
 
@@ -16,14 +20,22 @@ import 'editor_plugin.dart';
 class MermaidDiagramConfig {
   const MermaidDiagramConfig({
     this.debounce = const Duration(milliseconds: 300),
-    this.defaultTheme = 'default',
+    this.defaultTheme = 'auto',
+    this.limits = const MermaidRenderLimits(),
+    this.diagnostics,
   });
 
   /// How long to wait after the last source change before re-rendering.
   final Duration debounce;
 
-  /// Default Mermaid theme identifier (e.g. `'default'`, `'dark'`, `'forest'`).
+  /// Mermaid theme identifier (`auto`, `light`, `dark`, `forest`, `neutral`).
   final String defaultTheme;
+
+  /// Parser, layout, and total-time resource boundaries.
+  final MermaidRenderLimits limits;
+
+  /// Optional privacy-safe performance event sink.
+  final MermaidRenderDiagnostics? diagnostics;
 }
 
 // ---------------------------------------------------------------------------
@@ -73,10 +85,15 @@ class MermaidDiagramPlugin extends WenzRichTextPlugin {
   /// [config] controls debounce and theme. [renderer] is retained only for
   /// backwards constructor compatibility and is not used by the default pure
   /// Flutter preview path.
-  const MermaidDiagramPlugin({
+  MermaidDiagramPlugin({
     required this.config,
     this.renderer = const NativeMermaidRenderer(),
-  });
+    NativeMermaidRenderService? renderService,
+  })  : renderService = renderService ??
+            DefaultNativeMermaidRenderService(
+              diagnostics: config.diagnostics,
+            ),
+        _ownsRenderService = renderService == null;
 
   /// Stable plugin identifier used by bootstrap code to avoid duplicate
   /// auto-installation when a host supplies its own Mermaid plugin instance.
@@ -91,6 +108,11 @@ class MermaidDiagramPlugin extends WenzRichTextPlugin {
 
   /// Legacy renderer bridge retained for compatibility; not used by default.
   final MermaidRenderer renderer;
+
+  /// Editor/plugin-scoped service shared by every Mermaid block widget.
+  final NativeMermaidRenderService renderService;
+
+  final bool _ownsRenderService;
 
   @override
   void install(WenzPluginContext context) {
@@ -115,6 +137,7 @@ class MermaidDiagramPlugin extends WenzRichTextPlugin {
           block: block,
           config: config,
           renderer: renderer,
+          renderService: renderService,
           blockIndex: renderContext.blockIndex,
           sourceBuilder: sourceBuilder == null
               ? null
@@ -126,6 +149,13 @@ class MermaidDiagramPlugin extends WenzRichTextPlugin {
       return originalBuilder?.call(buildContext, renderContext) ??
           const SizedBox.shrink();
     });
+  }
+
+  @override
+  void dispose() {
+    if (_ownsRenderService) {
+      unawaited(renderService.dispose());
+    }
   }
 }
 

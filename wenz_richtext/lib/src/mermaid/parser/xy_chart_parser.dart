@@ -83,7 +83,8 @@ class XYChartParser {
       if (lowerLine.startsWith('line ')) {
         final values = _parseValues(trimmedLine.substring(5).trim());
         if (values.isNotEmpty) {
-          seriesList.add(XYChartSeries(type: XYSeriesType.line, values: values));
+          seriesList
+              .add(XYChartSeries(type: XYSeriesType.line, values: values));
         }
         continue;
       }
@@ -174,7 +175,8 @@ class XYChartParser {
     }
 
     // Parse numeric range: min --> max
-    final arrowMatch = RegExp(r'([\d.e+-]+)\s*-->\s*([\d.e+-]+)').firstMatch(remaining);
+    final arrowMatch =
+        RegExp(r'([\d.e+-]+)\s*-->\s*([\d.e+-]+)').firstMatch(remaining);
     if (arrowMatch != null) {
       min = double.tryParse(arrowMatch.group(1)!);
       max = double.tryParse(arrowMatch.group(2)!);
@@ -220,7 +222,9 @@ class XYChartParser {
     // Remove brackets
     var content = input.trim();
     if (content.startsWith('[')) content = content.substring(1);
-    if (content.endsWith(']')) content = content.substring(0, content.length - 1);
+    if (content.endsWith(']')) {
+      content = content.substring(0, content.length - 1);
+    }
 
     final parts = content.split(',');
     for (final part in parts) {

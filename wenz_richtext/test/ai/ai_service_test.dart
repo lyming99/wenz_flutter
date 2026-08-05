@@ -81,8 +81,8 @@ void main() {
         // Use a generous timeout to avoid flakiness on slow networks.
         await expectLater(
           service.validateConfig(config).timeout(
-            const Duration(seconds: 10),
-          ),
+                const Duration(seconds: 10),
+              ),
           throwsA(isA<AIServiceException>()),
         );
       },
@@ -105,8 +105,8 @@ void main() {
 
         await expectLater(
           service.validateConfig(config).timeout(
-            const Duration(seconds: 10),
-          ),
+                const Duration(seconds: 10),
+              ),
           throwsA(isA<AIServiceException>()),
         );
       },

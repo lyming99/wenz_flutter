@@ -86,7 +86,8 @@ class DocumentVersionSnapshot {
       id: id ?? this.id,
       document: document ?? this.document,
       createdAt: createdAt ?? this.createdAt,
-      authorId: identical(authorId, _unset) ? this.authorId : authorId as String?,
+      authorId:
+          identical(authorId, _unset) ? this.authorId : authorId as String?,
       authorName: identical(authorName, _unset)
           ? this.authorName
           : authorName as String?,
@@ -211,7 +212,8 @@ bool _jsonEquals(Object? left, Object? right) {
 int _jsonHash(Object? value) {
   if (value is Map) {
     return Object.hashAll(
-      value.entries.map((entry) => Object.hash(entry.key, _jsonHash(entry.value))),
+      value.entries
+          .map((entry) => Object.hash(entry.key, _jsonHash(entry.value))),
     );
   }
   if (value is List) {

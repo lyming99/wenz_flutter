@@ -778,7 +778,8 @@ void main() {
       expect(rightOffset, fixture.text.length);
     });
 
-    test('right-side blank on first wrapped visual line uses that line end', () {
+    test('right-side blank on first wrapped visual line uses that line end',
+        () {
       final fixture = _wrappedLineHitFixture();
       final firstLine = fixture.lines[0];
       final firstRange = _lineRangeAt(fixture.painter, firstLine);
@@ -798,7 +799,8 @@ void main() {
       expect(offset, lessThanOrEqualTo(secondRange.start));
     });
 
-    test('right-side blank on second wrapped visual line uses that line end', () {
+    test('right-side blank on second wrapped visual line uses that line end',
+        () {
       final fixture = _wrappedLineHitFixture();
       expect(fixture.lines.length, greaterThanOrEqualTo(3));
       final secondLine = fixture.lines[1];
@@ -856,7 +858,8 @@ void main() {
       expect(rightOffset, targetRange.end);
     });
 
-    test('explicit newlines keep right-side blank hits on the current line', () {
+    test('explicit newlines keep right-side blank hits on the current line',
+        () {
       final fixture = _lineHitFixture(
         'alpha beta\ngamma delta\nomega',
         maxWidth: 320,

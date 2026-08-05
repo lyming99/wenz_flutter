@@ -209,7 +209,8 @@ class FlowchartPainter extends MermaidPainter {
 
     // Draw title/label
     final textStyle = TextStyle(
-      color: Color(style.defaultNodeStyle.textColor ?? MermaidColors.defaultTextColor),
+      color: Color(
+          style.defaultNodeStyle.textColor ?? MermaidColors.defaultTextColor),
       fontSize: 14.0,
       fontWeight: FontWeight.w600,
     );
@@ -481,7 +482,8 @@ class FlowchartPainter extends MermaidPainter {
     if (isBackEdge) {
       _drawBackEdge(canvas, fromNode, toNode, fromPoint, toPoint, edge, paint);
     } else {
-      _drawForwardEdge(canvas, fromPoint, toPoint, edge, paint, fromCenter, toCenter);
+      _drawForwardEdge(
+          canvas, fromPoint, toPoint, edge, paint, fromCenter, toCenter);
     }
   }
 
@@ -504,7 +506,8 @@ class FlowchartPainter extends MermaidPainter {
   }
 
   /// Get connection points for edge
-  (Offset, Offset) _getConnectionPoints(MermaidNode fromNode, MermaidNode toNode) {
+  (Offset, Offset) _getConnectionPoints(
+      MermaidNode fromNode, MermaidNode toNode) {
     final fromCenter = Offset(
       fromNode.x + fromNode.width / 2,
       fromNode.y + fromNode.height / 2,
@@ -614,13 +617,14 @@ class FlowchartPainter extends MermaidPainter {
     Paint paint,
   ) {
     final path = Path();
-    final loopOffset = 40.0;
+    const loopOffset = 40.0;
 
     if (!_isHorizontal) {
       // Vertical layout (TD/BT)
       // Find the Y range between the two nodes
       final minY = math.min(fromNode.y, toNode.y);
-      final maxY = math.max(fromNode.y + fromNode.height, toNode.y + toNode.height);
+      final maxY =
+          math.max(fromNode.y + fromNode.height, toNode.y + toNode.height);
 
       // Find nodes that are in the vertical range between from and to
       // to determine if we should go left or right
@@ -672,14 +676,20 @@ class FlowchartPainter extends MermaidPainter {
       final midY = (startY + endY) / 2;
 
       path.cubicTo(
-        routeX, startY,
-        routeX, midY,
-        routeX, midY,
+        routeX,
+        startY,
+        routeX,
+        midY,
+        routeX,
+        midY,
       );
       path.cubicTo(
-        routeX, midY,
-        routeX, endY,
-        endX, endY,
+        routeX,
+        midY,
+        routeX,
+        endY,
+        endX,
+        endY,
       );
 
       // Draw the path
@@ -698,7 +708,8 @@ class FlowchartPainter extends MermaidPainter {
     } else {
       // Horizontal layout (LR/RL)
       final minX = math.min(fromNode.x, toNode.x);
-      final maxX = math.max(fromNode.x + fromNode.width, toNode.x + toNode.width);
+      final maxX =
+          math.max(fromNode.x + fromNode.width, toNode.x + toNode.width);
 
       // Find nodes that are in the X range between from and to
       double topMostY = double.infinity;
@@ -743,14 +754,20 @@ class FlowchartPainter extends MermaidPainter {
       final midX = (startX + endX) / 2;
 
       path.cubicTo(
-        startX, routeY,
-        midX, routeY,
-        midX, routeY,
+        startX,
+        routeY,
+        midX,
+        routeY,
+        midX,
+        routeY,
       );
       path.cubicTo(
-        midX, routeY,
-        endX, routeY,
-        endX, endY,
+        midX,
+        routeY,
+        endX,
+        routeY,
+        endX,
+        endY,
       );
 
       // Draw the path
@@ -781,7 +798,8 @@ class FlowchartPainter extends MermaidPainter {
       var distance = 0.0;
       while (distance < metric.length) {
         final segmentLength = math.min(dashLength, metric.length - distance);
-        final extractedPath = metric.extractPath(distance, distance + segmentLength);
+        final extractedPath =
+            metric.extractPath(distance, distance + segmentLength);
         canvas.drawPath(extractedPath, paint);
         distance += dashLength + gapLength;
       }
@@ -798,9 +816,8 @@ class FlowchartPainter extends MermaidPainter {
     );
 
     // Offset label to avoid overlapping with the line
-    final labelOffset = _isHorizontal
-        ? const Offset(0, -12)
-        : const Offset(12, 0);
+    final labelOffset =
+        _isHorizontal ? const Offset(0, -12) : const Offset(12, 0);
 
     final edgeStyle = edge.style ?? style.defaultEdgeStyle;
     final textStyle = TextStyle(

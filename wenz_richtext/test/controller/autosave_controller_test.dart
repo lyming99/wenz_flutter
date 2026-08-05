@@ -5,7 +5,8 @@ import '../helpers/selection_test_helpers.dart';
 
 void main() {
   group('WenzAutoSaveController', () {
-    test('marks dirty on document changes and ignores selection-only changes', () {
+    test('marks dirty on document changes and ignores selection-only changes',
+        () {
       final host = WenzRichTextController(
         document: _doc(),
         selection: collapsedTextSelection('p1', 0, 0),

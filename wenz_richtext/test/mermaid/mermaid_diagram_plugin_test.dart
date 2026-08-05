@@ -33,7 +33,9 @@ BlockRendererRegistry _installMermaidPlugin({
 }) {
   final controller = WenzRichTextController();
   final registry = BlockRendererRegistry();
+  final renderService = DefaultNativeMermaidRenderService();
   addTearDown(controller.dispose);
+  addTearDown(renderService.dispose);
 
   if (originalCodeRenderer != null) {
     registry.register(BlockType.code, originalCodeRenderer);
@@ -46,6 +48,7 @@ BlockRendererRegistry _installMermaidPlugin({
       MermaidDiagramPlugin(
         config: config,
         renderer: renderer ?? const NativeMermaidRenderer(),
+        renderService: renderService,
       ),
     ],
     context: WenzPluginContext(
@@ -141,7 +144,8 @@ void main() {
     ) async {
       final registry = _installMermaidPlugin();
       const blocks = <CodeBlockNode>[
-        CodeBlockNode(id: 'trimmed', language: ' Mermaid ', code: 'flowchart TD'),
+        CodeBlockNode(
+            id: 'trimmed', language: ' Mermaid ', code: 'flowchart TD'),
         CodeBlockNode(id: 'upper', language: 'MERMAID', code: 'flowchart TD'),
         CodeBlockNode(
           id: 'extra',
@@ -172,19 +176,21 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Column(
-            children: <Widget>[
-              for (final block in blocks)
-                Builder(
-                  builder: (context) {
-                    final builder = registry.resolveForBlock(
-                      block,
-                      fallback: (_, __) => const SizedBox.shrink(),
-                    );
-                    return builder(context, _codeRenderContext(block));
-                  },
-                ),
-            ],
+          home: SingleChildScrollView(
+            child: Column(
+              children: <Widget>[
+                for (final block in blocks)
+                  Builder(
+                    builder: (context) {
+                      final builder = registry.resolveForBlock(
+                        block,
+                        fallback: (_, __) => const SizedBox.shrink(),
+                      );
+                      return builder(context, _codeRenderContext(block));
+                    },
+                  ),
+              ],
+            ),
           ),
         ),
       );
@@ -222,13 +228,14 @@ void main() {
       );
 
       expect(defaultConfig.debounce, const Duration(milliseconds: 300));
-      expect(defaultConfig.defaultTheme, 'default');
+      expect(defaultConfig.defaultTheme, 'auto');
       expect(customConfig.debounce, const Duration(seconds: 1));
       expect(customConfig.defaultTheme, 'dark');
     });
 
     test('plugin id and legacy renderer compatibility are explicit', () async {
-      const plugin = MermaidDiagramPlugin(config: MermaidDiagramConfig());
+      final plugin = MermaidDiagramPlugin(config: const MermaidDiagramConfig());
+      addTearDown(plugin.dispose);
 
       expect(plugin.id, MermaidDiagramPlugin.pluginId);
       expect(plugin.id, 'wenz.richtext.mermaid');

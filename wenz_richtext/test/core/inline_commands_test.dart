@@ -1,4 +1,4 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
 
 import '../helpers/selection_test_helpers.dart';
@@ -127,7 +127,8 @@ void main() {
     expect((block.content.single as TextRun).attributes.remark, isNull);
   });
 
-  test('insert inline embed replaces selection and moves caret after embed', () {
+  test('insert inline embed replaces selection and moves caret after embed',
+      () {
     final session = DocumentSession(
       document: const RichTextDocument(
         blocks: <BlockNode>[
@@ -378,7 +379,8 @@ void main() {
       selection: initialSelection,
     );
 
-    controller.updateBlockFormula(blockId: 'formula-block', text: r'\frac{1}{2}');
+    controller.updateBlockFormula(
+        blockId: 'formula-block', text: r'\frac{1}{2}');
 
     var block = controller.document.blocks[1] as BlockEmbedNode;
     expect(controller.selection, initialSelection);
@@ -503,7 +505,8 @@ void main() {
     controller.dispose();
   });
 
-  test('controller updates second adjacent inline formula at shared boundary', () {
+  test('controller updates second adjacent inline formula at shared boundary',
+      () {
     final controller = WenzRichTextController(
       document: const RichTextDocument(
         blocks: <BlockNode>[

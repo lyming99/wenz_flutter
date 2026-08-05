@@ -15,7 +15,8 @@ void main() {
           body: WenzCommentSidebar(
             threads: <CommentThread>[thread],
             onSelectThread: (thread) => selectedThread = thread,
-            onRevealAnchor: (thread, selection) => revealedSelection = selection,
+            onRevealAnchor: (thread, selection) =>
+                revealedSelection = selection,
           ),
         ),
       ),
@@ -25,7 +26,8 @@ void main() {
     expect(find.text('Open'), findsOneWidget);
     expect(find.text('Please clarify this sentence.'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey<String>('wenz-comment-thread-t1')));
+    await tester
+        .tap(find.byKey(const ValueKey<String>('wenz-comment-thread-t1')));
     await tester.pump();
 
     expect(selectedThread, thread);
@@ -58,8 +60,10 @@ void main() {
     expect(find.text('1 open / 2 total'), findsOneWidget);
     expect(find.text('Resolved'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey<String>('wenz-comment-resolve-t1')));
-    await tester.tap(find.byKey(const ValueKey<String>('wenz-comment-reopen-t2')));
+    await tester
+        .tap(find.byKey(const ValueKey<String>('wenz-comment-resolve-t1')));
+    await tester
+        .tap(find.byKey(const ValueKey<String>('wenz-comment-reopen-t2')));
 
     expect(resolved, openThread);
     expect(reopened, resolvedThread);

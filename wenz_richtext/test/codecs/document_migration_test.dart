@@ -14,7 +14,8 @@ void main() {
       expect(identical(registry.migrateToCurrent(json), json), isTrue);
     });
 
-    test('returns the json unchanged above currentVersion (forward compat)', () {
+    test('returns the json unchanged above currentVersion (forward compat)',
+        () {
       final registry = DocumentMigrationRegistry()
         ..register(const V1ToV2DocumentMigration());
       final json = <String, Object?>{

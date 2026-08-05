@@ -323,8 +323,7 @@ class ObjectBlockToolbarOverlayController extends ChangeNotifier {
     if (_disposed || !identical(_activeHandoffToken, token)) {
       return;
     }
-    final canRestore =
-        restore && _handoffCanRestore && _isHandoffActive(token);
+    final canRestore = restore && _handoffCanRestore && _isHandoffActive(token);
     final candidate = _handoffRequest;
 
     _activeHandoffToken = null;
@@ -456,7 +455,8 @@ class _ObjectBlockToolbarOverlayHostState
     }
     if (SchedulerBinding.instance.schedulerPhase ==
         SchedulerPhase.persistentCallbacks) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _handleControllerChanged());
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _handleControllerChanged());
       return;
     }
     setState(() {
@@ -505,8 +505,7 @@ class ObjectBlockToolbarOverlayAnchor extends StatefulWidget {
 }
 
 class _ObjectBlockToolbarOverlayAnchorState
-    extends State<ObjectBlockToolbarOverlayAnchor>
-    with WidgetsBindingObserver {
+    extends State<ObjectBlockToolbarOverlayAnchor> with WidgetsBindingObserver {
   final LayerLink _anchorLink = LayerLink();
   final Object _owner = Object();
   ScrollPosition? _scrollPosition;
@@ -719,8 +718,7 @@ class _ObjectBlockToolbarOverlayAnchorState
   }
 }
 
-class _ObjectBlockToolbarAnchorMeasure
-    extends SingleChildRenderObjectWidget {
+class _ObjectBlockToolbarAnchorMeasure extends SingleChildRenderObjectWidget {
   const _ObjectBlockToolbarAnchorMeasure({
     required this.onSizeChanged,
     required super.child,

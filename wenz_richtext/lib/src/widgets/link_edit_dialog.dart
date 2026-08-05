@@ -217,7 +217,8 @@ class _WenzLinkEditSheetState extends State<_WenzLinkEditSheet> {
                   border: inputBorder,
                   enabledBorder: inputBorder,
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+                    borderSide:
+                        BorderSide(color: colorScheme.primary, width: 1.5),
                   ),
                 ),
                 keyboardType: TextInputType.url,

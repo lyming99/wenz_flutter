@@ -1,4 +1,5 @@
 /// Data models for Gantt Chart diagrams
+library;
 
 /// Represents the status of a task
 enum GanttTaskStatus {

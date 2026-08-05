@@ -141,7 +141,8 @@ class MindmapParser {
         continue;
       }
 
-      final classMatch = RegExp(r':::\s*([A-Za-z0-9_\- ]+)\s*$').firstMatch(content);
+      final classMatch =
+          RegExp(r':::\s*([A-Za-z0-9_\- ]+)\s*$').firstMatch(content);
       if (classMatch != null) {
         className = _mergeClassNames(classMatch.group(1)!.trim(), className);
         content = content.substring(0, classMatch.start).trimRight();
@@ -161,12 +162,18 @@ class MindmapParser {
     }
 
     final shapes = <_ShapePattern>[
-      _ShapePattern(RegExp(r'^([A-Za-z_][\w-]*)?\)\)(.+)\(\($'), MindmapNodeShape.bang),
-      _ShapePattern(RegExp(r'^([A-Za-z_][\w-]*)?\)(.+)\($'), MindmapNodeShape.cloud),
-      _ShapePattern(RegExp(r'^([A-Za-z_][\w-]*)?\(\((.+)\)\)$'), MindmapNodeShape.circle),
-      _ShapePattern(RegExp(r'^([A-Za-z_][\w-]*)?\{\{(.+)\}\}$'), MindmapNodeShape.hexagon),
-      _ShapePattern(RegExp(r'^([A-Za-z_][\w-]*)?\[(.+)\]$'), MindmapNodeShape.rectangle),
-      _ShapePattern(RegExp(r'^([A-Za-z_][\w-]*)?\((.+)\)$'), MindmapNodeShape.roundedRect),
+      _ShapePattern(
+          RegExp(r'^([A-Za-z_][\w-]*)?\)\)(.+)\(\($'), MindmapNodeShape.bang),
+      _ShapePattern(
+          RegExp(r'^([A-Za-z_][\w-]*)?\)(.+)\($'), MindmapNodeShape.cloud),
+      _ShapePattern(
+          RegExp(r'^([A-Za-z_][\w-]*)?\(\((.+)\)\)$'), MindmapNodeShape.circle),
+      _ShapePattern(RegExp(r'^([A-Za-z_][\w-]*)?\{\{(.+)\}\}$'),
+          MindmapNodeShape.hexagon),
+      _ShapePattern(
+          RegExp(r'^([A-Za-z_][\w-]*)?\[(.+)\]$'), MindmapNodeShape.rectangle),
+      _ShapePattern(RegExp(r'^([A-Za-z_][\w-]*)?\((.+)\)$'),
+          MindmapNodeShape.roundedRect),
     ];
 
     for (final pattern in shapes) {

@@ -3,7 +3,8 @@ import 'package:wenz_richtext/wenz_richtext.dart';
 
 void main() {
   group('WenzRichTextController.insertImage', () {
-    test('inserts full metadata at an explicit index and supports undo redo', () {
+    test('inserts full metadata at an explicit index and supports undo redo',
+        () {
       final initialSelection = _collapsedTextSelection('p1', 0, 6);
       final selectionAfterInsert = _collapsedTextSelection('p2', 2, 0);
       final controller = WenzRichTextController(
@@ -40,10 +41,10 @@ void main() {
 
       expect(change.description, 'insertBlocks');
       expect(controller.document.blocks, hasLength(3));
-      expect((controller.document.blocks[0] as TextBlockNode).plainText,
-          'before');
-      expect((controller.document.blocks[2] as TextBlockNode).plainText,
-          'after');
+      expect(
+          (controller.document.blocks[0] as TextBlockNode).plainText, 'before');
+      expect(
+          (controller.document.blocks[2] as TextBlockNode).plainText, 'after');
       final image = controller.document.blocks[1] as ImageBlockNode;
       expect(image.id, 'img1');
       expect(image.assetId, 'asset-1');
@@ -161,8 +162,8 @@ void main() {
 
       expect(controller.undo(), isTrue);
       expect(controller.document.blocks, hasLength(1));
-      expect((controller.document.blocks.single as TextBlockNode).plainText,
-          'ab');
+      expect(
+          (controller.document.blocks.single as TextBlockNode).plainText, 'ab');
       expect(controller.selection, initialSelection);
 
       expect(controller.redo(), isTrue);
@@ -267,8 +268,8 @@ void main() {
 
       expect(controller.undo(), isTrue);
       expect(controller.document.blocks, hasLength(1));
-      expect((controller.document.blocks.single as TextBlockNode).plainText,
-          'ab');
+      expect(
+          (controller.document.blocks.single as TextBlockNode).plainText, 'ab');
       expect(controller.selection, initialSelection);
 
       controller.dispose();
@@ -453,8 +454,7 @@ void main() {
         ],
       );
 
-      expect(invalidResult.status,
-          ExternalImagePasteStatus.noInsertableImages);
+      expect(invalidResult.status, ExternalImagePasteStatus.noInsertableImages);
       expect(invalidResult.change, isNull);
       expect(invalidController.canUndo, isFalse);
       invalidController.dispose();

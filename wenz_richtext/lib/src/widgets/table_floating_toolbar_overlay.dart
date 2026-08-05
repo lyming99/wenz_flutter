@@ -254,7 +254,8 @@ class _TableFloatingToolbarOverlayHostState
     }
     if (SchedulerBinding.instance.schedulerPhase ==
         SchedulerPhase.persistentCallbacks) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _handleControllerChanged());
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _handleControllerChanged());
       return;
     }
     setState(() {

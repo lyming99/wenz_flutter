@@ -213,9 +213,11 @@ void main() {
     );
 
     expect(merged.bindings, hasLength(3));
-    expect(merged.validate().map((issue) => issue.code), contains(
-      EditorShortcutConfigurationIssueCode.duplicateShortcut,
-    ));
+    expect(
+        merged.validate().map((issue) => issue.code),
+        contains(
+          EditorShortcutConfigurationIssueCode.duplicateShortcut,
+        ));
     expect(save.disposition, EditorShortcutDisposition.passThrough);
     expect(paste.disposition, EditorShortcutDisposition.ignored);
   });

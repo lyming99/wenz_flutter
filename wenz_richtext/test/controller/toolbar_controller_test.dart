@@ -800,8 +800,8 @@ void main() {
         final table = host.document.blocks.single as TableBlockNode;
         final textBlock =
             table.table.cellAt(0, 0)!.blocks.single as TextBlockNode;
-        expect((textBlock.content.single as TextRun).attributes.color,
-            0xFF336699);
+        expect(
+            (textBlock.content.single as TextRun).attributes.color, 0xFF336699);
 
         toolbar.dispose();
         host.dispose();
@@ -982,8 +982,7 @@ void main() {
         isNull,
       );
       expect(
-        ((host.document.blocks.first as TextBlockNode).content.first
-                as TextRun)
+        ((host.document.blocks.first as TextBlockNode).content.first as TextRun)
             .attributes
             .background,
         isNull,
@@ -1008,7 +1007,8 @@ void main() {
       host.dispose();
     });
 
-    test('image object selection exposes alignment and preserves undo state', () {
+    test('image object selection exposes alignment and preserves undo state',
+        () {
       final selection = _objectSelection('img', 0, 1);
       final host = WenzRichTextController(
         document: _imageAlignmentDoc(imageAlignment: 'right'),
@@ -1473,8 +1473,7 @@ void main() {
       expect(video.showWidth, 320);
       expect(video.showHeight, 240);
       expect(video.uploadStatus, FileUploadStatus.uploaded);
-      expect((host.document.blocks[6] as TextBlockNode).plainText,
-          'ragraph.');
+      expect((host.document.blocks[6] as TextBlockNode).plainText, 'ragraph.');
 
       toolbar.dispose();
       host.dispose();

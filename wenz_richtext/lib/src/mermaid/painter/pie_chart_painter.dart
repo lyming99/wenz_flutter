@@ -43,8 +43,10 @@ class PieChartPainter extends CustomPainter {
 
     if (showLegendBelow) {
       // Mobile layout: pie on top, legend below
-      final pieAreaHeight = size.height - titleHeight - legendHeight - padding * 4;
-      final pieRadius = math.max(minPieRadius * 0.6, math.min(size.width - padding * 2, pieAreaHeight) / 2 - 10);
+      final pieAreaHeight =
+          size.height - titleHeight - legendHeight - padding * 4;
+      final pieRadius = math.max(minPieRadius * 0.6,
+          math.min(size.width - padding * 2, pieAreaHeight) / 2 - 10);
 
       final pieCenter = Offset(
         size.width / 2,
@@ -77,7 +79,8 @@ class PieChartPainter extends CustomPainter {
       final pieAreaHeight = size.height - titleHeight - padding * 2;
 
       // Ensure minimum pie radius
-      final pieRadius = math.max(minPieRadius * 0.6, math.min(availableForPie, pieAreaHeight) / 2 - 10);
+      final pieRadius = math.max(minPieRadius * 0.6,
+          math.min(availableForPie, pieAreaHeight) / 2 - 10);
 
       // Center the pie in its area
       final pieCenter = Offset(
@@ -97,7 +100,8 @@ class PieChartPainter extends CustomPainter {
 
       // Position legend to the right of the pie
       final legendX = pieCenter.dx + pieRadius + padding * 2;
-      final legendY = titleHeight + padding + (pieAreaHeight - legendHeight) / 2;
+      final legendY =
+          titleHeight + padding + (pieAreaHeight - legendHeight) / 2;
 
       // Draw legend
       _drawLegend(
@@ -143,7 +147,8 @@ class PieChartPainter extends CustomPainter {
   /// Draws the title centered above the pie chart
   void _drawTitle(Canvas canvas, String title, double pieCenterX) {
     final textStyle = TextStyle(
-      color: Color(style.defaultNodeStyle.textColor ?? MermaidColors.defaultTextColor),
+      color: Color(
+          style.defaultNodeStyle.textColor ?? MermaidColors.defaultTextColor),
       fontSize: 16.0,
       fontWeight: FontWeight.bold,
       fontFamily: style.fontFamily,
@@ -202,7 +207,8 @@ class PieChartPainter extends CustomPainter {
       canvas.drawPath(path, borderPaint);
 
       // Draw percentage label on slice if it's large enough
-      if (sweepAngle > 0.3) { // Only show label if slice is > ~17%
+      if (sweepAngle > 0.3) {
+        // Only show label if slice is > ~17%
         _drawSliceLabel(canvas, center, radius, startAngle, sweepAngle, slice);
       }
 
@@ -255,7 +261,8 @@ class PieChartPainter extends CustomPainter {
     textPainter.paint(canvas, offset);
   }
 
-  void _drawLegend(Canvas canvas, Offset topLeft, double maxWidth, double fontSize) {
+  void _drawLegend(
+      Canvas canvas, Offset topLeft, double maxWidth, double fontSize) {
     final itemHeight = fontSize * 2;
     final colorBoxSize = fontSize * 1.1;
     const spacing = 6.0;
@@ -285,7 +292,8 @@ class PieChartPainter extends CustomPainter {
 
       // Draw border for color box
       final borderPaint = Paint()
-        ..color = Color(style.defaultEdgeStyle.strokeColor ?? MermaidColors.defaultEdgeColor)
+        ..color = Color(style.defaultEdgeStyle.strokeColor ??
+            MermaidColors.defaultEdgeColor)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.0;
 
@@ -305,7 +313,8 @@ class PieChartPainter extends CustomPainter {
       labelText += ' (${percentage.toStringAsFixed(1)}%)';
 
       final textStyle = TextStyle(
-        color: Color(style.defaultNodeStyle.textColor ?? MermaidColors.defaultTextColor),
+        color: Color(
+            style.defaultNodeStyle.textColor ?? MermaidColors.defaultTextColor),
         fontSize: fontSize,
         fontFamily: style.fontFamily,
       );
@@ -345,7 +354,8 @@ class PieChartLayout {
   final MermaidDeviceConfig? deviceConfig;
 
   /// Computes the size needed to render the pie chart
-  Size computeLayout(PieChartData pieData, MermaidStyle style, Size availableSize) {
+  Size computeLayout(
+      PieChartData pieData, MermaidStyle style, Size availableSize) {
     // Get responsive values
     final minPieRadius = deviceConfig?.pieMinRadius ?? 90.0;
     final showLegendBelow = deviceConfig?.showLegendBelow ?? false;
@@ -363,8 +373,10 @@ class PieChartLayout {
 
     if (showLegendBelow) {
       // Mobile layout: pie on top, legend below
-      final minWidth = math.max(minPieDiameter, legendWidth) + style.padding * 2;
-      final minHeight = titleHeight + minPieDiameter + legendHeight + style.padding * 4;
+      final minWidth =
+          math.max(minPieDiameter, legendWidth) + style.padding * 2;
+      final minHeight =
+          titleHeight + minPieDiameter + legendHeight + style.padding * 4;
 
       return Size(
         math.max(minWidth, math.min(availableSize.width, 400)),
@@ -377,7 +389,8 @@ class PieChartLayout {
       final minHeight = titleHeight + contentHeight + style.padding * 3;
 
       // Use available size but ensure minimums
-      final maxWidth = deviceConfig?.deviceType == DeviceType.tablet ? 550.0 : 700.0;
+      final maxWidth =
+          deviceConfig?.deviceType == DeviceType.tablet ? 550.0 : 700.0;
       return Size(
         math.max(minWidth, math.min(availableSize.width, maxWidth)),
         math.max(minHeight, math.min(availableSize.height, 450)),
@@ -386,7 +399,8 @@ class PieChartLayout {
   }
 
   /// Measures the legend to get its required dimensions
-  (double width, double height) _measureLegend(PieChartData pieData, double fontSize) {
+  (double width, double height) _measureLegend(
+      PieChartData pieData, double fontSize) {
     final itemHeight = fontSize * 2;
     final colorBoxSize = fontSize * 1.1;
     const spacing = 6.0;

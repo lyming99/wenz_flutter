@@ -262,8 +262,7 @@ void main() {
       expect(session.canUndo, isFalse);
     });
 
-    test(
-        'non-collapsed selection collapses to end then jumps forward by word',
+    test('non-collapsed selection collapses to end then jumps forward by word',
         () {
       final session = DocumentSession(
         document: const RichTextDocument(
@@ -439,7 +438,8 @@ void main() {
       expect(session.canUndo, isFalse);
     });
 
-    test('non-collapsed Home with expandSelection=true extends to boundary', () {
+    test('non-collapsed Home with expandSelection=true extends to boundary',
+        () {
       final session = DocumentSession(
         document: const RichTextDocument(
           blocks: <BlockNode>[
@@ -467,8 +467,7 @@ void main() {
       expect(session.canUndo, isFalse);
     });
 
-    test(
-        'document boundary from non-collapsed selection collapses correctly',
+    test('document boundary from non-collapsed selection collapses correctly',
         () {
       final session = DocumentSession(
         document: const RichTextDocument(
@@ -511,8 +510,7 @@ void main() {
       expect(session.canUndo, isFalse);
     });
 
-    test(
-        'document boundary from non-collapsed with expandSelection extends',
+    test('document boundary from non-collapsed with expandSelection extends',
         () {
       final session = DocumentSession(
         document: const RichTextDocument(

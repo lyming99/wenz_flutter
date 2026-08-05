@@ -3,8 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/wenz_richtext.dart';
 
 void main() {
-  testWidgets('WenzOutlinePanel renders items from controller',
-      (tester) async {
+  testWidgets('WenzOutlinePanel renders items from controller', (tester) async {
     final controller = _ControllerStub(items: <OutlineItem>[
       _item(blockId: 'h1', level: 1, title: 'Hello'),
       _item(blockId: 'h2', level: 2, title: 'World'),
@@ -31,8 +30,7 @@ void main() {
     expect(find.text('No headings'), findsOneWidget);
   });
 
-  testWidgets('WenzOutlinePanel shows custom emptyBuilder',
-      (tester) async {
+  testWidgets('WenzOutlinePanel shows custom emptyBuilder', (tester) async {
     final controller = _ControllerStub(items: const <OutlineItem>[]);
 
     await tester.pumpWidget(_wrap(

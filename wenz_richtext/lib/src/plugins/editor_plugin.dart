@@ -30,6 +30,9 @@ abstract class WenzRichTextPlugin {
   /// Installs commands, renderers, menu items, toolbar items, middleware, or
   /// paste transformers into [context].
   void install(WenzPluginContext context);
+
+  /// Releases resources owned by this plugin. The default is a no-op.
+  void dispose() {}
 }
 
 /// Context passed to [WenzRichTextPlugin.install].
@@ -153,7 +156,8 @@ class WenzPluginContext {
     registry.register(item);
   }
 
-  void registerShortcutConfiguration(EditorShortcutConfiguration configuration) {
+  void registerShortcutConfiguration(
+      EditorShortcutConfiguration configuration) {
     try {
       shortcutConfigurations.add(configuration);
     } on UnsupportedError catch (error) {

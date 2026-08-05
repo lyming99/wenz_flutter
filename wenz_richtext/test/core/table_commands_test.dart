@@ -1169,7 +1169,8 @@ void main() {
     });
   });
 
-  test('update inline formula targets second adjacent formula in table cell', () {
+  test('update inline formula targets second adjacent formula in table cell',
+      () {
     final controller = WenzRichTextController(
       document: const RichTextDocument(
         blocks: <BlockNode>[
@@ -1217,11 +1218,8 @@ void main() {
     );
 
     final table = controller.document.blocks.single as TableBlockNode;
-    final textBlock = table.table
-        .cellAt(0, 0)!
-        .blocks
-        .whereType<TextBlockNode>()
-        .single;
+    final textBlock =
+        table.table.cellAt(0, 0)!.blocks.whereType<TextBlockNode>().single;
     final first = textBlock.content[0] as InlineEmbed;
     final second = textBlock.content[1] as InlineEmbed;
     expect(first.data['latex'], 'a+b');

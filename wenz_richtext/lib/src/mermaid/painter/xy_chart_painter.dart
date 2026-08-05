@@ -38,7 +38,7 @@ class XYChartPainter extends CustomPainter {
 
     // Layout areas
     var currentY = padding;
-    final yAxisLabelWidth = 50.0;
+    const yAxisLabelWidth = 50.0;
     final xAxisLabelHeight = isMobile ? 40.0 : 50.0;
 
     // Draw title
@@ -66,7 +66,8 @@ class XYChartPainter extends CustomPainter {
     if (dataCount == 0) return;
 
     // Draw grid lines and Y-axis labels
-    _drawYAxis(canvas, plotLeft, plotRight, plotTop, plotBottom, yMin, yMax, fontSize);
+    _drawYAxis(
+        canvas, plotLeft, plotRight, plotTop, plotBottom, yMin, yMax, fontSize);
 
     // Draw X-axis labels
     _drawXAxis(canvas, plotLeft, plotRight, plotBottom, dataCount, fontSize);
@@ -77,11 +78,14 @@ class XYChartPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     canvas
-      ..drawLine(Offset(plotLeft, plotTop), Offset(plotLeft, plotBottom), axisPaint)
-      ..drawLine(Offset(plotLeft, plotBottom), Offset(plotRight, plotBottom), axisPaint);
+      ..drawLine(
+          Offset(plotLeft, plotTop), Offset(plotLeft, plotBottom), axisPaint)
+      ..drawLine(Offset(plotLeft, plotBottom), Offset(plotRight, plotBottom),
+          axisPaint);
 
     // Count bar series for grouped bar layout
-    final barSeriesCount = xyData.series.where((s) => s.type == XYSeriesType.bar).length;
+    final barSeriesCount =
+        xyData.series.where((s) => s.type == XYSeriesType.bar).length;
     var barSeriesIndex = 0;
 
     // Draw each series
@@ -91,15 +95,34 @@ class XYChartPainter extends CustomPainter {
 
       if (series.type == XYSeriesType.bar) {
         _drawBarSeries(
-          canvas, series, color, plotLeft, plotTop, plotBottom,
-          plotWidth, plotHeight, dataCount, yMin, yRange,
-          barSeriesIndex, barSeriesCount,
+          canvas,
+          series,
+          color,
+          plotLeft,
+          plotTop,
+          plotBottom,
+          plotWidth,
+          plotHeight,
+          dataCount,
+          yMin,
+          yRange,
+          barSeriesIndex,
+          barSeriesCount,
         );
         barSeriesIndex++;
       } else {
         _drawLineSeries(
-          canvas, series, color, plotLeft, plotTop, plotBottom,
-          plotWidth, plotHeight, dataCount, yMin, yRange,
+          canvas,
+          series,
+          color,
+          plotLeft,
+          plotTop,
+          plotBottom,
+          plotWidth,
+          plotHeight,
+          dataCount,
+          yMin,
+          yRange,
         );
       }
     }
@@ -123,8 +146,14 @@ class XYChartPainter extends CustomPainter {
 
   /// Draws Y-axis grid lines and labels
   void _drawYAxis(
-    Canvas canvas, double plotLeft, double plotRight, double plotTop, double plotBottom,
-    double yMin, double yMax, double fontSize,
+    Canvas canvas,
+    double plotLeft,
+    double plotRight,
+    double plotTop,
+    double plotBottom,
+    double yMin,
+    double yMax,
+    double fontSize,
   ) {
     const tickCount = 5;
     final gridPaint = Paint()
@@ -206,8 +235,12 @@ class XYChartPainter extends CustomPainter {
 
   /// Draws X-axis labels
   void _drawXAxis(
-    Canvas canvas, double plotLeft, double plotRight, double plotBottom,
-    int dataCount, double fontSize,
+    Canvas canvas,
+    double plotLeft,
+    double plotRight,
+    double plotBottom,
+    int dataCount,
+    double fontSize,
   ) {
     final plotWidth = plotRight - plotLeft;
 
@@ -260,18 +293,25 @@ class XYChartPainter extends CustomPainter {
 
   /// Draws a bar series
   void _drawBarSeries(
-    Canvas canvas, XYChartSeries series, Color color,
-    double plotLeft, double plotTop, double plotBottom,
-    double plotWidth, double plotHeight, int dataCount,
-    double yMin, double yRange,
-    int barIndex, int totalBars,
+    Canvas canvas,
+    XYChartSeries series,
+    Color color,
+    double plotLeft,
+    double plotTop,
+    double plotBottom,
+    double plotWidth,
+    double plotHeight,
+    int dataCount,
+    double yMin,
+    double yRange,
+    int barIndex,
+    int totalBars,
   ) {
     final groupWidth = plotWidth / dataCount;
     final barAreaWidth = groupWidth * 0.7;
     final barWidth = totalBars > 1 ? barAreaWidth / totalBars : barAreaWidth;
-    final barOffset = totalBars > 1
-        ? -barAreaWidth / 2 + barIndex * barWidth
-        : -barWidth / 2;
+    final barOffset =
+        totalBars > 1 ? -barAreaWidth / 2 + barIndex * barWidth : -barWidth / 2;
 
     final paint = Paint()
       ..color = color
@@ -285,8 +325,7 @@ class XYChartPainter extends CustomPainter {
     for (var i = 0; i < series.values.length && i < dataCount; i++) {
       final value = series.values[i];
       final normalizedValue = (value - yMin) / yRange;
-      final barHeight =
-          plotHeight * normalizedValue.clamp(0.0, 1.0).toDouble();
+      final barHeight = plotHeight * normalizedValue.clamp(0.0, 1.0).toDouble();
 
       final x = plotLeft + groupWidth * (i + 0.5) + barOffset;
       final y = plotBottom - barHeight;
@@ -303,10 +342,17 @@ class XYChartPainter extends CustomPainter {
 
   /// Draws a line series
   void _drawLineSeries(
-    Canvas canvas, XYChartSeries series, Color color,
-    double plotLeft, double plotTop, double plotBottom,
-    double plotWidth, double plotHeight, int dataCount,
-    double yMin, double yRange,
+    Canvas canvas,
+    XYChartSeries series,
+    Color color,
+    double plotLeft,
+    double plotTop,
+    double plotBottom,
+    double plotWidth,
+    double plotHeight,
+    int dataCount,
+    double yMin,
+    double yRange,
   ) {
     if (series.values.isEmpty) return;
 

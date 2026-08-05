@@ -107,7 +107,8 @@ void main() {
     expect(slash.items.every((item) => item.matches('hea')), isTrue);
   });
 
-  test('detects empty paragraph paragraph-start and unicode-space triggers', () {
+  test('detects empty paragraph paragraph-start and unicode-space triggers',
+      () {
     final cases = <_SlashTriggerCase>[
       _SlashTriggerCase(
         description: 'empty paragraph receives slash',
@@ -498,7 +499,8 @@ void main() {
     expect(slash.highlightedIndex, 0);
   });
 
-  test('highlight navigation is safe on empty results and clamps selection', () {
+  test('highlight navigation is safe on empty results and clamps selection',
+      () {
     final editor = WenzRichTextController(
       document: _document('/no-such-item'),
       selection: collapsedTextSelection('p1', 0, 13),
@@ -550,8 +552,8 @@ void main() {
     expect(editor.canUndo, isTrue);
 
     expect(editor.undo(), isTrue);
-    expect((editor.document.blocks.single as TextBlockNode).plainText,
-        '/heading');
+    expect(
+        (editor.document.blocks.single as TextBlockNode).plainText, '/heading');
     expect(editor.redo(), isTrue);
     expect((editor.document.blocks.single as TextBlockNode).type,
         BlockType.heading);
@@ -587,7 +589,8 @@ void main() {
     }
   });
 
-  test('built-in block type items remove trigger and keep surrounding text', () {
+  test('built-in block type items remove trigger and keep surrounding text',
+      () {
     final cases = <_SlashActivationCase>[
       _SlashActivationCase(
         itemId: 'list',
@@ -666,7 +669,8 @@ void main() {
     expect(block.table.columnCount, 3);
     expect(editor.selection?.extent.path.isTableCellText, isTrue);
     expect(editor.undo(), isTrue);
-    expect((editor.document.blocks.single as TextBlockNode).plainText, '/table');
+    expect(
+        (editor.document.blocks.single as TextBlockNode).plainText, '/table');
   });
 
   test('table item removes trigger without dropping surrounding text', () {
@@ -808,7 +812,8 @@ void main() {
     expect(registry.filter('x').map((item) => item.id), <String>['alpha']);
 
     registry.clearFilters();
-    expect(registry.filter('x').map((item) => item.id), <String>['beta', 'alpha']);
+    expect(
+        registry.filter('x').map((item) => item.id), <String>['beta', 'alpha']);
 
     registry.unregister('beta');
     expect(registry.contains('beta'), isFalse);

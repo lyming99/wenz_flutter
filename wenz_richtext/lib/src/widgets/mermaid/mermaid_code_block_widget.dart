@@ -1,18 +1,18 @@
+// Matrix4's replacement helpers are unavailable on the Flutter 3.22 floor.
+// ignore_for_file: deprecated_member_use
+
 import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/model/block_node.dart';
 import '../../mermaid/mermaid.dart';
 import '../../plugins/mermaid_diagram_plugin.dart';
 import '../editor_tokens.dart';
 
-// ---------------------------------------------------------------------------
-// Visual constants — kept identical to _CodeBlockRenderer in the editor
-// so mermaid blocks blend seamlessly into the document.
-// ---------------------------------------------------------------------------
 const double _kMermaidBlockRadius = 12.0;
 const int _kMermaidBlockBackground = 0xFF1E1E2E;
 const int _kMermaidBlockTextColor = 0xFFE6E6F0;
@@ -33,21 +33,10 @@ const double _kMermaidPreviewWheelZoomIntensity = 0.0014;
 const double _kMermaidPreviewFallbackWidth = 960.0;
 const double _kMermaidPreviewFallbackHeight = 540.0;
 
-// ---------------------------------------------------------------------------
-// MermaidCodeBlockWidget
-// ---------------------------------------------------------------------------
-
-/// Renders a [CodeBlockNode] with `language == 'mermaid'` as a live diagram.
+/// Source/preview wrapper for one Mermaid code block.
 ///
-/// The widget offers two modes toggled by the header toolbar:
-/// - **Source mode** (default): editor-provided code block source surface.
-/// - **Preview mode**: pure Flutter Mermaid layout and CustomPaint output
-///   inside an [InteractiveViewer] that supports pan and zoom.
-///
-/// Rendering is debounced (default 300 ms) and parsed on the UI isolate using
-/// the internal pure Dart Mermaid parser/layout/painter stack. Unsupported or
-/// invalid diagrams are shown as explicit error states with a source recovery
-/// button.
+/// View state and request debouncing stay here; parser/layout work is delegated
+/// to the editor-scoped [NativeMermaidRenderService].
 class MermaidCodeBlockWidget extends StatefulWidget {
   const MermaidCodeBlockWidget({
     super.key,
@@ -55,35 +44,29 @@ class MermaidCodeBlockWidget extends StatefulWidget {
     required this.config,
     required this.renderer,
     required this.blockIndex,
+    this.renderService,
     this.sourceBuilder,
   });
 
-  /// The mermaid code block node from the document model.
   final CodeBlockNode block;
-
-  /// Plugin-level configuration (debounce and theme are used by this widget).
   final MermaidDiagramConfig config;
 
-  /// Retained for plugin API compatibility; the pure Flutter preview path does
-  /// not call the SVG renderer.
+  /// Retained for source compatibility. The pure Flutter path never calls it.
   final MermaidRenderer renderer;
 
-  /// Index of this block in the editor's top-level block list.
   final int blockIndex;
 
-  /// Editable source surface supplied by the code block renderer that the
-  /// Mermaid plugin wrapped.
-  ///
-  /// When omitted, the widget keeps its standalone read-only source fallback so
-  /// direct usages outside [MermaidDiagramPlugin] remain source-compatible.
+  /// Shared service supplied by [MermaidDiagramPlugin]. Standalone usages get
+  /// a widget-owned service that is disposed with this widget.
+  final NativeMermaidRenderService? renderService;
+
   final WidgetBuilder? sourceBuilder;
 
   @override
   State<MermaidCodeBlockWidget> createState() => _MermaidCodeBlockWidgetState();
 }
 
-/// Source-mode controls exposed by [MermaidCodeBlockWidget] to the ordinary
-/// code block toolbar while it renders the editable Mermaid source surface.
+/// Controls exposed to the ordinary editable code-block toolbar.
 class MermaidCodeBlockSourceControls extends InheritedWidget {
   const MermaidCodeBlockSourceControls({
     super.key,
@@ -106,28 +89,63 @@ class MermaidCodeBlockSourceControls extends InheritedWidget {
 
 class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
   bool _showSource = true;
-  _MermaidPreviewData? _preview;
-  String? _previewSource;
-  String? _previewTheme;
-  String? _error;
-  String? _errorSource;
-  String? _errorTheme;
   bool _rendering = false;
-  bool _renderQueued = false;
-  int _renderRequestId = 0;
+  MermaidRenderResult? _result;
+  MermaidRenderFailure? _failure;
+  MermaidRenderTheme? _theme;
   Timer? _debounceTimer;
+  String? _activeRequestId;
+  int _generation = 0;
+  Size _viewport = const Size(
+    _kMermaidPreviewFallbackWidth,
+    _kMermaidPreviewFallbackHeight,
+  );
+  String _viewportBucket = mermaidViewportBucket(
+    const Size(
+      _kMermaidPreviewFallbackWidth,
+      _kMermaidPreviewFallbackHeight,
+    ),
+  );
+  String? _pendingViewportBucket;
+
+  late NativeMermaidRenderService _renderService;
+  late bool _ownsRenderService;
 
   @override
   void initState() {
     super.initState();
-    _scheduleRender(notify: false);
+    _initializeRenderService();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _updateResolvedTheme(notify: false);
   }
 
   @override
   void didUpdateWidget(covariant MermaidCodeBlockWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.block.code != oldWidget.block.code ||
-        widget.config.defaultTheme != oldWidget.config.defaultTheme) {
+    final serviceChanged = oldWidget.renderService != widget.renderService ||
+        (widget.renderService == null &&
+            oldWidget.config.diagnostics != widget.config.diagnostics);
+    if (serviceChanged) {
+      _cancelActiveRequest();
+      if (_ownsRenderService) {
+        unawaited(_renderService.dispose());
+      }
+      _initializeRenderService();
+    }
+
+    final themeChanged =
+        oldWidget.config.defaultTheme != widget.config.defaultTheme;
+    if (themeChanged) {
+      _updateResolvedTheme(notify: false);
+    }
+    if (serviceChanged ||
+        themeChanged ||
+        oldWidget.block.code != widget.block.code ||
+        !_sameLimits(oldWidget.config.limits, widget.config.limits)) {
       _scheduleRender();
     }
   }
@@ -135,256 +153,155 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    _cancelActiveRequest();
+    if (_ownsRenderService) {
+      unawaited(_renderService.dispose());
+    }
     super.dispose();
   }
 
-  // -----------------------------------------------------------------------
-  // Rendering pipeline
-  // -----------------------------------------------------------------------
+  void _initializeRenderService() {
+    _ownsRenderService = widget.renderService == null;
+    _renderService = widget.renderService ??
+        DefaultNativeMermaidRenderService(
+          diagnostics: widget.config.diagnostics,
+        );
+  }
 
-  /// Schedules (or re-schedules) a debounced parse/layout of the source.
-  void _scheduleRender({bool notify = true}) {
+  void _updateResolvedTheme({required bool notify}) {
+    final next = _resolveRenderTheme(context, widget.config.defaultTheme);
+    final previous = _theme;
+    if (previous?.key == next.key) return;
+    if (previous != null) {
+      _renderService.invalidateTheme(previous.key);
+    }
+    _theme = next;
+    _scheduleRender(notify: notify);
+  }
+
+  void _scheduleRender({bool notify = true, bool immediate = false}) {
     _debounceTimer?.cancel();
-    _renderRequestId++;
-    final source = widget.block.code;
+    _cancelActiveRequest();
+    final generation = ++_generation;
 
-    void updateQueuedState() {
-      if (_isBlankSource(source)) {
-        _preview = null;
-        _previewSource = null;
-        _previewTheme = null;
-        _error = null;
-        _errorSource = null;
-        _errorTheme = null;
-        _renderQueued = false;
-        _rendering = false;
-        return;
-      }
-      _preview = null;
-      _previewSource = null;
-      _previewTheme = null;
-      _error = null;
-      _errorSource = null;
-      _errorTheme = null;
-      _renderQueued = true;
+    void resetOutcome() {
+      _result = null;
+      _failure = null;
+      _rendering = !_isBlankSource(widget.block.code);
     }
 
     if (notify && mounted) {
-      setState(updateQueuedState);
+      setState(resetOutcome);
     } else {
-      updateQueuedState();
+      resetOutcome();
     }
 
-    if (_isBlankSource(source)) {
-      return;
-    }
-    _debounceTimer = Timer(widget.config.debounce, _render);
-  }
-
-  /// Parses and lays out the current source using the pure Dart Mermaid core.
-  void _render() {
-    if (!mounted) return;
-    if (_rendering) {
-      if (!_renderQueued) {
-        setState(() => _renderQueued = true);
-      }
-      return;
-    }
-
-    final requestId = _renderRequestId;
-    final source = widget.block.code;
-    final theme = widget.config.defaultTheme;
-    if (_isBlankSource(source)) {
-      setState(() {
-        _preview = null;
-        _previewSource = null;
-        _previewTheme = null;
-        _error = null;
-        _errorSource = null;
-        _errorTheme = null;
-        _renderQueued = false;
-        _rendering = false;
-      });
-      return;
-    }
-
-    setState(() {
-      _rendering = true;
-      _renderQueued = false;
-      _error = null;
-    });
-
-    try {
-      final preview = _buildPreviewData(source, theme);
-      if (!mounted) return;
-      if (!_isCurrentRenderRequest(requestId, source, theme)) {
-        _finishStaleRender();
-        return;
-      }
-      setState(() {
-        _preview = preview;
-        _previewSource = source;
-        _previewTheme = theme;
-        _rendering = false;
-        _renderQueued = false;
-        _error = null;
-        _errorSource = null;
-        _errorTheme = null;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      if (!_isCurrentRenderRequest(requestId, source, theme)) {
-        _finishStaleRender();
-        return;
-      }
-      setState(() {
-        _preview = null;
-        _previewSource = null;
-        _previewTheme = null;
-        _rendering = false;
-        _renderQueued = false;
-        _error = _stringifyRenderError(e);
-        _errorSource = source;
-        _errorTheme = theme;
-      });
-    }
-  }
-
-  bool get _hasCurrentPreview =>
-      _preview != null &&
-      _previewSource == widget.block.code &&
-      _previewTheme == widget.config.defaultTheme;
-
-  bool get _hasCurrentError =>
-      _error != null &&
-      _errorSource == widget.block.code &&
-      _errorTheme == widget.config.defaultTheme;
-
-  bool get _isPreviewPending =>
-      !_isBlankSource(widget.block.code) && (_renderQueued || _rendering);
-
-  bool _isCurrentRenderRequest(int requestId, String source, String theme) {
-    return requestId == _renderRequestId &&
-        source == widget.block.code &&
-        theme == widget.config.defaultTheme;
-  }
-
-  void _finishStaleRender() {
-    setState(() {
+    if (_isBlankSource(widget.block.code) || _theme == null) {
       _rendering = false;
+      return;
+    }
+    if (immediate) {
+      scheduleMicrotask(() => _render(generation));
+    } else {
+      _debounceTimer = Timer(
+        widget.config.debounce,
+        () => _render(generation),
+      );
+    }
+  }
+
+  Future<void> _render(int generation) async {
+    if (!mounted || generation != _generation || _theme == null) return;
+    final source = widget.block.code;
+    if (_isBlankSource(source)) return;
+    final digest = mermaidSourceDigest(source);
+    final requestId = '${widget.block.id}:$generation';
+    final theme = _theme!;
+    final viewport = _viewport;
+    final viewportBucket = mermaidViewportBucket(viewport);
+    _activeRequestId = requestId;
+
+    MermaidRenderOutcome outcome;
+    try {
+      outcome = await _renderService.render(
+        MermaidRenderRequest(
+          source: source,
+          sourceDigest: digest,
+          theme: theme,
+          viewport: viewport,
+          limits: widget.config.limits,
+          requestId: requestId,
+        ),
+      );
+    } catch (_) {
+      outcome = MermaidRenderFailure(
+        requestId: requestId,
+        sourceDigest: digest,
+        code: MermaidRenderErrorCode.internal,
+        diagnostic: 'Mermaid 预览服务发生内部错误。',
+        metrics: null,
+      );
+    }
+
+    if (!mounted ||
+        generation != _generation ||
+        _activeRequestId != requestId ||
+        outcome.requestId != requestId ||
+        outcome.sourceDigest != digest ||
+        mermaidSourceDigest(widget.block.code) != digest ||
+        _theme?.key != theme.key ||
+        _viewportBucket != viewportBucket) {
+      return;
+    }
+    setState(() {
+      _activeRequestId = null;
+      _rendering = false;
+      if (outcome is MermaidRenderResult) {
+        _result = outcome;
+        _failure = null;
+      } else {
+        _result = null;
+        _failure = outcome as MermaidRenderFailure;
+      }
     });
-    _scheduleRender();
   }
 
-  static bool _isBlankSource(String source) => source.trim().isEmpty;
-
-  static _MermaidPreviewData _buildPreviewData(String source, String theme) {
-    const parser = MermaidParser();
-    final result = parser.parseWithData(source);
-    if (result == null) {
-      throw FormatException(parser.describeParseFailure(source));
-    }
-
-    final style = _styleForTheme(theme);
-    final contentSize = _computeContentSize(
-      result,
-      style,
-      const Size(
-        _kMermaidPreviewFallbackWidth,
-        _kMermaidPreviewFallbackHeight,
-      ),
-    );
-    if (contentSize.width <= 0 ||
-        contentSize.height <= 0 ||
-        !contentSize.width.isFinite ||
-        !contentSize.height.isFinite) {
-      throw const FormatException('Mermaid 图表布局结果无效，无法生成预览。');
-    }
-
-    return _MermaidPreviewData(
-      source: source,
-      theme: theme,
-      style: style,
-      contentSize: contentSize,
-    );
-  }
-
-  static Size _computeContentSize(
-    MermaidParseResult result,
-    MermaidStyle style,
-    Size availableSize,
-  ) {
-    final diagram = result.diagram;
-    switch (diagram.type) {
-      case DiagramType.pieChart:
-        final data = result.pieChartData;
-        if (data == null) break;
-        return PieChartLayout().computeLayout(data, style, availableSize);
-      case DiagramType.ganttChart:
-        final data = result.ganttChartData;
-        if (data == null) break;
-        return GanttChartLayout().computeLayout(data, style, availableSize);
-      case DiagramType.timeline:
-        final data = result.timelineChartData;
-        if (data == null) break;
-        return TimelineChartLayout().computeLayout(data, style, availableSize);
-      case DiagramType.kanban:
-        final data = result.kanbanChartData;
-        if (data == null) break;
-        return KanbanChartLayout().computeLayout(data, style, availableSize);
-      case DiagramType.radar:
-        final data = result.radarChartData;
-        if (data == null) break;
-        return RadarChartLayout().computeLayout(data, style, availableSize);
-      case DiagramType.xyChart:
-        final data = result.xyChartData;
-        if (data == null) break;
-        return XYChartLayout().computeLayout(data, style, availableSize);
-      case DiagramType.flowchart:
-        return DagreLayout().computeLayout(diagram, style, availableSize);
-      case DiagramType.sequence:
-        return SequenceLayout().computeLayout(diagram, style, availableSize);
-      case DiagramType.mindmap:
-        return MindmapLayout().computeLayout(diagram, style, availableSize);
-      case DiagramType.classDiagram:
-      case DiagramType.stateDiagram:
-      case DiagramType.unknown:
-        break;
-    }
-    throw const FormatException('Mermaid 图表数据不完整，无法生成预览。');
-  }
-
-  static MermaidStyle _styleForTheme(String defaultTheme) {
-    switch (defaultTheme.trim().toLowerCase()) {
-      case 'forest':
-        return MermaidStyle.forest();
-      case 'neutral':
-        return MermaidStyle.neutral();
-      case 'light':
-        return const MermaidStyle();
-      case 'dark':
-      case 'base':
-      case 'default':
-      case '':
-      default:
-        return MermaidStyle.dark();
+  void _cancelActiveRequest() {
+    final requestId = _activeRequestId;
+    if (requestId != null) {
+      _renderService.cancel(requestId);
+      _activeRequestId = null;
     }
   }
 
-  static String _stringifyRenderError(Object error) {
-    if (error is FormatException) {
-      return error.message;
-    }
-    final message = error.toString().trim();
-    return message.isEmpty ? 'Mermaid 预览生成失败。' : message;
+  void _queueViewportUpdate(Size next) {
+    final bucket = mermaidViewportBucket(next);
+    if (bucket == _viewportBucket || bucket == _pendingViewportBucket) return;
+    _pendingViewportBucket = bucket;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _pendingViewportBucket != bucket) return;
+      _pendingViewportBucket = null;
+      _viewport = next;
+      _viewportBucket = bucket;
+      _scheduleRender();
+    });
   }
-
-  // -----------------------------------------------------------------------
-  // Build
-  // -----------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth.isFinite
+            ? math.max(1.0, constraints.maxWidth)
+            : _kMermaidPreviewFallbackWidth;
+        final height = _resolveViewportHeight(width, constraints);
+        _queueViewportUpdate(Size(width, height));
+        return _buildBlock(context);
+      },
+    );
+  }
+
+  Widget _buildBlock(BuildContext context) {
     final sourceBuilder = widget.sourceBuilder;
     if (_showSource && sourceBuilder != null) {
       return MermaidCodeBlockSourceControls(
@@ -402,18 +319,12 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
     final textColor = isDark
         ? theme.colorScheme.onSurface
         : const Color(_kMermaidBlockTextColor);
-    final accentColor = isDark
-        ? theme.colorScheme.primary
-        : const Color(_kMermaidAccentColor);
-
+    final accentColor =
+        isDark ? theme.colorScheme.primary : const Color(_kMermaidAccentColor);
     final codeStyle = TextStyle(
       color: textColor,
       fontFamily: 'JetBrains Mono',
-      fontFamilyFallback: const <String>[
-        'Fira Code',
-        'Consolas',
-        'monospace',
-      ],
+      fontFamilyFallback: const <String>['Fira Code', 'Consolas', 'monospace'],
       fontSize: tokens.codeBlockFontSize,
       height: _kMermaidBlockLineHeight,
     );
@@ -443,7 +354,7 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
               onToggle: _toggleContentMode,
             ),
             const SizedBox(height: _kMermaidHeaderGap),
-            _buildContent(context, codeStyle),
+            _buildContent(codeStyle),
           ],
         ),
       ),
@@ -459,85 +370,55 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
   }
 
   void _showPreview() {
-    if (!_showSource) {
-      return;
-    }
+    if (!_showSource) return;
     setState(() => _showSource = false);
-    if (!_hasCurrentPreview &&
-        !_isPreviewPending &&
-        !_hasCurrentError &&
-        !_isBlankSource(widget.block.code)) {
-      _scheduleRender();
+    if (_result == null && !_isBlankSource(widget.block.code)) {
+      // An explicit user action bypasses the remaining debounce interval.
+      _scheduleRender(immediate: true);
     }
   }
 
   void _showSourceMode() {
-    if (_showSource) {
-      return;
-    }
+    if (_showSource) return;
     setState(() => _showSource = true);
   }
 
-  Widget _buildContent(BuildContext context, TextStyle codeStyle) {
+  Widget _buildContent(TextStyle codeStyle) {
     if (_showSource) {
       return _MermaidSourceView(source: widget.block.code, style: codeStyle);
     }
-
     if (_isBlankSource(widget.block.code)) {
       return _MermaidStatusView(
         icon: Icons.account_tree_outlined,
         title: 'Mermaid 源码为空',
         message: '添加 Mermaid DSL 后即可生成预览。',
         codeStyle: codeStyle,
-        onViewSource: () => setState(() => _showSource = true),
+        onViewSource: _showSourceMode,
       );
     }
-
-    if (_isPreviewPending || (!_hasCurrentPreview && !_hasCurrentError)) {
+    if (_rendering || (_result == null && _failure == null)) {
       return _MermaidStatusView.loading(
-        title: _rendering ? '正在解析 Mermaid 图表' : '正在准备 Mermaid 预览',
-        message: '解析完成后会自动切换到图表预览。',
+        title: '正在生成 Mermaid 预览',
+        message: '解析和布局完成后会自动显示图表。',
         codeStyle: codeStyle,
-        onViewSource: () => setState(() => _showSource = true),
+        onViewSource: _showSourceMode,
       );
     }
-
-    if (_hasCurrentError) {
+    if (_failure != null) {
       return _MermaidErrorView(
-        error: _error!,
+        failure: _failure!,
         codeStyle: codeStyle,
-        onViewSource: () => setState(() {
-          _showSource = true;
-        }),
+        onViewSource: _showSourceMode,
       );
     }
-
-    return _MermaidPreviewView(preview: _preview!);
+    return _MermaidPreviewView(
+      result: _result!,
+      diagnostics: widget.config.diagnostics,
+      onViewSource: _showSourceMode,
+    );
   }
 }
 
-class _MermaidPreviewData {
-  const _MermaidPreviewData({
-    required this.source,
-    required this.theme,
-    required this.style,
-    required this.contentSize,
-  });
-
-  final String source;
-  final String theme;
-  final MermaidStyle style;
-  final Size contentSize;
-}
-
-// ---------------------------------------------------------------------------
-// Sub-widgets
-// ---------------------------------------------------------------------------
-
-/// Toolbar row mimicking the layout of `_CodeBlockToolbar`.
-///
-/// Displays a "Mermaid" language tag on the left and a source/preview toggle
-/// button on the right.
 class _MermaidToolbar extends StatelessWidget {
   const _MermaidToolbar({
     required this.showSource,
@@ -574,7 +455,6 @@ class _MermaidToolbar extends StatelessWidget {
             end: _kMermaidHeaderEndPadding,
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.max,
             children: <Widget>[
               DecoratedBox(
                 decoration: BoxDecoration(
@@ -583,23 +463,14 @@ class _MermaidToolbar extends StatelessWidget {
                   border: Border.all(color: accentColor.withAlpha(54)),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8.0,
-                    vertical: 4.0,
-                  ),
-                  child: Text(
-                    'Mermaid',
-                    style: labelStyle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Text('Mermaid', style: labelStyle),
                 ),
               ),
               const Spacer(),
               IconButton(
-                key: const ValueKey<String>(
-                  'wenz-richtext-mermaid-toggle',
-                ),
+                key: const ValueKey<String>('wenz-richtext-mermaid-toggle'),
                 tooltip: showSource ? '预览图表' : '查看源码',
                 padding: EdgeInsets.zero,
                 constraints: BoxConstraints.tightFor(
@@ -607,13 +478,6 @@ class _MermaidToolbar extends StatelessWidget {
                   height: tokens.minimalToolbarButtonSize,
                 ),
                 iconSize: tokens.minimalToolbarIconSize,
-                style: IconButton.styleFrom(
-                  foregroundColor: accentColor,
-                  disabledForegroundColor: accentColor.withAlpha(100),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6.0),
-                  ),
-                ),
                 onPressed: onToggle,
                 icon: Icon(
                   showSource ? Icons.visibility_outlined : Icons.code,
@@ -628,12 +492,8 @@ class _MermaidToolbar extends StatelessWidget {
   }
 }
 
-/// Read-only source view with line numbers.
 class _MermaidSourceView extends StatelessWidget {
-  const _MermaidSourceView({
-    required this.source,
-    required this.style,
-  });
+  const _MermaidSourceView({required this.source, required this.style});
 
   final String source;
   final TextStyle style;
@@ -641,47 +501,41 @@ class _MermaidSourceView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lines = source.split('\n');
-    final lineDigits = '${lines.length}'.length;
-    final lineNumberStyle = style.copyWith(
-      color: style.color?.withAlpha(120),
-    );
-
-    final styledSpans = <InlineSpan>[];
-    for (var i = 0; i < lines.length; i++) {
-      final num = '${i + 1}'.padLeft(lineDigits);
-      styledSpans.add(TextSpan(
-        children: <InlineSpan>[
-          TextSpan(text: '$num  ', style: lineNumberStyle),
-          TextSpan(text: lines[i], style: style),
-        ],
-      ));
-      if (i < lines.length - 1) {
-        styledSpans.add(const TextSpan(text: '\n'));
+    final digits = '${lines.length}'.length;
+    final spans = <InlineSpan>[];
+    for (var index = 0; index < lines.length; index++) {
+      spans.add(
+        TextSpan(
+          children: <InlineSpan>[
+            TextSpan(
+              text: '${'${index + 1}'.padLeft(digits)}  ',
+              style: style.copyWith(color: style.color?.withAlpha(120)),
+            ),
+            TextSpan(text: lines[index], style: style),
+          ],
+        ),
+      );
+      if (index < lines.length - 1) {
+        spans.add(const TextSpan(text: '\n'));
       }
     }
-
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: RichText(
-        text: TextSpan(
-          style: style,
-          children: styledSpans,
-        ),
-      ),
+      child: RichText(text: TextSpan(style: style, children: spans)),
     );
   }
 }
 
-/// Preview pane: pure Flutter Mermaid CustomPaint in a stable viewport.
-///
-/// The viewer is wrapped in a [LayoutBuilder] + bounded [SizedBox] because the
-/// mermaid block lives inside the editor's loose-fit [Stack], which can supply
-/// unbounded height. The viewport stays at a fixed 16:9 ratio while the diagram
-/// content is initially transformed to fit inside it.
 class _MermaidPreviewView extends StatefulWidget {
-  const _MermaidPreviewView({required this.preview});
+  const _MermaidPreviewView({
+    required this.result,
+    required this.diagnostics,
+    required this.onViewSource,
+  });
 
-  final _MermaidPreviewData preview;
+  final MermaidRenderResult result;
+  final MermaidRenderDiagnostics? diagnostics;
+  final VoidCallback onViewSource;
 
   @override
   State<_MermaidPreviewView> createState() => _MermaidPreviewViewState();
@@ -693,22 +547,19 @@ class _MermaidPreviewViewState extends State<_MermaidPreviewView> {
   _MermaidPreviewFitKey? _lastAppliedFitKey;
   _MermaidPreviewFitKey? _pendingFitKey;
   double _currentMinScale = _kMermaidPreviewMinScale;
+  Size _lastViewportSize = const Size(1, 1);
 
   @override
   void initState() {
     super.initState();
     _transformationController = TransformationController();
-    _focusNode = FocusNode(
-      debugLabel: 'wenz-richtext-mermaid-preview',
-    );
+    _focusNode = FocusNode(debugLabel: 'wenz-richtext-mermaid-preview');
   }
 
   @override
   void didUpdateWidget(covariant _MermaidPreviewView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.preview.source != widget.preview.source ||
-        oldWidget.preview.theme != widget.preview.theme ||
-        oldWidget.preview.contentSize != widget.preview.contentSize) {
+    if (oldWidget.result.cacheKey != widget.result.cacheKey) {
       _lastAppliedFitKey = null;
       _pendingFitKey = null;
     }
@@ -723,75 +574,90 @@ class _MermaidPreviewViewState extends State<_MermaidPreviewView> {
 
   @override
   Widget build(BuildContext context) {
-    final contentSize = widget.preview.contentSize;
-
+    final contentSize = widget.result.contentSize;
     return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
+      builder: (context, constraints) {
         final availableWidth = math.max(
           1.0,
           constraints.maxWidth.isFinite ? constraints.maxWidth : 400.0,
         );
         final height = _resolveViewportHeight(availableWidth, constraints);
         final viewportSize = Size(availableWidth, height);
+        _lastViewportSize = viewportSize;
         final fitKey = _MermaidPreviewFitKey(
-          source: widget.preview.source,
-          theme: widget.preview.theme,
-          viewportWidth: viewportSize.width,
-          viewportHeight: viewportSize.height,
-          contentWidth: contentSize.width,
-          contentHeight: contentSize.height,
+          cacheKey: widget.result.cacheKey,
+          viewportSize: viewportSize,
+          contentSize: contentSize,
         );
-        final minScale = math
+        _currentMinScale = math
             .min(
               _kMermaidPreviewMinScale,
               _fitScaleFor(
-                viewportSize: viewportSize,
-                contentSize: contentSize,
-              ),
+                  viewportSize: viewportSize, contentSize: contentSize),
             )
             .clamp(0.001, _kMermaidPreviewMaxScale)
             .toDouble();
-        _currentMinScale = minScale;
         _scheduleFitToView(fitKey);
 
-        return FocusableActionDetector(
-          focusNode: _focusNode,
-          mouseCursor: SystemMouseCursors.grab,
-          child: MouseRegion(
-            cursor: SystemMouseCursors.grab,
-            onEnter: (_) => _focusNode.requestFocus(),
+        return CallbackShortcuts(
+          bindings: <ShortcutActivator, VoidCallback>{
+            const SingleActivator(LogicalKeyboardKey.equal, control: true):
+                _zoomIn,
+            const SingleActivator(LogicalKeyboardKey.equal, meta: true):
+                _zoomIn,
+            const SingleActivator(LogicalKeyboardKey.minus, control: true):
+                _zoomOut,
+            const SingleActivator(LogicalKeyboardKey.minus, meta: true):
+                _zoomOut,
+            const SingleActivator(LogicalKeyboardKey.digit0, control: true):
+                _reset,
+            const SingleActivator(LogicalKeyboardKey.digit0, meta: true):
+                _reset,
+            const SingleActivator(LogicalKeyboardKey.keyF): _fitToView,
+            const SingleActivator(LogicalKeyboardKey.escape):
+                widget.onViewSource,
+          },
+          child: FocusableActionDetector(
+            focusNode: _focusNode,
+            mouseCursor: SystemMouseCursors.grab,
             child: Listener(
               behavior: HitTestBehavior.opaque,
               onPointerDown: (_) => _focusNode.requestFocus(),
               onPointerSignal: _handlePointerSignal,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8.0),
-                child: SizedBox(
-                  width: availableWidth,
-                  height: height,
-                  child: ColoredBox(
-                    color: Color(widget.preview.style.backgroundColor),
-                    child: InteractiveViewer(
-                      transformationController: _transformationController,
-                      boundaryMargin: const EdgeInsets.all(double.infinity),
-                      maxScale: _kMermaidPreviewMaxScale,
-                      minScale: minScale,
-                      constrained: false,
-                      child: SizedBox(
-                        width: contentSize.width,
-                        height: contentSize.height,
-                        child: MermaidDiagram(
-                          code: widget.preview.source,
-                          style: widget.preview.style,
-                          width: contentSize.width,
-                          height: contentSize.height,
-                          enableResponsive: false,
-                          errorBuilder: _buildInlineError,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  _PreviewToolbar(
+                    onFit: _fitToView,
+                    onZoomIn: _zoomIn,
+                    onZoomOut: _zoomOut,
+                    onReset: _reset,
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: SizedBox(
+                      width: availableWidth,
+                      height: height,
+                      child: ColoredBox(
+                        color: Color(widget.result.style.backgroundColor),
+                        child: InteractiveViewer(
+                          transformationController: _transformationController,
+                          boundaryMargin: const EdgeInsets.all(double.infinity),
+                          maxScale: _kMermaidPreviewMaxScale,
+                          minScale: _currentMinScale,
+                          constrained: false,
+                          scaleEnabled: false,
+                          child: MermaidDiagram(
+                            result: widget.result,
+                            diagnostics: widget.diagnostics,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
@@ -800,25 +666,10 @@ class _MermaidPreviewViewState extends State<_MermaidPreviewView> {
     );
   }
 
-  Widget _buildInlineError(BuildContext context, String error) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Text(
-          error,
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.error,
-                  ) ??
-              TextStyle(color: Theme.of(context).colorScheme.error),
-        ),
-      ),
-    );
-  }
-
   void _handlePointerSignal(PointerSignalEvent event) {
     if (event is! PointerScrollEvent) return;
-    _focusNode.requestFocus();
+    final keyboard = HardwareKeyboard.instance;
+    if (!keyboard.isControlPressed && !keyboard.isMetaPressed) return;
     GestureBinding.instance.pointerSignalResolver.register(
       event,
       _resolvePointerSignal,
@@ -827,168 +678,159 @@ class _MermaidPreviewViewState extends State<_MermaidPreviewView> {
 
   void _resolvePointerSignal(PointerSignalEvent event) {
     if (event is! PointerScrollEvent || !mounted) return;
-    final delta = event.scrollDelta.dy != 0.0
-        ? event.scrollDelta.dy
-        : event.scrollDelta.dx;
-    if (delta == 0.0 || !delta.isFinite) return;
-
+    final delta =
+        event.scrollDelta.dy != 0 ? event.scrollDelta.dy : event.scrollDelta.dx;
+    if (delta == 0 || !delta.isFinite) return;
     final renderObject = context.findRenderObject();
-    final localPosition = renderObject is RenderBox
+    final focalPoint = renderObject is RenderBox
         ? renderObject.globalToLocal(event.position)
-        : null;
-    final fallbackFocalPoint = renderObject is RenderBox
-        ? renderObject.size.center(Offset.zero)
-        : Offset.zero;
-    final focalPoint = localPosition == null ||
-            !localPosition.dx.isFinite ||
-            !localPosition.dy.isFinite
-        ? fallbackFocalPoint
-        : localPosition;
-    final zoomFactor = math.exp(
-      -delta * _kMermaidPreviewWheelZoomIntensity,
+        : _lastViewportSize.center(Offset.zero);
+    _zoomAt(
+      focalPoint,
+      math.exp(-delta * _kMermaidPreviewWheelZoomIntensity),
     );
-    _zoomAt(focalPoint, zoomFactor);
   }
+
+  void _zoomIn() => _zoomAt(_lastViewportSize.center(Offset.zero), 1.2);
+  void _zoomOut() => _zoomAt(_lastViewportSize.center(Offset.zero), 1 / 1.2);
 
   void _zoomAt(Offset focalPoint, double zoomFactor) {
     if (!zoomFactor.isFinite || zoomFactor <= 0) return;
-    final currentMatrix = _transformationController.value;
-    final currentScale = currentMatrix.getMaxScaleOnAxis();
+    final current = _transformationController.value;
+    final currentScale = current.getMaxScaleOnAxis();
     if (!currentScale.isFinite || currentScale <= 0) return;
-
-    final desiredScale = (currentScale * zoomFactor)
+    final desired = (currentScale * zoomFactor)
         .clamp(_currentMinScale, _kMermaidPreviewMaxScale)
         .toDouble();
-    final effectiveScale = desiredScale / currentScale;
-    if (!effectiveScale.isFinite || (effectiveScale - 1.0).abs() < 0.0001) {
-      return;
-    }
-
-    final nextMatrix = Matrix4.identity()
+    final effective = desired / currentScale;
+    if (!effective.isFinite || (effective - 1).abs() < 0.0001) return;
+    _transformationController.value = Matrix4.identity()
       ..translate(focalPoint.dx, focalPoint.dy)
-      ..scale(effectiveScale, effectiveScale)
+      ..scale(effective, effective)
       ..translate(-focalPoint.dx, -focalPoint.dy)
-      ..multiply(currentMatrix);
-    _transformationController.value = nextMatrix;
+      ..multiply(current);
+  }
+
+  void _fitToView() {
+    _transformationController.value = _buildFitMatrix(
+      viewportSize: _lastViewportSize,
+      contentSize: widget.result.contentSize,
+    );
+  }
+
+  void _reset() {
+    _transformationController.value = Matrix4.identity();
   }
 
   void _scheduleFitToView(_MermaidPreviewFitKey fitKey) {
-    if (_lastAppliedFitKey == fitKey || _pendingFitKey == fitKey) {
-      return;
-    }
+    if (_lastAppliedFitKey == fitKey || _pendingFitKey == fitKey) return;
     _pendingFitKey = fitKey;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final pendingFitKey = _pendingFitKey;
+      final pending = _pendingFitKey;
       _pendingFitKey = null;
-      if (pendingFitKey == null || _lastAppliedFitKey == pendingFitKey) {
-        return;
-      }
+      if (pending == null || _lastAppliedFitKey == pending) return;
       _transformationController.value = _buildFitMatrix(
-        viewportSize: Size(
-          pendingFitKey.viewportWidth,
-          pendingFitKey.viewportHeight,
-        ),
-        contentSize: Size(
-          pendingFitKey.contentWidth,
-          pendingFitKey.contentHeight,
-        ),
+        viewportSize: pending.viewportSize,
+        contentSize: pending.contentSize,
       );
-      _lastAppliedFitKey = pendingFitKey;
+      _lastAppliedFitKey = pending;
     });
   }
+}
 
-  static double _resolveViewportHeight(
-    double availableWidth,
-    BoxConstraints constraints,
-  ) {
-    final preferredHeight = availableWidth / _kMermaidPreviewAspectRatio;
-    final maxHeight = constraints.maxHeight.isFinite
-        ? math
-            .max(1.0, math.min(_kMermaidPreviewMaxHeight, constraints.maxHeight))
-            .toDouble()
-        : _kMermaidPreviewMaxHeight;
-    final minHeight = math.min(_kMermaidPreviewMinHeight, maxHeight).toDouble();
-    return preferredHeight.clamp(minHeight, maxHeight).toDouble();
+class _PreviewToolbar extends StatelessWidget {
+  const _PreviewToolbar({
+    required this.onFit,
+    required this.onZoomIn,
+    required this.onZoomOut,
+    required this.onReset,
+  });
+
+  final VoidCallback onFit;
+  final VoidCallback onZoomIn;
+  final VoidCallback onZoomOut;
+  final VoidCallback onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: Align(
+        alignment: AlignmentDirectional.centerEnd,
+        child: Wrap(
+          spacing: 2,
+          children: <Widget>[
+            _button(
+              key: 'wenz-richtext-mermaid-fit',
+              tooltip: '适配视口 (F)',
+              icon: Icons.fit_screen_outlined,
+              onPressed: onFit,
+            ),
+            _button(
+              key: 'wenz-richtext-mermaid-zoom-in',
+              tooltip: '放大',
+              icon: Icons.zoom_in,
+              onPressed: onZoomIn,
+            ),
+            _button(
+              key: 'wenz-richtext-mermaid-zoom-out',
+              tooltip: '缩小',
+              icon: Icons.zoom_out,
+              onPressed: onZoomOut,
+            ),
+            _button(
+              key: 'wenz-richtext-mermaid-reset',
+              tooltip: '重置缩放',
+              icon: Icons.restart_alt,
+              onPressed: onReset,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  static Matrix4 _buildFitMatrix({
-    required Size viewportSize,
-    required Size contentSize,
+  Widget _button({
+    required String key,
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback onPressed,
   }) {
-    final scale = _fitScaleFor(
-      viewportSize: viewportSize,
-      contentSize: contentSize,
+    return IconButton(
+      key: ValueKey<String>(key),
+      tooltip: tooltip,
+      visualDensity: VisualDensity.compact,
+      iconSize: 19,
+      onPressed: onPressed,
+      icon: Icon(icon, semanticLabel: tooltip),
     );
-    final dx = (viewportSize.width - contentSize.width * scale) / 2;
-    final dy = (viewportSize.height - contentSize.height * scale) / 2;
-    return Matrix4.identity()
-      ..translate(dx, dy)
-      ..scale(scale, scale);
-  }
-
-  static double _fitScaleFor({
-    required Size viewportSize,
-    required Size contentSize,
-  }) {
-    final paddedWidth = math.max(
-      1.0,
-      viewportSize.width - _kMermaidPreviewFitPadding * 2,
-    );
-    final paddedHeight = math.max(
-      1.0,
-      viewportSize.height - _kMermaidPreviewFitPadding * 2,
-    );
-    final rawScale = math.min(
-      paddedWidth / contentSize.width,
-      paddedHeight / contentSize.height,
-    );
-    return rawScale.isFinite && rawScale > 0
-        ? math.min(rawScale, _kMermaidPreviewMaxScale).toDouble()
-        : 1.0;
   }
 }
 
 class _MermaidPreviewFitKey {
   const _MermaidPreviewFitKey({
-    required this.source,
-    required this.theme,
-    required this.viewportWidth,
-    required this.viewportHeight,
-    required this.contentWidth,
-    required this.contentHeight,
+    required this.cacheKey,
+    required this.viewportSize,
+    required this.contentSize,
   });
 
-  final String source;
-  final String theme;
-  final double viewportWidth;
-  final double viewportHeight;
-  final double contentWidth;
-  final double contentHeight;
+  final String cacheKey;
+  final Size viewportSize;
+  final Size contentSize;
 
   @override
   bool operator ==(Object other) {
     return other is _MermaidPreviewFitKey &&
-        other.source == source &&
-        other.theme == theme &&
-        other.viewportWidth == viewportWidth &&
-        other.viewportHeight == viewportHeight &&
-        other.contentWidth == contentWidth &&
-        other.contentHeight == contentHeight;
+        other.cacheKey == cacheKey &&
+        other.viewportSize == viewportSize &&
+        other.contentSize == contentSize;
   }
 
   @override
-  int get hashCode => Object.hash(
-        source,
-        theme,
-        viewportWidth,
-        viewportHeight,
-        contentWidth,
-        contentHeight,
-      );
+  int get hashCode => Object.hash(cacheKey, viewportSize, contentSize);
 }
 
-/// Preview status fallback for loading and empty-source states.
 class _MermaidStatusView extends StatelessWidget {
   const _MermaidStatusView({
     required this.icon,
@@ -1016,52 +858,50 @@ class _MermaidStatusView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final accentColor = theme.colorScheme.primary;
-    final foregroundColor = codeStyle.color ?? theme.colorScheme.onSurface;
-
+    final foreground = codeStyle.color ?? theme.colorScheme.onSurface;
     return Container(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(10),
-        borderRadius: BorderRadius.circular(8.0),
-        border: Border.all(color: Colors.white.withAlpha(24)),
+        color: theme.colorScheme.surface.withAlpha(18),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.colorScheme.outline.withAlpha(60)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           if (loading)
             SizedBox(
-              width: 24.0,
-              height: 24.0,
+              width: 24,
+              height: 24,
               child: CircularProgressIndicator(
                 strokeWidth: 2.5,
-                color: accentColor,
+                color: theme.colorScheme.primary,
               ),
             )
           else
-            Icon(icon, color: accentColor, size: 24.0),
-          const SizedBox(height: 12.0),
+            Icon(icon, color: theme.colorScheme.primary, size: 24),
+          const SizedBox(height: 12),
           Text(
             title,
+            textAlign: TextAlign.center,
             style: codeStyle.copyWith(
-              color: foregroundColor,
+              color: foreground,
               fontWeight: FontWeight.w600,
             ),
-            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 6.0),
+          const SizedBox(height: 6),
           Text(
             message,
-            style: codeStyle.copyWith(
-              color: foregroundColor.withAlpha(170),
-              fontSize: 12.0,
-            ),
             textAlign: TextAlign.center,
+            style: codeStyle.copyWith(
+              color: foreground.withAlpha(180),
+              fontSize: 12,
+            ),
           ),
-          const SizedBox(height: 12.0),
+          const SizedBox(height: 12),
           TextButton.icon(
             onPressed: onViewSource,
-            icon: const Icon(Icons.code, size: 16.0),
+            icon: const Icon(Icons.code, size: 16),
             label: const Text('查看源码'),
           ),
         ],
@@ -1070,16 +910,14 @@ class _MermaidStatusView extends StatelessWidget {
   }
 }
 
-/// Error fallback: displays the error message and a button to switch back
-/// to source view.
 class _MermaidErrorView extends StatelessWidget {
   const _MermaidErrorView({
-    required this.error,
+    required this.failure,
     required this.codeStyle,
     required this.onViewSource,
   });
 
-  final String? error;
+  final MermaidRenderFailure failure;
   final TextStyle codeStyle;
   final VoidCallback onViewSource;
 
@@ -1087,43 +925,182 @@ class _MermaidErrorView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final errorColor = theme.colorScheme.error;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Container(
-          padding: const EdgeInsets.all(12.0),
-          decoration: BoxDecoration(
-            color: errorColor.withAlpha(18),
-            borderRadius: BorderRadius.circular(8.0),
-            border: Border.all(color: errorColor.withAlpha(60)),
-          ),
-          child: Row(
+    final title = switch (failure.code) {
+      MermaidRenderErrorCode.sourceTooLong ||
+      MermaidRenderErrorCode.tooManyNodes ||
+      MermaidRenderErrorCode.tooManyEdges ||
+      MermaidRenderErrorCode.layoutIterationLimit =>
+        'Mermaid 输入超过资源限制',
+      MermaidRenderErrorCode.timeout => 'Mermaid 预览超时',
+      MermaidRenderErrorCode.cancelled => 'Mermaid 预览已取消',
+      MermaidRenderErrorCode.unsupportedType => '不支持的 Mermaid 图表类型',
+      MermaidRenderErrorCode.syntax => 'Mermaid 语法错误',
+      MermaidRenderErrorCode.emptySource => 'Mermaid 源码为空',
+      MermaidRenderErrorCode.invalidLayout => 'Mermaid 布局结果无效',
+      MermaidRenderErrorCode.internal => 'Mermaid 预览失败',
+    };
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: errorColor.withAlpha(18),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: errorColor.withAlpha(80)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Icon(Icons.error_outline, color: errorColor, size: 18.0),
-              const SizedBox(width: 8.0),
+              Icon(Icons.error_outline, color: errorColor, size: 20),
+              const SizedBox(width: 8),
               Expanded(
-                child: SelectableText(
-                  error ?? '未知错误',
-                  style: codeStyle.copyWith(
-                    color: errorColor,
-                    fontSize: 12.0,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      title,
+                      style: codeStyle.copyWith(
+                        color: errorColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    SelectableText(
+                      failure.diagnostic,
+                      style: codeStyle.copyWith(
+                        color: errorColor,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 12.0),
-        Center(
-          child: TextButton.icon(
+          const SizedBox(height: 10),
+          TextButton.icon(
             onPressed: onViewSource,
-            icon: const Icon(Icons.code, size: 16.0),
+            icon: const Icon(Icons.code, size: 16),
             label: const Text('查看源码'),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
+
+MermaidRenderTheme _resolveRenderTheme(
+  BuildContext context,
+  String configuredTheme,
+) {
+  final materialTheme = Theme.of(context);
+  final mediaQuery = MediaQuery.maybeOf(context);
+  final normalized = configuredTheme.trim().toLowerCase();
+  final textScale = mediaQuery == null
+      ? 1.0
+      : (mediaQuery.textScaler.scale(14) / 14).clamp(1.0, 2.0).toDouble();
+  final highContrast = mediaQuery?.highContrast ?? false;
+  final resolvedName = normalized.isEmpty || normalized == 'auto'
+      ? (materialTheme.brightness == Brightness.dark ? 'dark' : 'light')
+      : normalized;
+
+  MermaidStyle base;
+  if (normalized.isEmpty || normalized == 'auto') {
+    final colors = materialTheme.colorScheme;
+    base = MermaidStyle(
+      backgroundColor: colors.surface.toARGB32(),
+      defaultNodeStyle: NodeStyle(
+        fillColor: colors.surfaceContainerHighest.toARGB32(),
+        strokeColor: colors.primary.toARGB32(),
+        textColor: colors.onSurface.toARGB32(),
+        strokeWidth: highContrast ? 2.2 : 1.2,
+      ),
+      defaultEdgeStyle: EdgeStyle(
+        strokeColor: colors.outline.toARGB32(),
+        strokeWidth: highContrast ? 2.4 : 1.5,
+        labelColor: colors.onSurface.toARGB32(),
+        labelBackgroundColor: colors.surface.toARGB32(),
+      ),
+      fontFamily: materialTheme.textTheme.bodyMedium?.fontFamily,
+      themeMode: materialTheme.brightness == Brightness.dark
+          ? MermaidThemeMode.dark
+          : MermaidThemeMode.light,
+    );
+  } else {
+    base = switch (resolvedName) {
+      'dark' || 'base' => MermaidStyle.dark(),
+      'forest' => MermaidStyle.forest(),
+      'neutral' => MermaidStyle.neutral(),
+      _ => const MermaidStyle(),
+    };
+  }
+  final scaled = base.copyWith(
+    defaultNodeStyle: base.defaultNodeStyle.copyWith(
+      fontSize: base.defaultNodeStyle.fontSize * textScale,
+      strokeWidth: highContrast
+          ? math.max(2, base.defaultNodeStyle.strokeWidth)
+          : base.defaultNodeStyle.strokeWidth,
+    ),
+    defaultEdgeStyle: base.defaultEdgeStyle.copyWith(
+      labelFontSize: base.defaultEdgeStyle.labelFontSize * textScale,
+      strokeWidth: highContrast
+          ? math.max(2, base.defaultEdgeStyle.strokeWidth)
+          : base.defaultEdgeStyle.strokeWidth,
+    ),
+  );
+  final key = '$resolvedName-hc${highContrast ? 1 : 0}'
+      '-ts${textScale.toStringAsFixed(2)}'
+      '-bg${scaled.backgroundColor.toRadixString(16)}';
+  return MermaidRenderTheme(key: key, style: scaled);
+}
+
+double _resolveViewportHeight(
+  double availableWidth,
+  BoxConstraints constraints,
+) {
+  final preferred = availableWidth / _kMermaidPreviewAspectRatio;
+  final maxHeight = constraints.maxHeight.isFinite
+      ? math.max(
+          1.0, math.min(_kMermaidPreviewMaxHeight, constraints.maxHeight))
+      : _kMermaidPreviewMaxHeight;
+  final minHeight = math.min(_kMermaidPreviewMinHeight, maxHeight).toDouble();
+  return preferred.clamp(minHeight, maxHeight).toDouble();
+}
+
+Matrix4 _buildFitMatrix({
+  required Size viewportSize,
+  required Size contentSize,
+}) {
+  final scale =
+      _fitScaleFor(viewportSize: viewportSize, contentSize: contentSize);
+  final dx = (viewportSize.width - contentSize.width * scale) / 2;
+  final dy = (viewportSize.height - contentSize.height * scale) / 2;
+  return Matrix4.identity()
+    ..translate(dx, dy)
+    ..scale(scale, scale);
+}
+
+double _fitScaleFor({
+  required Size viewportSize,
+  required Size contentSize,
+}) {
+  final width =
+      math.max(1.0, viewportSize.width - _kMermaidPreviewFitPadding * 2);
+  final height =
+      math.max(1.0, viewportSize.height - _kMermaidPreviewFitPadding * 2);
+  final raw = math.min(width / contentSize.width, height / contentSize.height);
+  return raw.isFinite && raw > 0
+      ? math.min(raw, _kMermaidPreviewMaxScale).toDouble()
+      : 1.0;
+}
+
+bool _sameLimits(MermaidRenderLimits left, MermaidRenderLimits right) {
+  return left.maxSourceCharacters == right.maxSourceCharacters &&
+      left.maxNodes == right.maxNodes &&
+      left.maxEdges == right.maxEdges &&
+      left.maxLayoutIterations == right.maxLayoutIterations &&
+      left.maxTotalDuration == right.maxTotalDuration;
+}
+
+bool _isBlankSource(String source) => source.trim().isEmpty;

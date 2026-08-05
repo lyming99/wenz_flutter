@@ -294,18 +294,19 @@ class _MentionCandidateTile extends StatelessWidget {
                           ),
                         ),
                         if (candidate.description != null &&
-                            candidate.description!.trim().isNotEmpty)
-                          ...<Widget>[
-                            const SizedBox(height: 2),
-                            Text(
-                              candidate.description!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
+                            candidate.description!
+                                .trim()
+                                .isNotEmpty) ...<Widget>[
+                          const SizedBox(height: 2),
+                          Text(
+                            candidate.description!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
                             ),
-                          ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -333,8 +334,7 @@ class _MentionAvatar extends StatelessWidget {
     final label = candidate.label.trim().isNotEmpty
         ? candidate.label.trim()
         : candidate.id.trim();
-    final initial =
-        label.isEmpty ? '@' : label.substring(0, 1).toUpperCase();
+    final initial = label.isEmpty ? '@' : label.substring(0, 1).toUpperCase();
     return CircleAvatar(
       radius: 16,
       backgroundColor: selected

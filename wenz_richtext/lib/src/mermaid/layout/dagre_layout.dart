@@ -5,6 +5,7 @@ import '../config/responsive_config.dart';
 import '../models/diagram.dart';
 import '../models/node.dart';
 import '../models/style.dart';
+import '../render/layout_instrumentation.dart';
 import 'layout_engine.dart';
 
 /// Dagre-style hierarchical graph layout algorithm
@@ -13,10 +14,16 @@ import 'layout_engine.dart';
 /// which is used by Mermaid.js for rendering flowcharts.
 class DagreLayout extends LayoutEngine {
   /// Creates a Dagre layout engine
-  const DagreLayout({this.deviceConfig});
+  const DagreLayout({
+    this.deviceConfig,
+    this.crossingReductionIterations = 4,
+  }) : assert(crossingReductionIterations > 0);
 
   /// Responsive device configuration
   final MermaidDeviceConfig? deviceConfig;
+
+  /// Maximum barycenter passes used to reduce edge crossings.
+  final int crossingReductionIterations;
 
   @override
   Size computeLayout(
@@ -90,8 +97,8 @@ class DagreLayout extends LayoutEngine {
     // Calculate layout for each subgraph
     final subgraphBounds = <String, Rect>{};
     final padding = style.padding;
-    final subgraphPadding = 40.0; // Internal padding for subgraph
-    final subgraphTitleHeight = 30.0;
+    const subgraphPadding = 40.0; // Internal padding for subgraph
+    const subgraphTitleHeight = 30.0;
     final subgraphSpacing = style.nodeSpacingX;
 
     double currentX = padding;
@@ -125,7 +132,8 @@ class DagreLayout extends LayoutEngine {
           node.y = padding + nodeY;
           nodeX += node.width + style.nodeSpacingX * 0.5;
           sgWidth = nodeX + subgraphPadding / 2;
-          sgHeight = math.max(sgHeight, subgraphTitleHeight + node.height + subgraphPadding);
+          sgHeight = math.max(
+              sgHeight, subgraphTitleHeight + node.height + subgraphPadding);
         }
       }
 
@@ -161,6 +169,16 @@ class DagreLayout extends LayoutEngine {
 
   /// Measures node size considering shape requirements
   Size measureNodeWithShape(MermaidNode node, MermaidStyle style) {
+    final watch = Stopwatch()..start();
+    try {
+      return _measureNodeWithShape(node, style);
+    } finally {
+      watch.stop();
+      recordMermaidTextMeasurement(watch.elapsed);
+    }
+  }
+
+  Size _measureNodeWithShape(MermaidNode node, MermaidStyle style) {
     final nodeStyle = style.getNodeStyle(node.className);
     final fontSize = nodeStyle.fontSize;
 
@@ -308,7 +326,8 @@ class DagreLayout extends LayoutEngine {
     for (final node in context.diagram.nodes) {
       if (!ranks.containsKey(node.id)) {
         final preds = context.predecessors[node.id] ?? [];
-        final nonBackPreds = preds.where((predId) => !isBackEdge(predId, node.id)).toList();
+        final nonBackPreds =
+            preds.where((predId) => !isBackEdge(predId, node.id)).toList();
         if (nonBackPreds.isEmpty) {
           ranks[node.id] = 0;
           queue.add(node.id);
@@ -409,7 +428,7 @@ class DagreLayout extends LayoutEngine {
     }
 
     // Refine with barycenter heuristic (fewer iterations to preserve initial order)
-    for (var iter = 0; iter < 4; iter++) {
+    for (var iter = 0; iter < crossingReductionIterations; iter++) {
       // Forward sweep (top to bottom)
       for (var i = 1; i < context.layers.length; i++) {
         _orderLayerByBarycenter(
@@ -464,7 +483,8 @@ class DagreLayout extends LayoutEngine {
         barycenters[node] = node.order.toDouble();
       } else {
         // Average position of connected nodes
-        barycenters[node] = positions.reduce((a, b) => a + b) / positions.length;
+        barycenters[node] =
+            positions.reduce((a, b) => a + b) / positions.length;
       }
     }
 
@@ -484,8 +504,10 @@ class DagreLayout extends LayoutEngine {
 
     final style = context.style;
     // Increase spacing for better readability
-    final rankSep = (isHorizontal ? style.nodeSpacingX : style.nodeSpacingY) * 1.2;
-    final nodeSep = (isHorizontal ? style.nodeSpacingY : style.nodeSpacingX) * 1.0;
+    final rankSep =
+        (isHorizontal ? style.nodeSpacingX : style.nodeSpacingY) * 1.2;
+    final nodeSep =
+        (isHorizontal ? style.nodeSpacingY : style.nodeSpacingX) * 1.0;
 
     // Calculate max width for each layer (for centering)
     final layerMaxSizes = <double>[];
@@ -549,8 +571,11 @@ class DagreLayout extends LayoutEngine {
       }
 
       // Move to next layer
-      final maxMain = layer.isEmpty ? 0.0 : layer.map((n) =>
-          isHorizontal ? n.width : n.height).reduce(math.max);
+      final maxMain = layer.isEmpty
+          ? 0.0
+          : layer
+              .map((n) => isHorizontal ? n.width : n.height)
+              .reduce(math.max);
       mainOffset += maxMain + rankSep;
     }
 

@@ -9,6 +9,7 @@ import '../models/radar.dart';
 import '../models/timeline.dart';
 import '../models/style.dart';
 import '../models/xy_chart.dart';
+import '../render/layout_instrumentation.dart';
 
 /// Abstract base class for layout engines
 abstract class LayoutEngine {
@@ -26,6 +27,16 @@ abstract class LayoutEngine {
 
   /// Measures the size of a node
   Size measureNode(MermaidNode node, MermaidStyle style) {
+    final watch = Stopwatch()..start();
+    try {
+      return _measureNode(node, style);
+    } finally {
+      watch.stop();
+      recordMermaidTextMeasurement(watch.elapsed);
+    }
+  }
+
+  Size _measureNode(MermaidNode node, MermaidStyle style) {
     final nodeStyle = style.getNodeStyle(node.className);
 
     // Calculate text size
@@ -186,15 +197,15 @@ class TimelineChartLayout {
     final isMobile = deviceConfig?.deviceType == DeviceType.mobile;
     final eventHeight = isMobile ? 50.0 : 60.0;
     final verticalSpacing = isMobile ? 30.0 : 40.0;
-    final timelineMargin = 20.0;
+    const timelineMargin = 20.0;
 
     // Calculate total height
     // Structure: padding + title + spacing + period labels + timeline + spacing + events + padding
     final totalHeight = padding +
         titleHeight +
-        verticalSpacing +  // Space for period labels above timeline
-        timelineMargin +   // Space around timeline
-        verticalSpacing +  // Space before events
+        verticalSpacing + // Space for period labels above timeline
+        timelineMargin + // Space around timeline
+        verticalSpacing + // Space before events
         (maxEvents * eventHeight) +
         padding;
 
@@ -246,7 +257,8 @@ class KanbanChartLayout {
     } else {
       // Desktop: Fit all columns if possible
       final availableWidth = availableSize.width - padding * 2;
-      columnWidth = (availableWidth - columnSpacing * (totalColumns - 1)) / totalColumns;
+      columnWidth =
+          (availableWidth - columnSpacing * (totalColumns - 1)) / totalColumns;
       columnWidth = columnWidth.clamp(200.0, 350.0).toDouble();
     }
 
@@ -259,13 +271,11 @@ class KanbanChartLayout {
     }
 
     // Calculate total height
-    final cardsAreaHeight = (maxCards * cardHeight) + ((maxCards + 1) * cardSpacing);
+    final cardsAreaHeight =
+        (maxCards * cardHeight) + ((maxCards + 1) * cardSpacing);
 
-    final totalHeight = padding +
-        titleHeight +
-        columnHeaderHeight +
-        cardsAreaHeight +
-        padding;
+    final totalHeight =
+        padding + titleHeight + columnHeaderHeight + cardsAreaHeight + padding;
 
     // Calculate total width
     final totalWidth = isMobile
@@ -294,12 +304,15 @@ class RadarChartLayout {
 
     final isMobile = deviceConfig?.deviceType == DeviceType.mobile;
     final padding = style.padding;
-    final titleHeight = radarData.title != null ? (isMobile ? 40.0 : 50.0) : 0.0;
-    final legendHeight = radarData.showLegend && radarData.curves.length > 1 ? 60.0 : 0.0;
+    final titleHeight =
+        radarData.title != null ? (isMobile ? 40.0 : 50.0) : 0.0;
+    final legendHeight =
+        radarData.showLegend && radarData.curves.length > 1 ? 60.0 : 0.0;
 
     // Calculate chart size based on available space
     final availableChartWidth = availableSize.width - padding * 2;
-    final availableChartHeight = availableSize.height - titleHeight - legendHeight - padding * 2;
+    final availableChartHeight =
+        availableSize.height - titleHeight - legendHeight - padding * 2;
 
     // Use square aspect ratio, fitting within available space
     final chartSize = math.min(
@@ -336,9 +349,11 @@ class XYChartLayout {
     final xAxisLabelHeight = isMobile ? 40.0 : 50.0;
 
     final totalWidth = math.min(availableSize.width, isMobile ? 400.0 : 700.0);
-    final totalHeight = titleHeight + (isMobile ? 280.0 : 400.0) + xAxisLabelHeight + padding * 2;
+    final totalHeight = titleHeight +
+        (isMobile ? 280.0 : 400.0) +
+        xAxisLabelHeight +
+        padding * 2;
 
     return Size(totalWidth, totalHeight);
   }
 }
-

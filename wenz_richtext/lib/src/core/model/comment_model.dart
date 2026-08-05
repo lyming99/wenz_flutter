@@ -140,12 +140,14 @@ class CommentEntry {
   }) {
     return CommentEntry(
       id: id ?? this.id,
-      authorId: identical(authorId, _unset) ? this.authorId : authorId as String?,
+      authorId:
+          identical(authorId, _unset) ? this.authorId : authorId as String?,
       authorName: authorName ?? this.authorName,
       text: text ?? this.text,
       createdAt: createdAt ?? this.createdAt,
-      updatedAt:
-          identical(updatedAt, _unset) ? this.updatedAt : updatedAt as DateTime?,
+      updatedAt: identical(updatedAt, _unset)
+          ? this.updatedAt
+          : updatedAt as DateTime?,
     );
   }
 
@@ -245,8 +247,9 @@ class CommentThread {
       messages: messages ?? this.messages,
       createdAt: createdAt ?? this.createdAt,
       status: status ?? this.status,
-      updatedAt:
-          identical(updatedAt, _unset) ? this.updatedAt : updatedAt as DateTime?,
+      updatedAt: identical(updatedAt, _unset)
+          ? this.updatedAt
+          : updatedAt as DateTime?,
       resolvedAt: identical(resolvedAt, _unset)
           ? this.resolvedAt
           : resolvedAt as DateTime?,
@@ -354,7 +357,8 @@ DateTime? _asDateTime(Object? value) {
   return null;
 }
 
-PositionPath _positionPathFromJson(Object? value, {required String fallbackBlockId}) {
+PositionPath _positionPathFromJson(Object? value,
+    {required String fallbackBlockId}) {
   if (value is List) {
     return PositionPath(<Object>[
       for (final segment in value)

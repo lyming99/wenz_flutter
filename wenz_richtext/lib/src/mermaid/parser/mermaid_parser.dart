@@ -217,8 +217,7 @@ class MermaidParser {
   /// Detects the diagram type from the first line
   DiagramType _detectDiagramType(String firstLine) {
     // Flowchart patterns
-    if (firstLine.startsWith('graph ') ||
-        firstLine.startsWith('flowchart ')) {
+    if (firstLine.startsWith('graph ') || firstLine.startsWith('flowchart ')) {
       return DiagramType.flowchart;
     }
 

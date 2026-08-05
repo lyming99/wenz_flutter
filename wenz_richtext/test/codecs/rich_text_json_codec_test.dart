@@ -404,7 +404,8 @@ void main() {
     expect(decoded.toJson(), document.toJson());
   });
 
-  test('flowchart block embed degrades to display text in markdown and plain text',
+  test(
+      'flowchart block embed degrades to display text in markdown and plain text',
       () {
     final controller = WenzRichTextController(
       document: const RichTextDocument(

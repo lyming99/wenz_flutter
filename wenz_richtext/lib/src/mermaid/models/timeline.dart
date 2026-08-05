@@ -1,4 +1,5 @@
 /// Data models for Timeline diagrams
+library;
 
 /// Represents a single event in a timeline
 class TimelineEvent {

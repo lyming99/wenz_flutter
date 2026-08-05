@@ -1,6 +1,5 @@
 import '../model/attributes.dart';
 import '../model/block_node.dart';
-import '../model/rich_text_document.dart';
 import '../position/document_position.dart';
 import '../transaction/document_session.dart';
 import 'editor_command.dart';

@@ -6,6 +6,7 @@ import '../config/responsive_config.dart';
 import '../models/diagram.dart';
 import '../models/node.dart';
 import '../models/style.dart';
+import '../render/layout_instrumentation.dart';
 import 'layout_engine.dart';
 
 /// Layout engine for Mermaid mindmap diagrams.
@@ -143,6 +144,20 @@ class MindmapLayout extends LayoutEngine {
   }
 
   Size _measureMindmapNode(
+    MermaidNode node,
+    MermaidStyle style,
+    Size availableSize,
+  ) {
+    final watch = Stopwatch()..start();
+    try {
+      return _measureMindmapNodeImpl(node, style, availableSize);
+    } finally {
+      watch.stop();
+      recordMermaidTextMeasurement(watch.elapsed);
+    }
+  }
+
+  Size _measureMindmapNodeImpl(
     MermaidNode node,
     MermaidStyle style,
     Size availableSize,

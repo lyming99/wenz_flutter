@@ -80,7 +80,8 @@ class RadarPainter extends CustomPainter {
         style: TextStyle(
           fontSize: (deviceConfig?.fontSize ?? 14.0) + 2,
           fontWeight: FontWeight.bold,
-          color: Color(style.defaultNodeStyle.textColor ?? RadarChartColors.textColor),
+          color: Color(
+              style.defaultNodeStyle.textColor ?? RadarChartColors.textColor),
         ),
       ),
       textDirection: TextDirection.ltr,
@@ -189,7 +190,8 @@ class RadarPainter extends CustomPainter {
   }
 
   /// Draws a data curve
-  void _drawCurve(Canvas canvas, Offset center, double radius, RadarCurve curve, int curveIndex) {
+  void _drawCurve(Canvas canvas, Offset center, double radius, RadarCurve curve,
+      int curveIndex) {
     if (curve.values.isEmpty) return;
 
     final color = Color(RadarChartColors.getColorForCurve(curveIndex));
@@ -199,7 +201,9 @@ class RadarPainter extends CustomPainter {
     final max = radarData.effectiveMax;
     final min = radarData.effectiveMin;
 
-    for (var i = 0; i < math.min(curve.values.length, radarData.axes.length); i++) {
+    for (var i = 0;
+        i < math.min(curve.values.length, radarData.axes.length);
+        i++) {
       final value = curve.values[i];
       final normalizedValue = (value - min) / (max - min);
       final r = radius * normalizedValue.clamp(0.0, 1.0).toDouble();
@@ -272,8 +276,7 @@ class RadarPainter extends CustomPainter {
           ),
         ),
         textDirection: TextDirection.ltr,
-      )
-        ..layout();
+      )..layout();
       textPainters.add(textPainter);
       totalWidth += 24 + textPainter.width + itemSpacing;
     }

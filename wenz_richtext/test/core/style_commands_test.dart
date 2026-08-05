@@ -961,7 +961,8 @@ void main() {
     expect(session.canUndo, isFalse);
     expect(session.selection, selection);
 
-    final cleared = executor.execute(const SetAlignmentCommand(alignment: null));
+    final cleared =
+        executor.execute(const SetAlignmentCommand(alignment: null));
 
     expect(cleared.isNoop, isFalse);
     expect(session.document.blocks.single.attributes.alignment, isNull);

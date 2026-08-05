@@ -282,8 +282,8 @@ class WenzAutoSaveController extends ChangeNotifier {
         status: isSaving
             ? AutoSaveStatus.saving
             : _enabled
-            ? AutoSaveStatus.scheduled
-            : AutoSaveStatus.dirty,
+                ? AutoSaveStatus.scheduled
+                : AutoSaveStatus.dirty,
         isDirty: true,
         revision: _revision,
         lastChangedAt: changedAt,

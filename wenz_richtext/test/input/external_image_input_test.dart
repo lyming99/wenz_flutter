@@ -4,8 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wenz_richtext/src/input/external_image_input.dart';
 import 'package:wenz_richtext/src/input/external_image_store_io.dart' as io;
-import 'package:wenz_richtext/src/input/external_image_store_stub.dart'
-    as stub;
+import 'package:wenz_richtext/src/input/external_image_store_stub.dart' as stub;
 
 void main() {
   group('ExternalImageInput', () {
