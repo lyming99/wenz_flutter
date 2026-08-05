@@ -9,7 +9,7 @@ import '../parser/mermaid_parser.dart';
 ///
 /// Increment this value whenever parsing or layout semantics change so cached
 /// results created by an older engine cannot be reused accidentally.
-const String nativeMermaidEngineVersion = '2';
+const String nativeMermaidEngineVersion = '3';
 
 /// Stable error categories surfaced by the native Mermaid renderer.
 enum MermaidRenderErrorCode {

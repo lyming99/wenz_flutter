@@ -191,10 +191,11 @@ class FlowchartParser {
   }
 
   void _parseNodeOrEdge(String line) {
-    // Split line by arrows to get individual node-edge pairs
-    // Arrows: -->, ==>, ---, -.->
+    // Split line by arrows to get individual node-edge pairs. Match the
+    // longest forms first so a bidirectional arrow is not parsed as a stray
+    // "<" followed by a one-way arrow.
     final arrowRegex = RegExp(
-        r'\s*(==>|-->|---|\.\.\.|===|-.->|-\.->|---->|====|---)\s*(\|[^|]*\|)?\s*');
+        r'\s*(<-->|<==>|---->|====|==>|-->|-\.->|---|===|\.\.\.)\s*(\|[^|]*\|)?\s*');
 
     final parts = <String>[];
     final arrows = <_ArrowInfo>[];
@@ -207,7 +208,7 @@ class FlowchartParser {
       String? label;
       if (match.group(2) != null) {
         final labelStr = match.group(2)!;
-        label = labelStr.substring(1, labelStr.length - 1);
+        label = _unescapeLabel(labelStr.substring(1, labelStr.length - 1));
       }
       arrows.add(_ArrowInfo(match.group(1)!, label));
       lastEnd = match.end;
@@ -261,6 +262,7 @@ class FlowchartParser {
           label: arrow.label,
           arrowType: _parseArrowType(arrow.type),
           lineType: _parseLineType(arrow.type),
+          bidirectional: arrow.type.startsWith('<') && arrow.type.endsWith('>'),
           isSubgraphEdge: isFromSubgraph || isToSubgraph,
         );
         _edges.add(edge);
@@ -393,14 +395,51 @@ class FlowchartParser {
       }
     }
 
-    // Handle escaped quotes in labels
-    label = label.replaceAll('\\"', '"').replaceAll("\\'", "'");
+    label = _unescapeLabel(label);
 
     return MermaidNode(
       id: id,
       label: label,
       shape: shape,
     );
+  }
+
+  String _unescapeLabel(String label) {
+    final output = StringBuffer();
+    for (var index = 0; index < label.length; index++) {
+      final character = label[index];
+      if (character != '\\' || index + 1 >= label.length) {
+        output.write(character);
+        continue;
+      }
+
+      final escaped = label[++index];
+      switch (escaped) {
+        case 'n':
+          output.write('\n');
+          break;
+        case 'r':
+          output.write('\r');
+          break;
+        case 't':
+          output.write('\t');
+          break;
+        case '\\':
+          output.write('\\');
+          break;
+        case '"':
+          output.write('"');
+          break;
+        case "'":
+          output.write("'");
+          break;
+        default:
+          output
+            ..write('\\')
+            ..write(escaped);
+      }
+    }
+    return output.toString();
   }
 
   ArrowType _parseArrowType(String arrow) {

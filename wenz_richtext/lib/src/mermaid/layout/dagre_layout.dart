@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import '../config/responsive_config.dart';
 import '../models/diagram.dart';
+import '../models/edge.dart';
 import '../models/node.dart';
 import '../models/style.dart';
 import '../render/layout_instrumentation.dart';
@@ -33,130 +34,176 @@ class DagreLayout extends LayoutEngine {
   ) {
     if (diagram.nodes.isEmpty) return Size.zero;
 
-    // Check if we have subgraphs
     if (diagram.subgraphs.isNotEmpty) {
-      return _computeSubgraphLayout(diagram, style, availableSize);
+      return _computeCompoundLayout(diagram, style, availableSize);
     }
 
     final context = _LayoutContext(diagram, style);
-
-    // Step 1: Measure all nodes
     _measureNodes(context);
-
-    // Step 2: Build graph structure
-    _buildGraph(context);
-
-    // Step 3: Assign ranks using topological sort (BFS)
-    _assignRanks(context);
-
-    // Step 4: Order nodes within layers to minimize crossings
-    _orderNodes(context);
-
-    // Step 5: Assign coordinates
-    return _assignCoordinates(context);
+    return _layoutMeasuredDiagram(diagram, style);
   }
 
-  /// Computes layout for diagrams with subgraphs
-  Size _computeSubgraphLayout(
+  /// Lays out subgraphs as compound nodes in the outer graph.
+  ///
+  /// The previous subgraph path arranged only member nodes in a fixed row and
+  /// never positioned standalone nodes. Treating each top-level subgraph as a
+  /// measured outer node preserves the graph topology while keeping members
+  /// inside a non-overlapping container.
+  Size _computeCompoundLayout(
     MermaidDiagramData diagram,
     MermaidStyle style,
     Size availableSize,
   ) {
-    final isHorizontal = diagram.direction == DiagramDirection.leftToRight ||
-        diagram.direction == DiagramDirection.rightToLeft;
+    final nodeIds = diagram.nodes.map((node) => node.id).toSet();
+    final membersBySubgraph = <Subgraph, Set<String>>{
+      for (final subgraph in diagram.subgraphs)
+        subgraph: subgraph.nodeIds.where(nodeIds.contains).toSet(),
+    };
+    final topLevelSubgraphs = diagram.subgraphs.where((candidate) {
+      final candidateMembers = membersBySubgraph[candidate]!;
+      if (candidateMembers.isEmpty) return false;
+      return !diagram.subgraphs.any((possibleParent) {
+        if (identical(candidate, possibleParent)) return false;
+        final parentMembers = membersBySubgraph[possibleParent]!;
+        return parentMembers.length > candidateMembers.length &&
+            parentMembers.containsAll(candidateMembers);
+      });
+    }).toList(growable: false);
 
-    // Build a mapping of node IDs to their subgraph
-    final nodeToSubgraph = <String, Subgraph>{};
-    for (final sg in diagram.subgraphs) {
-      for (final nodeId in sg.nodeIds) {
-        nodeToSubgraph[nodeId] = sg;
-      }
+    if (topLevelSubgraphs.isEmpty) {
+      final context = _LayoutContext(diagram, style);
+      _measureNodes(context);
+      return _layoutMeasuredDiagram(diagram, style);
     }
 
-    // Measure all nodes first
     for (final node in diagram.nodes) {
       final size = measureNodeWithShape(node, style);
       node.width = size.width;
       node.height = size.height;
     }
 
-    // Group nodes by subgraph
-    final subgraphNodes = <String, List<MermaidNode>>{};
-    final standaloneNodes = <MermaidNode>[];
-
-    for (final node in diagram.nodes) {
-      final sg = nodeToSubgraph[node.id];
-      if (sg != null) {
-        subgraphNodes[sg.id] ??= [];
-        subgraphNodes[sg.id]!.add(node);
-      } else {
-        standaloneNodes.add(node);
+    final nodeToSubgraph = <String, Subgraph>{};
+    for (final subgraph in topLevelSubgraphs) {
+      for (final nodeId in membersBySubgraph[subgraph]!) {
+        nodeToSubgraph.putIfAbsent(nodeId, () => subgraph);
       }
     }
 
-    // Calculate layout for each subgraph
-    final subgraphBounds = <String, Rect>{};
-    final padding = style.padding;
-    const subgraphPadding = 40.0; // Internal padding for subgraph
-    const subgraphTitleHeight = 30.0;
-    final subgraphSpacing = style.nodeSpacingX;
-
-    double currentX = padding;
-    double maxHeight = 0;
-
-    // Layout subgraphs horizontally (for TD direction) or vertically (for LR)
-    for (final sg in diagram.subgraphs) {
-      final nodes = subgraphNodes[sg.id] ?? [];
-      if (nodes.isEmpty) continue;
-
-      // Layout nodes within subgraph
-      double sgWidth = 0;
-      double sgHeight = subgraphTitleHeight;
-      double nodeY = subgraphTitleHeight + subgraphPadding / 2;
-      double nodeX = subgraphPadding / 2;
-
-      // Simple horizontal layout within each subgraph
-      for (var i = 0; i < nodes.length; i++) {
-        final node = nodes[i];
-
-        if (isHorizontal) {
-          // Vertical arrangement for LR direction
-          node.x = currentX + subgraphPadding / 2;
-          node.y = nodeY;
-          nodeY += node.height + style.nodeSpacingY * 0.5;
-          sgWidth = math.max(sgWidth, node.width + subgraphPadding);
-          sgHeight = nodeY + subgraphPadding / 2;
-        } else {
-          // Horizontal arrangement for TD direction
-          node.x = currentX + nodeX;
-          node.y = padding + nodeY;
-          nodeX += node.width + style.nodeSpacingX * 0.5;
-          sgWidth = nodeX + subgraphPadding / 2;
-          sgHeight = math.max(
-              sgHeight, subgraphTitleHeight + node.height + subgraphPadding);
+    const horizontalContainerInset = 20.0;
+    const topContainerInset = 50.0;
+    const bottomContainerInset = 20.0;
+    final proxyBySubgraph = <Subgraph, MermaidNode>{};
+    final subgraphById = <String, Subgraph>{};
+    for (final subgraph in diagram.subgraphs) {
+      final members = membersBySubgraph[subgraph]!;
+      for (final topLevel in topLevelSubgraphs) {
+        if (membersBySubgraph[topLevel]!.containsAll(members)) {
+          subgraphById[subgraph.id] = topLevel;
+          break;
         }
       }
-
-      // Store subgraph bounds
-      subgraphBounds[sg.id] = Rect.fromLTWH(
-        currentX,
-        padding,
-        sgWidth,
-        sgHeight,
-      );
-
-      currentX += sgWidth + subgraphSpacing;
-      maxHeight = math.max(maxHeight, sgHeight);
     }
 
-    // Handle edges between subgraphs
-    // For "Frontend --> Backend" style edges, we need to draw from subgraph to subgraph
-    // This is handled in the painter
+    for (var index = 0; index < topLevelSubgraphs.length; index++) {
+      final subgraph = topLevelSubgraphs[index];
+      final members = diagram.nodes
+          .where((node) => nodeToSubgraph[node.id] == subgraph)
+          .toList(growable: false);
+      final memberIds = members.map((node) => node.id).toSet();
+      final internalEdges = diagram.edges
+          .where((edge) =>
+              !edge.isSubgraphEdge &&
+              memberIds.contains(edge.from) &&
+              memberIds.contains(edge.to))
+          .toList(growable: false);
+      final internalDiagram = MermaidDiagramData(
+        type: DiagramType.flowchart,
+        nodes: members,
+        edges: internalEdges,
+        direction: diagram.direction,
+      );
+      _layoutMeasuredDiagram(internalDiagram, style);
 
-    final totalWidth = currentX - subgraphSpacing + padding;
-    final totalHeight = maxHeight + padding * 2;
+      final memberBounds = computeNodeBounds(members);
+      for (final node in members) {
+        node.x = node.x - memberBounds.left + horizontalContainerInset;
+        node.y = node.y - memberBounds.top + topContainerInset;
+      }
 
-    return Size(totalWidth, totalHeight);
+      final proxy = MermaidNode(
+        id: '__wenz_mermaid_subgraph_${index}_${subgraph.id}',
+        label: subgraph.label,
+      );
+      proxy.width = memberBounds.width + horizontalContainerInset * 2;
+      proxy.height =
+          memberBounds.height + topContainerInset + bottomContainerInset;
+      proxyBySubgraph[subgraph] = proxy;
+    }
+
+    final outerNodes = <MermaidNode>[];
+    final addedSubgraphs = <Subgraph>{};
+    for (final node in diagram.nodes) {
+      final subgraph = nodeToSubgraph[node.id];
+      if (subgraph == null) {
+        outerNodes.add(node);
+      } else if (addedSubgraphs.add(subgraph)) {
+        outerNodes.add(proxyBySubgraph[subgraph]!);
+      }
+    }
+
+    String? outerIdFor(String endpoint) {
+      final explicitSubgraph = subgraphById[endpoint];
+      if (explicitSubgraph != null) {
+        return proxyBySubgraph[explicitSubgraph]!.id;
+      }
+      final memberSubgraph = nodeToSubgraph[endpoint];
+      if (memberSubgraph != null) {
+        return proxyBySubgraph[memberSubgraph]!.id;
+      }
+      return nodeIds.contains(endpoint) ? endpoint : null;
+    }
+
+    final outerEdges = <MermaidEdge>[];
+    final outerEdgeKeys = <String>{};
+    for (final edge in diagram.edges) {
+      final from = outerIdFor(edge.from);
+      final to = outerIdFor(edge.to);
+      if (from == null || to == null || from == to) continue;
+      final key = '$from\u0000$to';
+      if (!outerEdgeKeys.add(key)) continue;
+      outerEdges.add(MermaidEdge(from: from, to: to));
+    }
+
+    final outerDiagram = MermaidDiagramData(
+      type: DiagramType.flowchart,
+      nodes: outerNodes,
+      edges: outerEdges,
+      direction: diagram.direction,
+    );
+    final contentSize = _layoutMeasuredDiagram(outerDiagram, style);
+
+    for (final entry in proxyBySubgraph.entries) {
+      final proxy = entry.value;
+      for (final node in diagram.nodes) {
+        if (nodeToSubgraph[node.id] == entry.key) {
+          node.x += proxy.x;
+          node.y += proxy.y;
+        }
+      }
+    }
+
+    return contentSize;
+  }
+
+  Size _layoutMeasuredDiagram(
+    MermaidDiagramData diagram,
+    MermaidStyle style,
+  ) {
+    final context = _LayoutContext(diagram, style);
+    _buildGraph(context);
+    _assignRanks(context);
+    _orderNodes(context);
+    return _assignCoordinates(context);
   }
 
   void _measureNodes(_LayoutContext context) {
@@ -183,8 +230,11 @@ class DagreLayout extends LayoutEngine {
     final fontSize = nodeStyle.fontSize;
 
     // Calculate text dimensions
-    final textWidth = _measureTextWidth(node.label, fontSize);
-    final textHeight = fontSize * 1.4;
+    final lines = node.label.split('\n');
+    final textWidth = lines
+        .map((line) => _measureTextWidth(line, fontSize))
+        .fold(0.0, math.max);
+    final textHeight = fontSize * 1.4 * lines.length;
 
     // Shape-specific sizing
     switch (node.shape) {

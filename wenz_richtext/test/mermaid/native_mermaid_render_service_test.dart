@@ -42,6 +42,78 @@ String _linearFlowchart(int nodes) {
   return source.toString();
 }
 
+Rect _nodeBounds(Iterable<MermaidNode> nodes) {
+  var minX = double.infinity;
+  var minY = double.infinity;
+  var maxX = double.negativeInfinity;
+  var maxY = double.negativeInfinity;
+  for (final node in nodes) {
+    minX = math.min(minX, node.x);
+    minY = math.min(minY, node.y);
+    maxX = math.max(maxX, node.x + node.width);
+    maxY = math.max(maxY, node.y + node.height);
+  }
+  return Rect.fromLTRB(minX, minY, maxX, maxY);
+}
+
+const _compoundRelayFlowchart = r'''flowchart TB
+    WEB[Vue Web / 管理后台] -->|HTTPS 查询与写操作| EDGE[CDN / WAF / API Gateway]
+    DEVICEA[Device A / 查询或文件发送端] -->|① HTTPS 获取分配与 Peer/File Ticket| EDGE
+    DEVICEB[Device B / 数据拥有或文件接收端] -->|① HTTPS 获取分配| EDGE
+
+    subgraph CONTROL[Control Plane - 管理主机集群]
+        API[Control API\n认证、管理查询、任务落库、Peer/File Ticket]
+        SCHED[Relay Scheduler\n用户到 Cell 的动态分配]
+        DIR[Relay Directory\n节点健康、容量、租约]
+        OUT[Command Dispatcher]
+        RT[Realtime Gateway\n浏览器 SSE]
+        LOG[Log Ingest\nHTTPS 批量摄取]
+    end
+
+    EDGE --> API
+    EDGE --> RT
+    EDGE --> LOG
+    API --> SCHED
+    SCHED --> DIR
+    API --> PG[(PostgreSQL HA\n业务事实 + Assignment + Outbox/Inbox)]
+    DIR --> REDIS[(Redis HA\nDevice Route / Presence / Node Lease)]
+    SCHED --> PG
+    OUT --> PG
+
+    subgraph DATA[Relay Data Plane - 独立长连接服务]
+        CELLA[Relay Cell A\n可配置域名/IP + 2~N Relay Nodes]
+        CELLB[Relay Cell B\n可配置域名/IP + 2~N Relay Nodes]
+        CELLN[Relay Cell N\n可配置域名/IP + 2~N Relay Nodes]
+    end
+
+    API -->|② Cell URL + 短期 Ticket| DEVICEA
+    API -->|② Cell URL + 短期 Ticket| DEVICEB
+    DEVICEA <-->|③ WSS:443 + Protobuf| CELLA
+    DEVICEB <-->|③ WSS:443 + Protobuf| CELLB
+    CELLA <-->|④ mTLS Relay Interconnect\nE2EE 文件分块| CELLB
+    CELLA -->|连接注册/心跳| REDIS
+    CELLB -->|连接注册/心跳| REDIS
+    CELLN -->|连接注册/心跳| REDIS
+
+    OUT -->|查 device route| REDIS
+    OUT -->|Core NATS: relay.node.{nodeId}.downlink| NATS[(NATS Cluster\nCore 下行/Peer/File 控制 + JetStream 上行)]
+    NATS --> CELLA
+    NATS --> CELLB
+    NATS --> CELLN
+    CELLA -->|Peer Query / File Control / device.events.*| NATS
+    CELLB -->|Peer Response / File Control / device.events.*| NATS
+    CELLN -->|device.events.*| NATS
+
+    NATS --> PROJ[Project / Task Projectors]
+    NATS --> RT
+    PROJ --> PG
+
+    DEVICEA -->|HTTPS mTLS / 短期上传凭证| LOG
+    DEVICEB -->|HTTPS mTLS / 短期上传凭证| LOG
+    LOG --> OBJ[(S3 / OSS 对象存储)]
+    LOG --> PG
+    LOG --> NATS''';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -352,6 +424,78 @@ void main() {
       expect(second.contentSize.height, greaterThan(0));
       expect(math.max(second.contentSize.width, second.contentSize.height),
           lessThan(double.infinity));
+    });
+
+    test('compound flowchart lays out standalone and subgraph nodes', () async {
+      final service = DefaultNativeMermaidRenderService();
+      addTearDown(service.dispose);
+
+      final result = await _result(
+        service,
+        _request(_compoundRelayFlowchart, id: 'compound-relay'),
+      );
+
+      expect(result.nodeCount, 18);
+      expect(result.edgeCount, 36);
+      expect(result.diagram.subgraphs.map((subgraph) => subgraph.id),
+          <String>['CONTROL', 'DATA']);
+      expect(result.diagram.getNode('API')!.label, contains('\n'));
+      expect(
+        result.diagram.edges
+            .where((edge) => edge.from == 'DEVICEA' && edge.to == 'CELLA')
+            .single
+            .bidirectional,
+        isTrue,
+      );
+
+      final nodes = result.diagram.nodes;
+      for (var firstIndex = 0; firstIndex < nodes.length; firstIndex++) {
+        final first = nodes[firstIndex];
+        final firstBounds = Rect.fromLTWH(
+          first.x,
+          first.y,
+          first.width,
+          first.height,
+        );
+        expect(firstBounds.left, greaterThanOrEqualTo(0), reason: first.id);
+        expect(firstBounds.top, greaterThanOrEqualTo(0), reason: first.id);
+        expect(firstBounds.right, lessThanOrEqualTo(result.contentSize.width),
+            reason: first.id);
+        expect(firstBounds.bottom, lessThanOrEqualTo(result.contentSize.height),
+            reason: first.id);
+        for (var secondIndex = firstIndex + 1;
+            secondIndex < nodes.length;
+            secondIndex++) {
+          final second = nodes[secondIndex];
+          final secondBounds = Rect.fromLTWH(
+            second.x,
+            second.y,
+            second.width,
+            second.height,
+          );
+          expect(
+            firstBounds.overlaps(secondBounds),
+            isFalse,
+            reason: '${first.id} overlaps ${second.id}',
+          );
+        }
+      }
+
+      for (final subgraph in result.diagram.subgraphs) {
+        final members = subgraph.nodeIds
+            .map(result.diagram.getNode)
+            .whereType<MermaidNode>();
+        final bounds = _nodeBounds(members);
+        expect(bounds.left - 20, greaterThanOrEqualTo(0), reason: subgraph.id);
+        expect(bounds.top - 50, greaterThanOrEqualTo(0), reason: subgraph.id);
+        expect(bounds.right + 20, lessThanOrEqualTo(result.contentSize.width),
+            reason: subgraph.id);
+        expect(bounds.bottom + 20, lessThanOrEqualTo(result.contentSize.height),
+            reason: subgraph.id);
+      }
+
+      expect(result.contentSize.height,
+          greaterThan(result.contentSize.width * 0.2));
     });
   });
 }
