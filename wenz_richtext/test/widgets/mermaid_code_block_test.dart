@@ -44,6 +44,7 @@ class _DelayedRenderService implements NativeMermaidRenderService {
 }
 
 const _toggleKey = ValueKey<String>('wenz-richtext-mermaid-toggle');
+const _openWindowKey = ValueKey<String>('wenz-richtext-mermaid-open-window');
 
 Widget _wrapMermaidBlock({
   required CodeBlockNode block,
@@ -489,6 +490,78 @@ void main() {
     );
     await tester.pump();
     expect(controller.value.getMaxScaleOnAxis(), closeTo(fitScale, 0.0001));
+  });
+
+  testWidgets('preview opens a larger reusable window and closes cleanly', (
+    tester,
+  ) async {
+    final service = DefaultNativeMermaidRenderService();
+    final renderer = _RecordingMermaidRenderer();
+    addTearDown(service.dispose);
+
+    await _pumpBlock(
+      tester,
+      code: 'flowchart LR\n  A --> B --> C',
+      blockId: 'window',
+      service: service,
+      renderer: renderer,
+    );
+    await _showPreview(tester);
+    await _waitFor(tester, find.byType(MermaidDiagram));
+    await tester.pump();
+
+    final embeddedSize = tester.getSize(find.byType(InteractiveViewer));
+    final embeddedResult =
+        tester.widget<MermaidDiagram>(find.byType(MermaidDiagram)).result;
+    final parseCount = service.stats.parseCount;
+    final layoutCount = service.stats.layoutCount;
+
+    expect(find.byKey(_openWindowKey), findsOneWidget);
+    await tester.tap(find.byKey(_openWindowKey));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-mermaid-window-window'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Mermaid 图表'), findsOneWidget);
+    expect(find.byType(MermaidDiagram), findsNWidgets(2));
+    final windowViewer = find.byKey(
+      const ValueKey<String>(
+        'wenz-richtext-mermaid-window-viewer-window',
+      ),
+    );
+    expect(tester.getSize(windowViewer).width, greaterThan(embeddedSize.width));
+    expect(
+        tester.getSize(windowViewer).height, greaterThan(embeddedSize.height));
+    expect(
+      tester.widgetList<MermaidDiagram>(find.byType(MermaidDiagram)).every(
+          (diagram) => diagram.result.cacheKey == embeddedResult.cacheKey),
+      isTrue,
+    );
+    expect(service.stats.parseCount, parseCount);
+    expect(service.stats.layoutCount, layoutCount);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-mermaid-window-close-window'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(MermaidDiagram), findsOneWidget);
+
+    await tester.tap(find.byKey(_openWindowKey));
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-mermaid-window-window'),
+      ),
+      findsNothing,
+    );
   });
 
   testWidgets('preview viewport stays 16:9 under unbounded height', (

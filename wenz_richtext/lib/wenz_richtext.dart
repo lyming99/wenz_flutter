@@ -257,6 +257,7 @@ export 'src/integration/wenz_editor_configuration.dart';
 export 'src/widgets/block_renderer_registry.dart';
 export 'src/widgets/block_layout_index.dart';
 export 'src/widgets/comment_sidebar.dart';
+export 'src/widgets/code_block_theme.dart' show WenzCodeBlockThemeData;
 export 'src/widgets/code_syntax_highlighter.dart'
     show CodeSyntaxHighlighter, CodeSyntaxPalette;
 export 'src/widgets/color_picker_painters.dart';

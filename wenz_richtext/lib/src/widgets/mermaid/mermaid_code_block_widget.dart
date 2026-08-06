@@ -32,6 +32,9 @@ const double _kMermaidPreviewMaxScale = 5.0;
 const double _kMermaidPreviewWheelZoomIntensity = 0.0014;
 const double _kMermaidPreviewFallbackWidth = 960.0;
 const double _kMermaidPreviewFallbackHeight = 540.0;
+const double _kMermaidWindowInset = 24.0;
+const double _kMermaidWindowMaxWidth = 1440.0;
+const double _kMermaidWindowMaxHeight = 960.0;
 
 /// Source/preview wrapper for one Mermaid code block.
 ///
@@ -412,6 +415,7 @@ class _MermaidCodeBlockWidgetState extends State<MermaidCodeBlockWidget> {
       );
     }
     return _MermaidPreviewView(
+      blockId: widget.block.id,
       result: _result!,
       diagnostics: widget.config.diagnostics,
       onViewSource: _showSourceMode,
@@ -528,14 +532,18 @@ class _MermaidSourceView extends StatelessWidget {
 
 class _MermaidPreviewView extends StatefulWidget {
   const _MermaidPreviewView({
+    required this.blockId,
     required this.result,
     required this.diagnostics,
     required this.onViewSource,
+    this.windowMode = false,
   });
 
+  final String blockId;
   final MermaidRenderResult result;
   final MermaidRenderDiagnostics? diagnostics;
   final VoidCallback onViewSource;
+  final bool windowMode;
 
   @override
   State<_MermaidPreviewView> createState() => _MermaidPreviewViewState();
@@ -548,6 +556,7 @@ class _MermaidPreviewViewState extends State<_MermaidPreviewView> {
   _MermaidPreviewFitKey? _pendingFitKey;
   double _currentMinScale = _kMermaidPreviewMinScale;
   Size _lastViewportSize = const Size(1, 1);
+  bool _windowOpen = false;
 
   @override
   void initState() {
@@ -574,96 +583,140 @@ class _MermaidPreviewViewState extends State<_MermaidPreviewView> {
 
   @override
   Widget build(BuildContext context) {
-    final contentSize = widget.result.contentSize;
+    if (widget.windowMode) {
+      return _buildInteractiveSurface(
+        viewport: LayoutBuilder(builder: _buildViewport),
+        expandViewport: true,
+      );
+    }
+    // Keep the embedded preview's original bounded-height behaviour. A
+    // LayoutBuilder placed inside the Column would receive an unbounded height
+    // and could overflow a host that deliberately constrains the code block.
     return LayoutBuilder(
-      builder: (context, constraints) {
-        final availableWidth = math.max(
-          1.0,
-          constraints.maxWidth.isFinite ? constraints.maxWidth : 400.0,
-        );
-        final height = _resolveViewportHeight(availableWidth, constraints);
-        final viewportSize = Size(availableWidth, height);
-        _lastViewportSize = viewportSize;
-        final fitKey = _MermaidPreviewFitKey(
-          cacheKey: widget.result.cacheKey,
-          viewportSize: viewportSize,
-          contentSize: contentSize,
-        );
-        _currentMinScale = math
-            .min(
-              _kMermaidPreviewMinScale,
-              _fitScaleFor(
-                  viewportSize: viewportSize, contentSize: contentSize),
-            )
-            .clamp(0.001, _kMermaidPreviewMaxScale)
-            .toDouble();
-        _scheduleFitToView(fitKey);
+      builder: (context, constraints) => _buildInteractiveSurface(
+        viewport: _buildViewport(context, constraints),
+        expandViewport: false,
+      ),
+    );
+  }
 
-        return CallbackShortcuts(
-          bindings: <ShortcutActivator, VoidCallback>{
-            const SingleActivator(LogicalKeyboardKey.equal, control: true):
-                _zoomIn,
-            const SingleActivator(LogicalKeyboardKey.equal, meta: true):
-                _zoomIn,
-            const SingleActivator(LogicalKeyboardKey.minus, control: true):
-                _zoomOut,
-            const SingleActivator(LogicalKeyboardKey.minus, meta: true):
-                _zoomOut,
-            const SingleActivator(LogicalKeyboardKey.digit0, control: true):
-                _reset,
-            const SingleActivator(LogicalKeyboardKey.digit0, meta: true):
-                _reset,
-            const SingleActivator(LogicalKeyboardKey.keyF): _fitToView,
-            const SingleActivator(LogicalKeyboardKey.escape):
-                widget.onViewSource,
-          },
-          child: FocusableActionDetector(
-            focusNode: _focusNode,
-            mouseCursor: SystemMouseCursors.grab,
-            child: Listener(
-              behavior: HitTestBehavior.opaque,
-              onPointerDown: (_) => _focusNode.requestFocus(),
-              onPointerSignal: _handlePointerSignal,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  _PreviewToolbar(
-                    onFit: _fitToView,
-                    onZoomIn: _zoomIn,
-                    onZoomOut: _zoomOut,
-                    onReset: _reset,
-                  ),
-                  const SizedBox(height: 6),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: SizedBox(
-                      width: availableWidth,
-                      height: height,
-                      child: ColoredBox(
-                        color: Color(widget.result.style.backgroundColor),
-                        child: InteractiveViewer(
-                          transformationController: _transformationController,
-                          boundaryMargin: const EdgeInsets.all(double.infinity),
-                          maxScale: _kMermaidPreviewMaxScale,
-                          minScale: _currentMinScale,
-                          constrained: false,
-                          scaleEnabled: false,
-                          child: MermaidDiagram(
-                            result: widget.result,
-                            diagnostics: widget.diagnostics,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+  Widget _buildInteractiveSurface({
+    required Widget viewport,
+    required bool expandViewport,
+  }) {
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.equal, control: true): _zoomIn,
+        const SingleActivator(LogicalKeyboardKey.equal, meta: true): _zoomIn,
+        const SingleActivator(LogicalKeyboardKey.minus, control: true):
+            _zoomOut,
+        const SingleActivator(LogicalKeyboardKey.minus, meta: true): _zoomOut,
+        const SingleActivator(LogicalKeyboardKey.digit0, control: true): _reset,
+        const SingleActivator(LogicalKeyboardKey.digit0, meta: true): _reset,
+        const SingleActivator(LogicalKeyboardKey.keyF): _fitToView,
+        const SingleActivator(LogicalKeyboardKey.escape): widget.onViewSource,
+      },
+      child: FocusableActionDetector(
+        focusNode: _focusNode,
+        mouseCursor: SystemMouseCursors.grab,
+        child: Listener(
+          behavior: HitTestBehavior.opaque,
+          onPointerDown: (_) => _focusNode.requestFocus(),
+          onPointerSignal: _handlePointerSignal,
+          child: Column(
+            mainAxisSize: expandViewport ? MainAxisSize.max : MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              _PreviewToolbar(
+                onFit: _fitToView,
+                onZoomIn: _zoomIn,
+                onZoomOut: _zoomOut,
+                onReset: _reset,
+                onOpenWindow: widget.windowMode ? null : _openWindow,
+                keySuffix: widget.windowMode ? '-window-${widget.blockId}' : '',
               ),
+              const SizedBox(height: 6),
+              if (expandViewport) Expanded(child: viewport) else viewport,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildViewport(BuildContext context, BoxConstraints constraints) {
+    final availableWidth = math.max(
+      1.0,
+      constraints.maxWidth.isFinite ? constraints.maxWidth : 400.0,
+    );
+    final height = widget.windowMode && constraints.maxHeight.isFinite
+        ? math.max(1.0, constraints.maxHeight)
+        : _resolveViewportHeight(availableWidth, constraints);
+    final viewportSize = Size(availableWidth, height);
+    final contentSize = widget.result.contentSize;
+    _lastViewportSize = viewportSize;
+    final fitKey = _MermaidPreviewFitKey(
+      cacheKey: widget.result.cacheKey,
+      viewportSize: viewportSize,
+      contentSize: contentSize,
+    );
+    _currentMinScale = math
+        .min(
+          _kMermaidPreviewMinScale,
+          _fitScaleFor(viewportSize: viewportSize, contentSize: contentSize),
+        )
+        .clamp(0.001, _kMermaidPreviewMaxScale)
+        .toDouble();
+    _scheduleFitToView(fitKey);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: SizedBox(
+        width: availableWidth,
+        height: height,
+        child: ColoredBox(
+          color: Color(widget.result.style.backgroundColor),
+          child: InteractiveViewer(
+            key: widget.windowMode
+                ? ValueKey<String>(
+                    'wenz-richtext-mermaid-window-viewer-${widget.blockId}',
+                  )
+                : null,
+            transformationController: _transformationController,
+            boundaryMargin: const EdgeInsets.all(double.infinity),
+            maxScale: _kMermaidPreviewMaxScale,
+            minScale: _currentMinScale,
+            constrained: false,
+            scaleEnabled: false,
+            child: MermaidDiagram(
+              result: widget.result,
+              diagnostics: widget.diagnostics,
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
+  }
+
+  Future<void> _openWindow() async {
+    if (_windowOpen || !mounted) return;
+    _windowOpen = true;
+    try {
+      await showDialog<void>(
+        context: context,
+        useRootNavigator: true,
+        routeSettings: RouteSettings(
+          name: 'wenz-richtext-mermaid-window-${widget.blockId}',
+        ),
+        builder: (dialogContext) => _MermaidPreviewWindow(
+          blockId: widget.blockId,
+          result: widget.result,
+          diagnostics: widget.diagnostics,
+        ),
+      );
+    } finally {
+      _windowOpen = false;
+    }
   }
 
   void _handlePointerSignal(PointerSignalEvent event) {
@@ -745,12 +798,16 @@ class _PreviewToolbar extends StatelessWidget {
     required this.onZoomIn,
     required this.onZoomOut,
     required this.onReset,
+    this.onOpenWindow,
+    this.keySuffix = '',
   });
 
   final VoidCallback onFit;
   final VoidCallback onZoomIn;
   final VoidCallback onZoomOut;
   final VoidCallback onReset;
+  final VoidCallback? onOpenWindow;
+  final String keySuffix;
 
   @override
   Widget build(BuildContext context) {
@@ -785,6 +842,13 @@ class _PreviewToolbar extends StatelessWidget {
               icon: Icons.restart_alt,
               onPressed: onReset,
             ),
+            if (onOpenWindow != null)
+              _button(
+                key: 'wenz-richtext-mermaid-open-window',
+                tooltip: '打开窗口查看',
+                icon: Icons.open_in_new,
+                onPressed: onOpenWindow!,
+              ),
           ],
         ),
       ),
@@ -798,12 +862,121 @@ class _PreviewToolbar extends StatelessWidget {
     required VoidCallback onPressed,
   }) {
     return IconButton(
-      key: ValueKey<String>(key),
+      key: ValueKey<String>('$key$keySuffix'),
       tooltip: tooltip,
       visualDensity: VisualDensity.compact,
       iconSize: 19,
       onPressed: onPressed,
       icon: Icon(icon, semanticLabel: tooltip),
+    );
+  }
+}
+
+class _MermaidPreviewWindow extends StatelessWidget {
+  const _MermaidPreviewWindow({
+    required this.blockId,
+    required this.result,
+    required this.diagnostics,
+  });
+
+  final String blockId;
+  final MermaidRenderResult result;
+  final MermaidRenderDiagnostics? diagnostics;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final mediaSize = MediaQuery.sizeOf(context);
+    final width = math.min(
+      _kMermaidWindowMaxWidth,
+      math.max(1.0, mediaSize.width - _kMermaidWindowInset * 2),
+    );
+    final height = math.min(
+      _kMermaidWindowMaxHeight,
+      math.max(1.0, mediaSize.height - _kMermaidWindowInset * 2),
+    );
+
+    void close() {
+      unawaited(Navigator.of(context).maybePop());
+    }
+
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.escape): close,
+      },
+      child: Focus(
+        autofocus: true,
+        child: Dialog(
+          key: ValueKey<String>(
+            'wenz-richtext-mermaid-window-$blockId',
+          ),
+          insetPadding: const EdgeInsets.all(_kMermaidWindowInset),
+          clipBehavior: Clip.antiAlias,
+          child: SizedBox(
+            width: width,
+            height: height,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Material(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  child: SizedBox(
+                    height: 52,
+                    child: Padding(
+                      padding: const EdgeInsetsDirectional.only(
+                        start: 18,
+                        end: 8,
+                      ),
+                      child: Row(
+                        children: <Widget>[
+                          Icon(
+                            Icons.account_tree_outlined,
+                            size: 20,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Mermaid 图表',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleSmall,
+                            ),
+                          ),
+                          IconButton(
+                            key: ValueKey<String>(
+                              'wenz-richtext-mermaid-window-close-$blockId',
+                            ),
+                            tooltip: '关闭窗口',
+                            onPressed: close,
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Divider(
+                  height: 1,
+                  color: theme.colorScheme.outlineVariant,
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: _MermaidPreviewView(
+                      blockId: blockId,
+                      result: result,
+                      diagnostics: diagnostics,
+                      onViewSource: close,
+                      windowMode: true,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

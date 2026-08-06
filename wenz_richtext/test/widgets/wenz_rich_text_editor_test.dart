@@ -14676,6 +14676,50 @@ void main() {
     expect(controller.selection, textSelection('p1', 0, 0, 2));
   });
 
+  testWidgets('Ctrl+T toggles todo mode on and off', (tester) async {
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: 'Todo')],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 0),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            autofocus: true,
+            enableIme: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyT);
+    await tester.pump();
+
+    var block = controller.document.blocks.single as TextBlockNode;
+    expect(block.type, BlockType.listItem);
+    expect(block.attributes.listType, 'task');
+    expect(block.attributes.checked, isFalse);
+
+    await _sendCtrlShortcut(tester, LogicalKeyboardKey.keyT);
+    await tester.pump();
+
+    block = controller.document.blocks.single as TextBlockNode;
+    expect(block.type, BlockType.paragraph);
+    expect(block.attributes.listType, isNull);
+    expect(block.attributes.checked, isNull);
+  });
+
   testWidgets('selectAll shortcut configuration selects current code block', (
     tester,
   ) async {
@@ -22008,7 +22052,7 @@ void main() {
     });
   });
 
-  group('link hover and Ctrl/Cmd+click interaction', () {
+  group('link hover and click interaction', () {
     testWidgets('hovering a link shows the edit/open overlay above it',
         (tester) async {
       await _pumpLinkEditor(tester, onOpenLink: (url, position) {});
@@ -22128,6 +22172,35 @@ void main() {
       // The caret lands somewhere inside the link run [_kLinkStart, _kLinkEnd).
       expect(selection.extent.offset, greaterThanOrEqualTo(_kLinkStart));
       expect(selection.extent.offset, lessThan(_kLinkEnd));
+      expect(selection.isCollapsed, isTrue);
+    });
+
+    testWidgets('a plain mouse click opens a link while read-only',
+        (tester) async {
+      final opens = <String>[];
+      final positions = <DocumentPosition>[];
+      final controller = await _pumpLinkEditor(
+        tester,
+        readOnly: true,
+        onOpenLink: (url, position) {
+          opens.add(url);
+          positions.add(position);
+        },
+      );
+      controller.setSelection(collapsedTextSelection('p-link', 0, 0));
+      await tester.pumpAndSettle();
+
+      await _mouseClickAt(tester, _linkPoint(tester));
+
+      expect(opens, <String>[_kLinkUrl]);
+      expect(positions.single.blockId, 'p-link');
+      expect(positions.single.blockIndex, 0);
+      expect(positions.single.path, PositionPath.blockText('p-link'));
+      expect(positions.single.offset, _kLinkStart);
+      final selection = controller.selection;
+      expect(selection, isNotNull);
+      expect(selection!.extent.blockId, 'p-link');
+      expect(selection.extent.offset, 0);
       expect(selection.isCollapsed, isTrue);
     });
 
@@ -26473,8 +26546,7 @@ Future<void> _shiftMouseDragFrom(
   }
 }
 
-/// A mouse (down + up) click at [point] — the only pointer kind the
-/// Ctrl/Cmd+click-to-open path responds to.
+/// A mouse (down + up) click at [point].
 Future<void> _mouseClickAt(WidgetTester tester, Offset point) async {
   final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
   addTearDown(gesture.removePointer);

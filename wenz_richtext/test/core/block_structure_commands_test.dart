@@ -111,7 +111,7 @@ void main() {
       expect(block.attributes.checked, isFalse);
     });
 
-    test('toggles checked state on an existing task item', () {
+    test('removes todo mode from an existing task item', () {
       final session = DocumentSession(
         document: const RichTextDocument(
           blocks: <BlockNode>[
@@ -129,20 +129,21 @@ void main() {
 
       executor.execute(const ToggleTodoCommand());
 
-      expect(
-        (session.document.blocks.single as TextBlockNode).attributes.checked,
-        isTrue,
-      );
+      final block = session.document.blocks.single as TextBlockNode;
+      expect(block.type, BlockType.paragraph);
+      expect(block.attributes.listType, isNull);
+      expect(block.attributes.checked, isNull);
+      expect(block.plainText, 'todo');
     });
 
-    test('toggles ordered todo without changing list type', () {
+    test('removes todo state from ordered todo without changing list type', () {
       final session = DocumentSession(
         document: const RichTextDocument(
           blocks: <BlockNode>[
             TextBlockNode(
               id: 'ordered',
               type: BlockType.listItem,
-              attributes: BlockAttributes(listType: 'ordered', checked: false),
+              attributes: BlockAttributes(listType: 'ordered', checked: true),
               content: <InlineNode>[TextRun(text: 'todo')],
             ),
           ],
@@ -156,7 +157,50 @@ void main() {
       final block = session.document.blocks.single as TextBlockNode;
       expect(block.type, BlockType.listItem);
       expect(block.attributes.listType, 'ordered');
-      expect(block.attributes.checked, isTrue);
+      expect(block.attributes.checked, isNull);
+    });
+
+    test('applies todo mode to a mixed selection without resetting completion',
+        () {
+      final session = DocumentSession(
+        document: const RichTextDocument(
+          blocks: <BlockNode>[
+            TextBlockNode(
+              id: 'done',
+              type: BlockType.listItem,
+              attributes: BlockAttributes(listType: 'task', checked: true),
+              content: <InlineNode>[TextRun(text: 'done')],
+            ),
+            TextBlockNode(
+              id: 'plain',
+              type: BlockType.paragraph,
+              content: <InlineNode>[TextRun(text: 'plain')],
+            ),
+          ],
+        ),
+        selection: DocumentSelection(
+          base: DocumentPosition.text(
+            blockId: 'done',
+            blockIndex: 0,
+            offset: 0,
+          ),
+          extent: DocumentPosition.text(
+            blockId: 'plain',
+            blockIndex: 1,
+            offset: 5,
+          ),
+        ),
+      );
+      final executor = CommandExecutor(session);
+
+      executor.execute(const ToggleTodoCommand());
+
+      final done = session.document.blocks[0] as TextBlockNode;
+      final plain = session.document.blocks[1] as TextBlockNode;
+      expect(done.attributes.checked, isTrue);
+      expect(plain.type, BlockType.listItem);
+      expect(plain.attributes.listType, 'task');
+      expect(plain.attributes.checked, isFalse);
     });
 
     test('adds todo state to ordered item without downgrading numbering', () {

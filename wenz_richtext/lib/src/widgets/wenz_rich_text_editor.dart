@@ -38,6 +38,7 @@ import '../rendering/text_layout_service.dart';
 import 'block_geometry_registry.dart';
 import 'block_layout_index.dart';
 import 'block_renderer_registry.dart';
+import 'code_block_theme.dart';
 import 'code_syntax_highlighter.dart';
 import 'desktop_selection_toolbar_overlay.dart';
 import 'editor_context_menu.dart';
@@ -746,20 +747,20 @@ Color _minimalMenuHoverColor(ThemeData theme) {
       : _kMinimalMenuHoverColorLight;
 }
 
-Color _minimalToolbarHoverOverlayColor(ThemeData theme) {
-  return theme.brightness == Brightness.dark
+Color _minimalToolbarHoverOverlayColor(Brightness brightness) {
+  return brightness == Brightness.dark
       ? _kMinimalToolbarHoverOverlayDark
       : _kMinimalToolbarHoverOverlayLight;
 }
 
-Color _minimalToolbarFocusOverlayColor(ThemeData theme) {
-  return theme.brightness == Brightness.dark
+Color _minimalToolbarFocusOverlayColor(Brightness brightness) {
+  return brightness == Brightness.dark
       ? _kMinimalToolbarFocusOverlayDark
       : _kMinimalToolbarFocusOverlayLight;
 }
 
-Color _blockToolbarPressedOverlayColor(ThemeData theme) =>
-    theme.brightness == Brightness.dark
+Color _blockToolbarPressedOverlayColor(Brightness brightness) =>
+    brightness == Brightness.dark
         ? _kMinimalToolbarPressedOverlayDark
         : _kMinimalToolbarPressedOverlayLight;
 
@@ -830,9 +831,11 @@ ButtonStyle _blockToolbarIconButtonStyle(
   EditorTokens tokens = EditorTokens.desktop,
   Color? foregroundColor,
   Color? disabledForegroundColor,
+  Brightness? surfaceBrightness,
 }) {
   final buttonSize = tokens.minimalToolbarButtonSize;
   final fixedSize = Size.square(buttonSize);
+  final effectiveBrightness = surfaceBrightness ?? theme.brightness;
   return IconButton.styleFrom(
     fixedSize: fixedSize,
     minimumSize: fixedSize,
@@ -845,9 +848,9 @@ ButtonStyle _blockToolbarIconButtonStyle(
         disabledForegroundColor ?? _blockToolbarDisabledIconColor(theme),
     backgroundColor: Colors.transparent,
     disabledBackgroundColor: Colors.transparent,
-    hoverColor: _minimalToolbarHoverOverlayColor(theme),
-    focusColor: _minimalToolbarFocusOverlayColor(theme),
-    highlightColor: _blockToolbarPressedOverlayColor(theme),
+    hoverColor: _minimalToolbarHoverOverlayColor(effectiveBrightness),
+    focusColor: _minimalToolbarFocusOverlayColor(effectiveBrightness),
+    highlightColor: _blockToolbarPressedOverlayColor(effectiveBrightness),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(buttonSize / 2),
     ),
@@ -1603,10 +1606,11 @@ class WenzObjectBlockSurface extends StatelessWidget {
 
 /// Callback invoked when an inline link — text whose [TextAttributes.url] is
 /// non-null — is activated. The library reports the link [url] and the document
-/// [position] of the run that was activated (Ctrl/Cmd+click on the link text, or
-/// the link hover overlay's "open" action) and leaves the actual opening to the
-/// host, mirroring the callback-first philosophy of [WenzMentionTapCallback]. The
-/// library itself never depends on a platform launcher.
+/// [position] of the run that was activated (Ctrl/Cmd+click while editing,
+/// plain click while read-only, or the link hover overlay's "open" action) and
+/// leaves the actual opening to the host, mirroring the callback-first
+/// philosophy of [WenzMentionTapCallback]. The library itself never depends on
+/// a platform launcher.
 typedef WenzLinkInteractionCallback = void Function(
   String url,
   DocumentPosition position,
@@ -1786,12 +1790,12 @@ class WenzRichTextEditor extends StatefulWidget {
   final WenzMentionTapCallback? onMentionTap;
 
   /// Called when an inline link (`TextAttributes.url` non-null) is activated —
-  /// by a Ctrl/Cmd+click on the link text or the link hover overlay's "open"
-  /// action. The host receives the link [url] and the document [position] of the
-  /// link run and decides how to open it (browser / in-app / allow-list). The
-  /// library never launches a URL itself, mirroring [onMentionTap]. When
-  /// omitted, link activation is simply reported to no one; links keep their
-  /// visual styling and remain editable as before.
+  /// by a Ctrl/Cmd+click while editing, a plain click while read-only, or the
+  /// link hover overlay's "open" action. The host receives the link [url] and
+  /// the document [position] of the link run and decides how to open it
+  /// (browser / in-app / allow-list). The library never launches a URL itself,
+  /// mirroring [onMentionTap]. When omitted, links keep their visual styling
+  /// and normal selection behaviour.
   final WenzLinkInteractionCallback? onOpenLink;
 
   /// Whether editor-local find/replace support is enabled.
@@ -14667,7 +14671,7 @@ class _CodeBlockRenderer extends StatelessWidget {
         decoration: BoxDecoration(
           color: codeBlockBackground,
           border: selected
-              ? Border.all(color: theme.colorScheme.primary, width: 1.5)
+              ? Border.all(color: _codeBlockAccentColor(theme), width: 1.5)
               : Border.all(color: _codeBlockBorderColor(theme)),
           borderRadius: BorderRadius.circular(_kCodeBlockRadius),
         ),
@@ -15265,6 +15269,7 @@ class _CodeBlockToolbar extends StatelessWidget {
                   disabledForegroundColor: accentColor.withAlpha(
                     _kMinimalToolbarDisabledAlpha,
                   ),
+                  surfaceBrightness: _codeBlockSurfaceBrightness(theme),
                 ),
                 onPressed: onCopyPressed,
                 icon: const Icon(Icons.copy, semanticLabel: '复制代码内容'),
@@ -15286,6 +15291,7 @@ class _CodeBlockToolbar extends StatelessWidget {
                     disabledForegroundColor: accentColor.withAlpha(
                       _kMinimalToolbarDisabledAlpha,
                     ),
+                    surfaceBrightness: _codeBlockSurfaceBrightness(theme),
                   ),
                   onPressed: mermaidControls.onPreview,
                   icon: const Icon(
@@ -22261,27 +22267,41 @@ class _CalloutVariantMenuState extends State<_CalloutVariantMenu> {
 }
 
 Color _codeBlockBackgroundColor(ThemeData theme) {
+  final codeBlockTheme = theme.extension<WenzCodeBlockThemeData>();
+  if (codeBlockTheme != null) return codeBlockTheme.backgroundColor;
   return theme.brightness == Brightness.dark
       ? theme.colorScheme.surfaceContainerHighest
       : const Color(_kCodeBlockBackgroundColor);
 }
 
 Color _codeBlockTextColor(ThemeData theme) {
+  final codeBlockTheme = theme.extension<WenzCodeBlockThemeData>();
+  if (codeBlockTheme != null) return codeBlockTheme.foregroundColor;
   return theme.brightness == Brightness.dark
       ? theme.colorScheme.onSurface
       : const Color(_kCodeBlockTextColor);
 }
 
 Color _codeBlockBorderColor(ThemeData theme) {
+  final codeBlockTheme = theme.extension<WenzCodeBlockThemeData>();
+  if (codeBlockTheme != null) return codeBlockTheme.borderColor;
   return theme.brightness == Brightness.dark
       ? theme.colorScheme.outlineVariant.withAlpha(150)
       : Colors.white.withAlpha(30);
 }
 
 Color _codeBlockAccentColor(ThemeData theme) {
+  final codeBlockTheme = theme.extension<WenzCodeBlockThemeData>();
+  if (codeBlockTheme != null) return codeBlockTheme.accentColor;
   return theme.brightness == Brightness.dark
       ? theme.colorScheme.primary
       : const Color(_kCodeLanguageTagColor);
+}
+
+Brightness _codeBlockSurfaceBrightness(ThemeData theme) {
+  return ThemeData.estimateBrightnessForColor(
+    _codeBlockBackgroundColor(theme),
+  );
 }
 
 Color _tableBorderColor(ThemeData theme) {

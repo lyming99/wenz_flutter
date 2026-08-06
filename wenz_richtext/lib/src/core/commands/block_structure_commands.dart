@@ -340,8 +340,12 @@ class IndentCommand extends EditorCommand {
   }
 }
 
-/// Toggles the checked state of a task list item at the caret. If the block is
-/// not a task list item, converts it to one first.
+/// Toggles todo mode for the selected text blocks.
+///
+/// When every selected text block is already a todo, unordered task items are
+/// converted back to paragraphs and ordered items keep their numbering while
+/// losing todo state. Otherwise todo mode is applied to every non-todo text
+/// block without changing the completion state of existing todo items.
 class ToggleTodoCommand extends EditorCommand {
   const ToggleTodoCommand({this.selection});
 
@@ -357,6 +361,7 @@ class ToggleTodoCommand extends EditorCommand {
       return const CommandResult(recordHistory: false);
     }
     final blocks = session.document.blocks.toList();
+    final removeTodo = _allTextBlocksAreTodo(target, blocks);
     var changed = false;
     for (var i = target.start.blockIndex; i <= target.end.blockIndex; i++) {
       if (i < 0 || i >= blocks.length) {
@@ -367,12 +372,11 @@ class ToggleTodoCommand extends EditorCommand {
         continue;
       }
       final isListItem = block.type == BlockType.listItem;
-      final isTodo = isListItem && block.attributes.checked != null;
-      if (isTodo) {
-        blocks[i] = _textBlockWithChecked(
-          block,
-          !(block.attributes.checked ?? false),
-        );
+      final isTodo = _isTodoBlock(block);
+      if (removeTodo) {
+        blocks[i] = _textBlockWithoutTodo(block);
+      } else if (isTodo) {
+        continue;
       } else if (isListItem) {
         blocks[i] = _textBlockWithChecked(block, false);
       } else {
@@ -402,6 +406,64 @@ class ToggleTodoCommand extends EditorCommand {
     );
     return CommandResult(selection: target);
   }
+}
+
+bool _allTextBlocksAreTodo(
+  DocumentSelection target,
+  List<BlockNode> blocks,
+) {
+  var sawTextBlock = false;
+  for (var i = target.start.blockIndex; i <= target.end.blockIndex; i++) {
+    if (i < 0 || i >= blocks.length) {
+      continue;
+    }
+    final block = blocks[i];
+    if (block is! TextBlockNode) {
+      continue;
+    }
+    sawTextBlock = true;
+    if (!_isTodoBlock(block)) {
+      return false;
+    }
+  }
+  return sawTextBlock;
+}
+
+bool _isTodoBlock(TextBlockNode block) {
+  return block.type == BlockType.listItem &&
+      (block.attributes.listType == 'task' || block.attributes.checked != null);
+}
+
+TextBlockNode _textBlockWithoutTodo(TextBlockNode block) {
+  final attributes = block.attributes;
+  if (attributes.listType != 'task') {
+    return TextBlockNode(
+      id: block.id,
+      type: block.type,
+      attributes: BlockAttributes(
+        level: attributes.level,
+        indent: attributes.indent,
+        alignment: attributes.alignment,
+        listType: attributes.listType,
+        quoted: attributes.quoted,
+        childNote: attributes.childNote,
+        anchor: attributes.anchor,
+      ),
+      content: block.content,
+    );
+  }
+  return TextBlockNode(
+    id: block.id,
+    type: BlockType.paragraph,
+    attributes: BlockAttributes(
+      indent: attributes.indent,
+      alignment: attributes.alignment,
+      quoted: attributes.quoted,
+      childNote: attributes.childNote,
+      anchor: attributes.anchor,
+    ),
+    content: block.content,
+  );
 }
 
 /// Sets the checked state of an existing task list item without moving the

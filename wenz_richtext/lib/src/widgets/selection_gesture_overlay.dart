@@ -172,15 +172,14 @@ class SelectionGestureOverlay extends StatefulWidget {
   /// it. Reported only while [linkProbe] is supplied.
   final ValueChanged<WenzLinkHoverInfo?>? onLinkHover;
 
-  /// Invoked when the user Ctrl/Cmd+clicks (mouse/stylus only) an inline link
-  /// run, asking the host to open it. The host forwards the URL to
-  /// [WenzRichTextEditor.onOpenLink]. The modifier-click is resolved in
-  /// [_onPointerDown] via [linkProbe]; when it hits a link the caret/selection
-  /// logic is suppressed so the editor's selection stays put, and pointer-up
-  /// opens the link instead. When this is `null` (the host supplied no open
-  /// handler) a modifier-click on a link falls through to normal caret
-  /// placement. Touch never reaches this path (it requires a mouse/stylus
-  /// pointer with a platform modifier held).
+  /// Invoked when the user activates an inline link with a mouse or stylus:
+  /// Ctrl/Cmd+click while editing, or a plain click while [readOnly]. The host
+  /// forwards the URL to [WenzRichTextEditor.onOpenLink]. Activation is
+  /// resolved in [_onPointerDown] via [linkProbe]; when it hits a link the
+  /// caret/selection logic is suppressed so the editor's selection stays put,
+  /// and pointer-up opens the link instead. When this is `null` (the host
+  /// supplied no open handler), the click falls through to normal selection
+  /// handling. Touch never reaches this path.
   final ValueChanged<WenzLinkHoverInfo>? onLinkOpen;
 
   final Widget child;
@@ -233,9 +232,9 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   // the desktop double-click path is untouched.
   late final Map<Type, GestureRecognizerFactory> _gestureRecognizers;
 
-  // When non-null, the in-progress pointer-down is a Ctrl/Cmd+click
-  // (mouse/stylus) on an inline link: the caret/selection setup was suppressed
-  // on down, and pointer-up opens the link instead of placing the caret.
+  // When non-null, the in-progress pointer-down activated an inline link: the
+  // caret/selection setup was suppressed on down, and pointer-up opens the link
+  // instead of placing the caret.
   // Cleared on up, cancel, and exit.
   WenzLinkHoverInfo? _linkOpenPending;
 
@@ -445,10 +444,10 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
       );
       return;
     }
-    // Ctrl/Cmd+click (mouse/stylus) on an inline link opens it instead of
-    // placing the caret. Resolve it before the tap/multi-click/drag setup so
-    // none of that state is recorded — pointer-up just opens and returns,
-    // leaving the editor's selection untouched.
+    // Ctrl/Cmd+click while editing, or a plain click while read-only, opens an
+    // inline link instead of placing the caret. Resolve it before the
+    // tap/multi-click/drag setup so none of that state is recorded — pointer-up
+    // just opens and returns, leaving the editor's selection untouched.
     final linkOpen = _linkOpenFromDown(event);
     if (linkOpen != null) {
       _linkOpenPending = linkOpen;
@@ -564,24 +563,26 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   /// Resolves whether a mouse/stylus pointer-down at [event] should open the
   /// inline link under it instead of placing the caret.
   ///
-  /// Returns the hovered link run when the platform modifier is held — Ctrl on
-  /// all platforms, Cmd on macOS (matching browser link-opening: Ctrl+click on
-  /// Windows/Linux, Cmd+click on Mac) — and [widget.linkProbe] resolves a link
-  /// at the position; otherwise `null`. Touch is excluded so a finger tap keeps
-  /// its normal caret placement, and a modifier-click on non-link text falls
-  /// through to the regular tap flow (the probe returns `null`).
+  /// Returns the hovered link run when the editor is read-only or the platform
+  /// modifier is held — Ctrl on all platforms, Cmd on macOS (matching browser
+  /// link-opening: Ctrl+click on Windows/Linux, Cmd+click on Mac) — and
+  /// [widget.linkProbe] resolves a link at the position; otherwise `null`.
+  /// Touch is excluded, and a qualifying click on non-link text falls through
+  /// to the regular tap flow (the probe returns `null`).
   WenzLinkHoverInfo? _linkOpenFromDown(PointerEvent event) {
     if (event.kind != PointerDeviceKind.mouse &&
         event.kind != PointerDeviceKind.stylus) {
       return null;
     }
     final keyboard = HardwareKeyboard.instance;
-    if (!keyboard.isControlPressed && !keyboard.isMetaPressed) {
+    if (!widget.readOnly &&
+        !keyboard.isControlPressed &&
+        !keyboard.isMetaPressed) {
       return null;
     }
     // Only treat this as an open-click when the host can actually open a link;
-    // otherwise a Ctrl/Cmd+click on a link falls through to caret placement so
-    // the text stays editable (mirroring the hover popup's disabled "Open").
+    // otherwise it falls through to normal selection handling (mirroring the
+    // hover popup's disabled "Open").
     final probe = widget.linkProbe;
     final open = widget.onLinkOpen;
     if (probe == null || open == null) {
@@ -676,9 +677,9 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
       setState(() {});
     }
 
-    // A Ctrl/Cmd+click on a link: open it and bail before the tap/selection
-    // placement below, so neither requestFocus nor onSelectionChanged fires and
-    // the caret stays where it was.
+    // A qualifying link click: open it and bail before the tap/selection
+    // placement below, so neither requestFocus nor onSelectionChanged fires
+    // and the caret stays where it was.
     final pendingLink = _linkOpenPending;
     if (pendingLink != null) {
       _linkOpenPending = null;
