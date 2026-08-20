@@ -184,11 +184,13 @@ class SelectionGestureOverlay extends StatefulWidget {
 
   final Widget child;
 
-  /// The mouse cursor shown while hovering the editing surface. Editable
-  /// surfaces show the text (I-beam) cursor so users know they can click to
-  /// place the caret; read-only surfaces keep the default arrow.
-  MouseCursor get cursor =>
-      readOnly ? SystemMouseCursors.basic : SystemMouseCursors.text;
+  /// The mouse cursor shown while hovering selectable text.
+  ///
+  /// Read-only documents still support range selection and copy, so they use
+  /// the same I-beam affordance as editable documents. Nested links, media
+  /// controls and scrollbars continue to override this cursor for their own
+  /// hit regions.
+  MouseCursor get cursor => SystemMouseCursors.text;
 
   @override
   State<SelectionGestureOverlay> createState() =>
@@ -350,8 +352,8 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
 
   /// The cursor for the current hover region. Over the scrollbar gutter we
   /// show a click cursor (so the thumb does not inherit the editing cursor);
-  /// elsewhere the editable surface shows the text (I-beam) cursor and a
-  /// read-only surface keeps the default arrow.
+  /// elsewhere selectable text shows the text (I-beam) cursor in both editable
+  /// and read-only documents.
   MouseCursor _resolvedCursor() {
     if (_isMovingSelection) {
       return SystemMouseCursors.grabbing;
@@ -793,7 +795,6 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     required bool tappedCurrentCaret,
   }) {
     if (!widget.useMobileTouchGestures ||
-        widget.readOnly ||
         event.kind != PointerDeviceKind.touch ||
         tapCount != 1 ||
         isShiftSelecting ||
@@ -814,9 +815,7 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     DocumentPosition anchor,
     Offset globalPosition,
   ) {
-    if (!widget.useMobileTouchGestures ||
-        widget.readOnly ||
-        !_isTextInputPath(anchor.path)) {
+    if (!widget.useMobileTouchGestures || !_isTextInputPath(anchor.path)) {
       return false;
     }
     // A link owns its touch interaction. It may still place a caret through the

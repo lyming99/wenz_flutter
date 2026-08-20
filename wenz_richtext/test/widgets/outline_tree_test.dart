@@ -190,16 +190,32 @@ void main() {
     expect(find.text('Beta'), findsNothing);
   });
 
-  testWidgets('leaf headings do not show or reserve collapse toggle space',
+  testWidgets('leaf headings reserve toggle space so equal levels stay aligned',
       (tester) async {
-    final leaf = _item(
-      blockId: 'leaf',
+    final parent = _item(
+      blockId: 'parent',
       blockIndex: 0,
       level: 1,
-      title: 'Leaf',
+      title: 'Parent',
       collapseRange: const OutlineCollapseRange(
         startBlockIndex: 1,
         endBlockIndexExclusive: 2,
+      ),
+    );
+    final child = _item(
+      blockId: 'child',
+      blockIndex: 1,
+      level: 2,
+      title: 'Child',
+    );
+    final leaf = _item(
+      blockId: 'leaf',
+      blockIndex: 2,
+      level: 1,
+      title: 'Leaf',
+      collapseRange: const OutlineCollapseRange(
+        startBlockIndex: 3,
+        endBlockIndexExclusive: 4,
         blockIds: <String>['body'],
       ),
     );
@@ -207,17 +223,25 @@ void main() {
     OutlineItem? toggled;
 
     await tester.pumpWidget(_wrap(WenzOutlineTree(
-      items: <OutlineItem>[leaf],
+      items: <OutlineItem>[parent, child, leaf],
       onSelect: (item) => selected = item,
       onToggleCollapse: (item) => toggled = item,
     )));
 
-    expect(find.byIcon(Icons.expand_more), findsNothing);
+    expect(find.byIcon(Icons.expand_more), findsOneWidget);
     expect(find.byIcon(Icons.chevron_right), findsNothing);
 
     final leafPadding = _rowContentPaddingForTitle(tester, 'Leaf');
     expect(leafPadding.start, 8);
     expect(leafPadding.end, 8);
+    expect(
+      tester.getTopLeft(find.text('Leaf')).dx,
+      tester.getTopLeft(find.text('Parent')).dx,
+    );
+    expect(
+      tester.getTopLeft(find.text('Child')).dx,
+      greaterThan(tester.getTopLeft(find.text('Parent')).dx),
+    );
 
     await tester.tap(find.text('Leaf'));
     await tester.pump();

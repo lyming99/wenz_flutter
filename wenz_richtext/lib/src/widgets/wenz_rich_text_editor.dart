@@ -4426,9 +4426,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
 
   bool get _canShowMobileCaretToolbar {
     return widget.enableMobileSelectionHandles &&
-        EditorTokens.shouldUseMobileSelectionUi(context) &&
-        !widget.readOnly &&
-        widget.controller.canEdit;
+        EditorTokens.shouldUseMobileSelectionUi(context);
   }
 
   void _synchronizeMobileCaretToolbar({bool hideForDocumentChange = false}) {
@@ -14977,9 +14975,9 @@ class _CodeScrollableTextSurfaceState
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             MouseRegion(
-              cursor: widget.canEdit
-                  ? SystemMouseCursors.text
-                  : SystemMouseCursors.basic,
+              // Code remains selectable in read-only documents. The scrollbar
+              // and its reserved strip keep their own basic cursor below.
+              cursor: SystemMouseCursors.text,
               child: SizedBox(
                 key: _viewportKey,
                 child: SingleChildScrollView(
