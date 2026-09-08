@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- 分割线改为纯横线显示，移除中央强调圆点；普通态与选中态均不再绘制圆点。
+- 优化单字选择：鼠标/手写笔拖动跨过字符实际宽度的中点即进入选择，不再受 18px 粗略拖动阈值限制；触摸滚动和已选文本移动仍保留防误触门槛。
+- 移动端光标/选区操作条改为通过页面级 `OverlayEntry` 弹出，不再受编辑器或消息卡片的裁剪与宽高约束；操作条会优先避让正文、状态栏和软键盘，并在外层列表滚动时继续跟随选区。
 - `WenzRichTextEditor` 新增可选 `backgroundColor`，嵌入聊天消息等宿主时可传入透明色，同时保留原有深浅主题默认背景。
 - 修复紧凑布局中代码正文使用 12.5px、行号仍固定为 13.5px 导致长代码块逐行累积错位的问题；行号现在始终复用正文实际解析后的字号与行高。
 - 代码块语法高亮改用 [highlight](https://pub.dev/packages/highlight)（highlight.js 的 Dart 移植）库：`CodeSyntaxHighlighter` 不再使用手写分词器，改为调用 `highlight.parse` 解析并遍历 `Node` 树生成 `TextSpan`，公共 API（`CodeSyntaxHighlighter` / `CodeSyntaxPalette`）的类名、字段与构造签名保持不变，composition 合成下划线行为保留。

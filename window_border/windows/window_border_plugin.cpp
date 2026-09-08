@@ -6,6 +6,7 @@
 
 #include <VersionHelpers.h>
 #include <dwmapi.h>
+#include <commctrl.h>
 
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
@@ -29,6 +30,18 @@ namespace window_border {
 namespace {
 
 constexpr UINT kLayoutFlutterViewMessage = WM_APP + 0x04B0;
+constexpr double kResizeHitTestExtraLogicalPixels = 2.0;
+
+bool IsFullscreenWindow(HWND window) {
+  RECT bounds{};
+  MONITORINFO monitor_info{sizeof(MONITORINFO)};
+  if (!GetWindowRect(window, &bounds) ||
+      !GetMonitorInfo(MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST),
+                      &monitor_info)) {
+    return false;
+  }
+  return EqualRect(&bounds, &monitor_info.rcMonitor) != FALSE;
+}
 
 // The default window chrome is owned by the native implementation. Dart can
 // optionally override these values, but it does not draw either surface.
@@ -184,7 +197,70 @@ WindowBorderPlugin::WindowBorderPlugin(
   RebuildBackgroundBrush();
 }
 
+bool WindowBorderPlugin::InstallFlutterViewSubclass() {
+  if (flutter_view_ == nullptr || flutter_view_ == window_) {
+    return true;
+  }
+  return SetWindowSubclass(flutter_view_, FlutterViewSubclassProc,
+                           reinterpret_cast<UINT_PTR>(this),
+                           reinterpret_cast<DWORD_PTR>(this)) != FALSE;
+}
+
+void WindowBorderPlugin::RemoveFlutterViewSubclass() {
+  if (flutter_view_ != nullptr && IsWindow(flutter_view_)) {
+    RemoveWindowSubclass(flutter_view_, FlutterViewSubclassProc,
+                         reinterpret_cast<UINT_PTR>(this));
+  }
+}
+
+LRESULT CALLBACK WindowBorderPlugin::FlutterViewSubclassProc(
+    HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam,
+    UINT_PTR subclass_id, DWORD_PTR reference_data) {
+  auto* plugin = reinterpret_cast<WindowBorderPlugin*>(reference_data);
+  if (message == WM_NCDESTROY) {
+    RemoveWindowSubclass(hwnd, FlutterViewSubclassProc, subclass_id);
+    plugin->flutter_view_ = nullptr;
+  } else if (plugin->enabled_) {
+    if (message == WM_NCHITTEST || message == WM_NCLBUTTONDOWN) {
+      const POINT point{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+      const LRESULT hit = plugin->HitTest(point);
+      if (hit != HTCLIENT) {
+        if (message == WM_NCHITTEST) {
+          return hit;
+        }
+        // The child owns the hit, but only the top-level HWND must enter
+        // Windows' native sizing loop. Do not rely on HTTRANSPARENT routing.
+        ReleaseCapture();
+        PostMessage(plugin->window_, WM_NCLBUTTONDOWN,
+                    static_cast<WPARAM>(hit), lparam);
+        return 0;
+      }
+    } else if (message == WM_SETCURSOR) {
+      POINT point{};
+      if (GetCursorPos(&point)) {
+        LPCWSTR cursor = nullptr;
+        switch (plugin->HitTest(point)) {
+          case HTTOP:
+          case HTBOTTOM: cursor = IDC_SIZENS; break;
+          case HTLEFT:
+          case HTRIGHT: cursor = IDC_SIZEWE; break;
+          case HTTOPLEFT:
+          case HTBOTTOMRIGHT: cursor = IDC_SIZENWSE; break;
+          case HTTOPRIGHT:
+          case HTBOTTOMLEFT: cursor = IDC_SIZENESW; break;
+        }
+        if (cursor != nullptr) {
+          SetCursor(LoadCursor(nullptr, cursor));
+          return TRUE;
+        }
+      }
+    }
+  }
+  return DefSubclassProc(hwnd, message, wparam, lparam);
+}
+
 WindowBorderPlugin::~WindowBorderPlugin() {
+  RemoveFlutterViewSubclass();
   if (enabled_) {
     std::string ignored_error;
     SetBorderEnabled(false, &ignored_error);
@@ -590,6 +666,17 @@ bool WindowBorderPlugin::UpdateStyle(
 }
 
 bool WindowBorderPlugin::SetBorderEnabled(bool enabled, std::string* error) {
+  if (enabled) {
+    if (!EnsureWindow(error)) {
+      return false;
+    }
+    if (!InstallFlutterViewSubclass()) {
+      *error = "Unable to install Flutter view resize hit testing.";
+      return false;
+    }
+  } else {
+    RemoveFlutterViewSubclass();
+  }
   if (enabled == enabled_) {
     if (enabled) {
       if (!EnsureWindow(error)) {
@@ -961,7 +1048,7 @@ void WindowBorderPlugin::PaintBorder(HDC device_context) {
 }
 
 LRESULT WindowBorderPlugin::HitTest(POINT screen_point) const {
-  if (!resizable_ || IsZoomed(window_)) {
+  if (!resizable_ || IsZoomed(window_) || IsFullscreenWindow(window_)) {
     return HTCLIENT;
   }
 
@@ -969,29 +1056,41 @@ LRESULT WindowBorderPlugin::HitTest(POINT screen_point) const {
   ScreenToClient(window_, &point);
   RECT client{};
   GetClientRect(window_, &client);
-  const int resize_width = std::max(
-      ScaleLogicalPixels(resize_border_width_),
-      ScaleLogicalPixels(border_width_));
+  // Expand only the invisible hit target, not the painted border or content
+  // inset. Scale the additional 2dp with the current window DPI as well.
+  const int resize_width = ScaleLogicalPixels(
+      std::max(resize_border_width_, border_width_) +
+      kResizeHitTestExtraLogicalPixels);
+
+  if (!PtInRect(&client, point)) {
+    return HTCLIENT;
+  }
+  // Like Chromium, distinguish edge thickness from the wider corner zones.
+  // A slightly deeper top band keeps the handle reachable above Flutter tabs.
+  const int top_width = std::max(resize_width, ScaleLogicalPixels(12.0));
+  const int corner_width = std::max(resize_width, ScaleLogicalPixels(16.0));
+  const bool corner_left = point.x < client.left + corner_width;
+  const bool corner_right = point.x >= client.right - corner_width;
 
   const bool left = point.x >= client.left &&
                     point.x < client.left + resize_width;
   const bool right = point.x < client.right &&
                      point.x >= client.right - resize_width;
   const bool top = point.y >= client.top &&
-                   point.y < client.top + resize_width;
+                   point.y < client.top + top_width;
   const bool bottom = point.y < client.bottom &&
                       point.y >= client.bottom - resize_width;
 
-  if (top && left) {
+  if (top && corner_left) {
     return HTTOPLEFT;
   }
-  if (top && right) {
+  if (top && corner_right) {
     return HTTOPRIGHT;
   }
-  if (bottom && left) {
+  if (bottom && corner_left) {
     return HTBOTTOMLEFT;
   }
-  if (bottom && right) {
+  if (bottom && corner_right) {
     return HTBOTTOMRIGHT;
   }
   if (left) {

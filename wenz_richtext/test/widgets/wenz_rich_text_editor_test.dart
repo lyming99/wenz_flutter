@@ -148,7 +148,7 @@ void main() {
     expect(find.text('[video: clip]'), findsOneWidget);
   });
 
-  testWidgets('divider block line expands beyond the center dot', (
+  testWidgets('divider block renders a full-width rule without a center dot', (
     tester,
   ) async {
     final controller = WenzRichTextController(
@@ -179,23 +179,23 @@ void main() {
 
     const shellKey = ValueKey<String>('wenz-richtext-divider-shell-divider1');
     const lineKey = ValueKey<String>('wenz-richtext-divider-line-divider1');
-    const dotKey = ValueKey<String>('wenz-richtext-divider-dot-divider1');
     final shellFinder = find.byKey(shellKey);
     final lineFinder = find.byKey(lineKey);
-    final dotFinder = find.byKey(dotKey);
 
     expect(shellFinder, findsOneWidget);
     expect(lineFinder, findsOneWidget);
-    expect(dotFinder, findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-divider-dot-divider1'),
+      ),
+      findsNothing,
+    );
     expect(tester.takeException(), isNull);
 
     final lineRect = tester.getRect(lineFinder);
-    final dotRect = tester.getRect(dotFinder);
-    expect(lineRect.width, greaterThan(dotRect.width * 4));
     expect(lineRect.width.isFinite, isTrue);
     expect(
         lineRect.width, lessThanOrEqualTo(tester.getSize(shellFinder).width));
-    expect(lineRect.center.dx, moreOrLessEquals(dotRect.center.dx, epsilon: 1));
     final lineDecoration =
         tester.widget<DecoratedBox>(lineFinder).decoration as BoxDecoration;
     expect(lineDecoration.color, _dividerLine);
@@ -208,21 +208,20 @@ void main() {
 
     expect(shellFinder, findsOneWidget);
     expect(lineFinder, findsOneWidget);
-    expect(dotFinder, findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-divider-dot-divider1'),
+      ),
+      findsNothing,
+    );
     expect(find.byKey(_selectionHighlightKey), findsNothing);
     expect(tester.takeException(), isNull);
 
     final selectedLineRect = tester.getRect(lineFinder);
-    final selectedDotRect = tester.getRect(dotFinder);
-    expect(selectedLineRect.width, greaterThan(selectedDotRect.width * 4));
     expect(selectedLineRect.width.isFinite, isTrue);
     expect(
       selectedLineRect.width,
       lessThanOrEqualTo(tester.getSize(shellFinder).width),
-    );
-    expect(
-      selectedLineRect.center.dx,
-      moreOrLessEquals(selectedDotRect.center.dx, epsilon: 1),
     );
     final selectedShellDecoration =
         tester.widget<DecoratedBox>(shellFinder).decoration as BoxDecoration;
@@ -3530,6 +3529,15 @@ void main() {
       '折叠标题内容（3 个块）',
     );
     expect(tester.widget<IconButton>(sectionButton).onPressed, isNotNull);
+    final sectionIconButton = tester.widget<IconButton>(sectionButton);
+    final sectionTheme = Theme.of(tester.element(sectionButton));
+    expect(sectionIconButton.style?.backgroundColor, isNull);
+    expect(
+      sectionIconButton.style?.overlayColor?.resolve(<WidgetState>{
+        WidgetState.focused,
+      }),
+      sectionTheme.colorScheme.primary.withAlpha(22),
+    );
     expect(_richText('Body one'), findsOneWidget);
     expect(_richText('Body three'), findsOneWidget);
     expect(controller.selection, isNull);
@@ -9290,12 +9298,12 @@ void main() {
       const ValueKey<String>('wenz-richtext-divider-line-divider'),
     );
     expect(line.color, _dividerLine);
-    final dot = _boxDecorationByKey(
-      tester,
-      const ValueKey<String>('wenz-richtext-divider-dot-divider'),
+    expect(
+      find.byKey(
+        const ValueKey<String>('wenz-richtext-divider-dot-divider'),
+      ),
+      findsNothing,
     );
-    expect(dot.color, theme.colorScheme.primary);
-    expect(dot.shape, BoxShape.circle);
     expect(find.byTooltip('复制块引用'), findsNothing);
     expect(find.byTooltip('更多块操作'), findsNothing);
   });
@@ -17845,6 +17853,65 @@ void main() {
     );
   });
 
+  testWidgets('mouse drag selects one CJK character after crossing midpoint', (
+    tester,
+  ) async {
+    const text = '单字';
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: text)],
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WenzRichTextEditor(
+            controller: controller,
+            enableIme: false,
+            textStyle: const TextStyle(fontSize: 24),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final firstCharacter = _renderParagraphTextBox(tester, text, 0, 1);
+    final start = Offset(firstCharacter.left, firstCharacter.center.dy);
+    final justPastMidpoint = Offset(
+      firstCharacter.left + firstCharacter.width * 0.55,
+      firstCharacter.center.dy,
+    );
+    expect(
+      (justPastMidpoint - start).distance,
+      lessThan(18),
+      reason: 'the regression requires a movement below the coarse drag slop',
+    );
+
+    final gesture = await tester.startGesture(
+      start,
+      kind: PointerDeviceKind.mouse,
+    );
+    await gesture.moveTo(justPastMidpoint);
+    await gesture.up();
+    await tester.pump();
+
+    _expectBlockTextSelection(
+      controller.selection,
+      blockId: 'p1',
+      blockIndex: 0,
+      baseOffset: 0,
+      extentOffset: 1,
+    );
+    expect(controller.selection!.isCollapsed, isFalse);
+  });
+
   testWidgets('mouse dragging selected text moves it to the drop caret', (
     tester,
   ) async {
@@ -20500,6 +20567,90 @@ void main() {
     expect(controller.selection?.extent.offset, 6);
   });
 
+  testWidgets('Home and End move to soft-wrapped visual line boundaries', (
+    tester,
+  ) async {
+    const text = '第一视觉行会自动换行，第二视觉行也有足够多的文字，第三视觉行继续。';
+    final controller = WenzRichTextController(
+      document: const RichTextDocument(
+        blocks: <BlockNode>[
+          TextBlockNode(
+            id: 'p1',
+            type: BlockType.paragraph,
+            content: <InlineNode>[TextRun(text: text)],
+          ),
+        ],
+      ),
+      selection: collapsedTextSelection('p1', 0, 0),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 240,
+              child: WenzRichTextEditor(
+                controller: controller,
+                autofocus: true,
+                enableIme: false,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final finder = _richText(text);
+    final painter = _richTextPainter(
+      tester,
+      finder,
+      tester.widget<RichText>(finder),
+    );
+    final lines = painter.computeLineMetrics();
+    expect(lines.length, greaterThan(2));
+    final range = _visualLineRange(painter, lines[1]);
+    expect(range.start, greaterThan(0));
+    expect(range.end, lessThan(text.length));
+    final inside = (range.start + range.end) ~/ 2;
+
+    controller.setSelection(collapsedTextSelection('p1', 0, inside));
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.home);
+    await tester.pump();
+    expect(controller.selection?.extent.offset, range.start);
+
+    controller.setSelection(collapsedTextSelection('p1', 0, inside));
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.end);
+    await tester.pump();
+    expect(controller.selection?.extent.offset, range.end);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.home);
+    await tester.pump();
+    expect(controller.selection?.extent.offset, range.start);
+
+    controller.setSelection(collapsedTextSelection('p1', 0, inside));
+    await tester.pump();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.home);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pump();
+    expect(controller.selection?.base.offset, inside);
+    expect(controller.selection?.extent.offset, range.start);
+
+    controller.setSelection(collapsedTextSelection('p1', 0, inside));
+    await tester.pump();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.end);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pump();
+    expect(controller.selection?.base.offset, inside);
+    expect(controller.selection?.extent.offset, range.end);
+  });
+
   testWidgets('Ctrl+Left/Right move by word', (tester) async {
     final controller = WenzRichTextController(
       document: const RichTextDocument(
@@ -22053,6 +22204,47 @@ void main() {
   });
 
   group('link hover and click interaction', () {
+    testWidgets('read-only links use click cursor and plain text uses text cursor',
+        (tester) async {
+      final controller = await _pumpLinkEditor(
+        tester,
+        readOnly: true,
+        onOpenLink: (_, __) {},
+      );
+      addTearDown(controller.dispose);
+      final linkPoint = _linkPoint(tester);
+      final plainPoint = _plainTextPoint(tester);
+      final mouse = await _hoverMouseAt(tester, linkPoint);
+      expect(_resolvedMouseCursor(tester, linkPoint), SystemMouseCursors.click);
+
+      await mouse.moveTo(plainPoint);
+      await tester.pumpAndSettle();
+      expect(_resolvedMouseCursor(tester, plainPoint), SystemMouseCursors.text);
+
+      await mouse.moveTo(linkPoint);
+      await tester.pumpAndSettle();
+      expect(_resolvedMouseCursor(tester, linkPoint), SystemMouseCursors.click);
+      await mouse.moveTo(const Offset(-200, -200));
+      await tester.pumpAndSettle();
+      expect(_resolvedMouseCursor(tester, linkPoint), SystemMouseCursors.text);
+    });
+
+    for (final readOnly in <bool>[false, true]) {
+      testWidgets(
+          'links retain text cursor when ${readOnly ? 'no open handler exists' : 'editing'}',
+          (tester) async {
+        final controller = await _pumpLinkEditor(
+          tester,
+          readOnly: readOnly,
+          onOpenLink: readOnly ? null : (_, __) {},
+        );
+        addTearDown(controller.dispose);
+        final point = _linkPoint(tester);
+        await _hoverMouseAt(tester, point);
+        expect(_resolvedMouseCursor(tester, point), SystemMouseCursors.text);
+      });
+    }
+
     testWidgets('hovering a link shows the edit/open overlay above it',
         (tester) async {
       await _pumpLinkEditor(tester, onOpenLink: (url, position) {});
@@ -22082,6 +22274,25 @@ void main() {
       await gesture.moveTo(_plainTextPoint(tester));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
+      expect(find.text('打开'), findsNothing);
+    });
+
+    testWidgets(
+        'repeated non-link hover movement does not postpone overlay dismissal',
+        (tester) async {
+      await _pumpLinkEditor(tester, onOpenLink: (url, position) {});
+      final gesture = await _hoverMouseAt(tester, _linkPoint(tester));
+      expect(find.text('打开'), findsOneWidget);
+
+      // Desktop pointers normally keep producing hover events while moving
+      // away. The hide grace period starts at the first non-link event rather
+      // than being reset by every subsequent movement.
+      final plainText = _plainTextPoint(tester);
+      for (var step = 0; step < 4; step++) {
+        await gesture.moveTo(plainText + Offset(step * 0.25, 0));
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+
       expect(find.text('打开'), findsNothing);
     });
 
@@ -24091,8 +24302,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // The drag handle is at x=0, heading collapse button starts after the
-      // handle's right edge plus chromeGap.
+      // The drag handle starts after the standard 4dp rail inset. The heading
+      // collapse button follows it after one more 4dp chrome gap.
       final dragHandleRect = tester.getRect(_blockDragHandleFinder('h'));
       final collapseRect = tester.getRect(
         find.byKey(
@@ -24100,7 +24311,20 @@ void main() {
         ),
       );
 
-      expect(dragHandleRect.left, moreOrLessEquals(0, epsilon: 0.5));
+      expect(BlockDragHandleSpec.startMargin, 4);
+      expect(BlockDragHandleSpec.chromeGap, 4);
+      expect(BlockDragHandleSpec.gapToContent, 4);
+      expect(BlockDragHandleSpec.buttonSize, 24);
+      expect(BlockDragHandleSpec.hitSize, const Size.square(24));
+      expect(BlockDragHandleSpec.iconSize, 18);
+      expect(BlockDragHandleSpec.visualSize, const Size.square(18));
+      expect(BlockDragHandleSpec.buttonRadius, 6);
+      expect(BlockDragHandleSpec.railWidth, 60);
+      expect(dragHandleRect.size, collapseRect.size);
+      expect(
+        dragHandleRect.left,
+        moreOrLessEquals(BlockDragHandleSpec.startMargin, epsilon: 0.5),
+      );
       expect(
         collapseRect.left - dragHandleRect.right,
         moreOrLessEquals(BlockDragHandleSpec.chromeGap, epsilon: 0.5),

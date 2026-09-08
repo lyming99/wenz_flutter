@@ -503,8 +503,8 @@ const double _kNestedListItemSpacing = _kRichTextBodyFontSize * 0.15;
 /// run.
 const double _kAdjacentQuoteSpacing = 0.0;
 const double _kHeadingCollapseSlotWidth = 24.0;
-const double _kHeadingCollapseButtonSize = 24.0;
-const double _kHeadingCollapseIconSize = 18.0;
+const double _kHeadingCollapseButtonSize = BlockDragHandleSpec.buttonSize;
+const double _kHeadingCollapseIconSize = BlockDragHandleSpec.iconSize;
 const double _kCodeBlockFontSize =
     13.5; // == EditorTokens.desktop.codeBlockFontSize
 const double _kCodeBlockLineHeight = 1.6;
@@ -587,7 +587,6 @@ const int _kCodeNumberColor = 0xFFF78C6C;
 const int _kCodeCommentColor = 0xFF6B7394;
 const double _kDividerMarginVertical = _kRichTextBodyFontSize * 1.6;
 const int _kDividerLineColor = 0xFFE4E1EE;
-const double _kDividerDotSize = 6.0;
 const double _kCalloutIconFontSize = 20.0;
 const int _kCalloutInfoBackgroundColor = 0xFFF2F0F7;
 const int _kCalloutInfoForegroundColor = 0xFF46464F;
@@ -780,8 +779,8 @@ double _blockRowChromeWidth({
         assert(
           fullRailWidth == BlockDragHandleSpec.railWidth,
           'BlockDragHandleSpec.railWidth must match desktop row chrome: '
-          'start margin 4dp + operation button 28dp + gap 4dp + '
-          'collapse button 24dp + content gap 8dp.',
+          'start margin 4dp + operation button 24dp + gap 4dp + '
+          'collapse button 24dp + content gap 4dp.',
         );
       }
       return fullRailWidth;
@@ -804,7 +803,7 @@ double _blockRowChromeWidth({
       assert(
         collapseOnlyWidth == BlockDragHandleSpec.collapseChromeOverflow,
         'BlockDragHandleSpec.collapseChromeOverflow must match desktop row '
-        'chrome: collapse button 24dp + content gap 8dp.',
+        'chrome: collapse button 24dp + content gap 4dp.',
       );
     }
     return collapseOnlyWidth;
@@ -853,6 +852,27 @@ ButtonStyle _blockToolbarIconButtonStyle(
     highlightColor: _blockToolbarPressedOverlayColor(effectiveBrightness),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(buttonSize / 2),
+    ),
+  );
+}
+
+ButtonStyle _blockChromeIconButtonStyle(ThemeData theme) {
+  const fixedSize = BlockDragHandleSpec.hitSize;
+  final interactionColor = theme.colorScheme.primary;
+  return IconButton.styleFrom(
+    fixedSize: fixedSize,
+    minimumSize: fixedSize,
+    maximumSize: fixedSize,
+    padding: EdgeInsets.zero,
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    visualDensity: VisualDensity.standard,
+    foregroundColor: theme.colorScheme.onSurfaceVariant,
+    disabledForegroundColor: theme.colorScheme.outline.withAlpha(110),
+    hoverColor: interactionColor.withAlpha(22),
+    focusColor: interactionColor.withAlpha(22),
+    highlightColor: interactionColor.withAlpha(34),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(BlockDragHandleSpec.buttonRadius),
     ),
   );
 }
@@ -1216,7 +1236,7 @@ final class WenzRichTextDesignBaseline {
     'quote': 'aligned: 4px primary left border and surface-container quote.',
     'listItem': 'aligned: 26px list inset, compact nesting, and task states.',
     'code': 'aligned: dark surface, monospace scale, language tag, and scroll.',
-    'divider': 'aligned: light rule, 1.6em spacing, and centered primary dot.',
+    'divider': 'aligned: light rule with 1.6em spacing.',
     'image': 'style+golden: figure radius, shadow, max width, and caption.',
     'video': 'structure+golden: black preview, cover fallback, play button.',
     'file': 'style+state: 40px icon card, hover/focus, metadata zones.',
@@ -2724,6 +2744,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
 
   void _handleControllerChanged() {
     if (mounted) {
+      _registry.retainCaretAffinityFor(widget.controller.selection?.extent);
       _synchronizeMobileCaretToolbar(hideForDocumentChange: true);
       if (_contextMenuOpen) {
         _EditorPopupMenuDismissal.dismiss();
@@ -4301,6 +4322,7 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   }
 
   void _handleSelectionChanged(DocumentSelection selection) {
+    _registry.clearCaretAffinity();
     _skipNextCaretScrollIntoView = true;
     widget.controller.setSelection(selection);
     _dispatchMentionTapForSelection(selection);
@@ -5686,8 +5708,8 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
     if (!mounted) {
       return;
     }
-    _cancelLinkHoverHide();
     if (info != null) {
+      _cancelLinkHoverHide();
       _surfaceLinkHovered = true;
       // Stable per-run (offset pinned to run start), so skip redundant rebuilds
       // while the pointer drifts within the same link.
@@ -5705,7 +5727,12 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   }
 
   void _scheduleLinkHoverHide() {
-    _linkHoverHideTimer?.cancel();
+    // Repeated hover events over ordinary content must not restart the grace
+    // period indefinitely. Start it on the first event that leaves both the
+    // link and popup; entering either one explicitly cancels it.
+    if (_linkHoverHideTimer != null) {
+      return;
+    }
     _linkHoverHideTimer = Timer(_kLinkHoverHideDelay, () {
       _linkHoverHideTimer = null;
       // Ordering-independent guard: only hide once the pointer is over neither
@@ -7705,7 +7732,18 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   }
 
   void _performShortcut(EditorShortcutResolution resolution) {
+    // Only consecutive Up/Down motions share a preferred horizontal column.
+    // Word/document navigation and editing must seed it from the new caret.
+    if (resolution.intent != null &&
+        resolution.intent != EditorShortcutIntent.moveCaretUp &&
+        resolution.intent != EditorShortcutIntent.moveCaretDown) {
+      _verticalPreferX = null;
+    }
     final controller = widget.controller;
+    if (resolution.intent != EditorShortcutIntent.moveCaretToBlockStart &&
+        resolution.intent != EditorShortcutIntent.moveCaretToBlockEnd) {
+      _registry.clearCaretAffinity();
+    }
     switch (resolution.intent) {
       case EditorShortcutIntent.selectAll:
         if (!_selectCurrentCodeBlockCode()) {
@@ -7830,13 +7868,13 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         _handleVerticalKey(true, resolution.expandSelection);
         return;
       case EditorShortcutIntent.moveCaretToBlockStart:
-        controller.moveCaretToBlockBoundary(
+        _handleVisualLineBoundary(
           forward: false,
           expandSelection: resolution.expandSelection,
         );
         return;
       case EditorShortcutIntent.moveCaretToBlockEnd:
-        controller.moveCaretToBlockBoundary(
+        _handleVisualLineBoundary(
           forward: true,
           expandSelection: resolution.expandSelection,
         );
@@ -7912,6 +7950,48 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         return;
       case null:
         return;
+    }
+  }
+
+  /// Handles Home/End using the current laid-out visual line. The document
+  /// command remains the fallback for unmounted/custom surfaces that do not
+  /// expose text geometry.
+  void _handleVisualLineBoundary({
+    required bool forward,
+    required bool expandSelection,
+  }) {
+    _verticalPreferX = null;
+    final controller = widget.controller;
+    final selection = controller.selection;
+    if (selection == null) {
+      return;
+    }
+    final origin = expandSelection
+        ? selection.extent
+        : (forward ? selection.end : selection.start);
+    final target = _registry.visualLineBoundaryForPosition(origin, forward);
+    if (target == null) {
+      _registry.clearCaretAffinity();
+      controller.moveCaretToBlockBoundary(
+        forward: forward,
+        expandSelection: expandSelection,
+      );
+      return;
+    }
+    if (forward) {
+      _registry.useUpstreamCaretAffinityFor(target);
+    } else {
+      _registry.clearCaretAffinity();
+    }
+    final next = expandSelection
+        ? DocumentSelection(base: selection.base, extent: target)
+        : DocumentSelection(base: target, extent: target);
+    final selectionChanged = controller.selection != next;
+    controller.setSelection(next);
+    if (!selectionChanged && mounted) {
+      // Affinity can change while the UTF-16 offset stays fixed at a soft-wrap
+      // boundary, so force the caret painter to pick up the new visual side.
+      setState(() {});
     }
   }
 
@@ -8324,7 +8404,16 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
   }
 
   bool _performPlatformSelector(String selectorName) {
+    if (selectorName != 'moveUp:' &&
+        selectorName != 'moveDown:' &&
+        selectorName != 'moveUpAndModifySelection:' &&
+        selectorName != 'moveDownAndModifySelection:') {
+      _verticalPreferX = null;
+    }
     final controller = widget.controller;
+    if (!_isVisualLineBoundarySelector(selectorName)) {
+      _registry.clearCaretAffinity();
+    }
     switch (selectorName) {
       case 'copy:':
         _runSelectorFuture(_handleCopy());
@@ -8384,26 +8473,28 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         return true;
       case 'moveToBeginningOfParagraph:':
       case 'moveToLeftEndOfLine:':
-        _verticalPreferX = null;
-        controller.moveCaretToBlockBoundary(forward: false);
+        _handleVisualLineBoundary(
+          forward: false,
+          expandSelection: false,
+        );
         return true;
       case 'moveToEndOfParagraph:':
       case 'moveToRightEndOfLine:':
-        _verticalPreferX = null;
-        controller.moveCaretToBlockBoundary(forward: true);
+        _handleVisualLineBoundary(
+          forward: true,
+          expandSelection: false,
+        );
         return true;
       case 'moveParagraphBackwardAndModifySelection:':
       case 'moveToLeftEndOfLineAndModifySelection:':
-        _verticalPreferX = null;
-        controller.moveCaretToBlockBoundary(
+        _handleVisualLineBoundary(
           forward: false,
           expandSelection: true,
         );
         return true;
       case 'moveParagraphForwardAndModifySelection:':
       case 'moveToRightEndOfLineAndModifySelection:':
-        _verticalPreferX = null;
-        controller.moveCaretToBlockBoundary(
+        _handleVisualLineBoundary(
           forward: true,
           expandSelection: true,
         );
@@ -8498,6 +8589,21 @@ class _WenzRichTextEditorState extends State<WenzRichTextEditor> {
         return true;
     }
     return false;
+  }
+
+  bool _isVisualLineBoundarySelector(String selectorName) {
+    return switch (selectorName) {
+      'moveToBeginningOfParagraph:' ||
+      'moveToLeftEndOfLine:' ||
+      'moveToEndOfParagraph:' ||
+      'moveToRightEndOfLine:' ||
+      'moveParagraphBackwardAndModifySelection:' ||
+      'moveToLeftEndOfLineAndModifySelection:' ||
+      'moveParagraphForwardAndModifySelection:' ||
+      'moveToRightEndOfLineAndModifySelection:' =>
+        true,
+      _ => false,
+    };
   }
 
   bool _deleteActiveSelectionIfAny() {
@@ -11335,7 +11441,9 @@ class _BlockDragHandleButtonState extends State<_BlockDragHandleButton> {
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         color: backgroundColor,
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(
+                          BlockDragHandleSpec.buttonRadius,
+                        ),
                       ),
                       child: Center(
                         child: Icon(
@@ -14223,9 +14331,7 @@ class _HeadingCollapseButtonState extends State<_HeadingCollapseButton> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final enabled = widget.state.canCollapse && widget.onToggled != null;
-    final overlay = scheme.primary.withAlpha(22);
     return MouseRegion(
       cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
       child: SizedBox(
@@ -14246,18 +14352,11 @@ class _HeadingCollapseButtonState extends State<_HeadingCollapseButton> {
               tooltip: _headingCollapseTooltip(widget.state),
               onPressed: enabled ? _toggle : null,
               iconSize: _kHeadingCollapseIconSize,
-              padding: EdgeInsets.zero,
               constraints: const BoxConstraints.tightFor(
                 width: _kHeadingCollapseButtonSize,
                 height: _kHeadingCollapseButtonSize,
               ),
-              visualDensity: VisualDensity.compact,
-              splashRadius: _kHeadingCollapseButtonSize / 2,
-              color: scheme.onSurfaceVariant,
-              disabledColor: scheme.outline.withAlpha(110),
-              focusColor: overlay,
-              hoverColor: overlay,
-              highlightColor: scheme.primary.withAlpha(34),
+              style: _blockChromeIconButtonStyle(theme),
               icon: _HeadingCollapseGlyph(
                 state: widget.state,
               ),
@@ -18066,6 +18165,7 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
         caretRectAt: _caretRectAt,
         localCaretRectAt: _localCaretRectAt,
         localComposingRectForRange: _localComposingRectForRange,
+        visualLineBoundaryAt: _visualLineBoundaryAt,
         verticalMoveAt: _verticalMoveAt,
         hitTestKey: widget.hitTestKey,
         hitLocalToTextLocal:
@@ -18227,10 +18327,23 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
     final renderOffset = widget.offsetMapper.renderOffsetForLogicalOffset(
       clamped,
     );
-    final local = _layoutService.caretOffset(painter, renderOffset);
+    final affinity = widget.registry.caretAffinityFor(
+      widget.blockId,
+      widget.path,
+      clamped,
+    );
+    final local = _layoutService.caretOffset(
+      painter,
+      renderOffset,
+      affinity: affinity,
+    );
     final height = _caretHeightFor(
       painter,
-      _layoutService.caretHeight(painter, renderOffset),
+      _layoutService.caretHeight(
+        painter,
+        renderOffset,
+        affinity: affinity,
+      ),
     );
     // Width matches the painted stroke so the IME candidate window is anchored
     // to the caret the user actually sees.
@@ -18270,6 +18383,31 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
       rect = rect.expandToInclude(box.toRect());
     }
     return rect;
+  }
+
+  int _visualLineBoundaryAt(int offset, bool forward) {
+    final painter = _layoutService.layout(
+      span: widget.textSpan,
+      textAlign: widget.textAlign,
+      textDirection: Directionality.of(context),
+      locale: _lastLocale ?? Localizations.maybeLocaleOf(context),
+      minWidth: _lastMinWidth,
+      maxWidth: _lastMaxWidth,
+    );
+    final renderOffset = widget.offsetMapper.renderOffsetForLogicalOffset(
+      offset,
+    );
+    final target = _layoutService.visualLineBoundaryOffset(
+      painter,
+      renderOffset,
+      forward,
+      affinity: widget.registry.caretAffinityFor(
+        widget.blockId,
+        widget.path,
+        offset,
+      ),
+    );
+    return widget.offsetMapper.logicalOffsetForRenderOffset(target);
   }
 
   /// Resolves one visual-line vertical move within this block, keeping the
@@ -18366,6 +18504,13 @@ class _TextSelectionSurfaceState extends State<_TextSelectionSurface> {
           minWidth: minWidth,
           maxWidth: maxWidth,
           caretOffset: caretOffset,
+          caretAffinity: caretOffset == null
+              ? TextAffinity.downstream
+              : widget.registry.caretAffinityFor(
+                  widget.blockId,
+                  widget.path,
+                  caretOffset,
+                ),
           color: caretColor,
           textLength: widget.textLength,
           opacity: caretOpacity,
@@ -18942,6 +19087,7 @@ class _CaretPainter extends CustomPainter {
     required this.minWidth,
     required this.maxWidth,
     required this.caretOffset,
+    required this.caretAffinity,
     required this.color,
     required this.textLength,
     this.opacity = 1.0,
@@ -18956,6 +19102,7 @@ class _CaretPainter extends CustomPainter {
   final double minWidth;
   final double maxWidth;
   final int? caretOffset;
+  final TextAffinity caretAffinity;
   final Color color;
   final int textLength;
 
@@ -18979,12 +19126,20 @@ class _CaretPainter extends CustomPainter {
     );
     final safeOffset = caretOffset.clamp(0, textLength).toInt();
     final renderOffset = offsetMapper.renderOffsetForLogicalOffset(safeOffset);
-    final caretTop = layoutService.caretOffset(painter, renderOffset);
+    final caretTop = layoutService.caretOffset(
+      painter,
+      renderOffset,
+      affinity: caretAffinity,
+    );
     // Fall back through preferred/style heights (matching _localCaretRectAt) so
     // the caret is visible even when getFullHeightForCaret returns null or 0.
     final height = _caretHeightFor(
       painter,
-      layoutService.caretHeight(painter, renderOffset),
+      layoutService.caretHeight(
+        painter,
+        renderOffset,
+        affinity: caretAffinity,
+      ),
     );
     final paint = Paint()
       ..color = color.withValues(alpha: opacity.clamp(0.0, 1.0))
@@ -19002,6 +19157,7 @@ class _CaretPainter extends CustomPainter {
         oldDelegate.minWidth != minWidth ||
         oldDelegate.maxWidth != maxWidth ||
         oldDelegate.caretOffset != caretOffset ||
+        oldDelegate.caretAffinity != caretAffinity ||
         oldDelegate.color != color ||
         oldDelegate.textLength != textLength ||
         oldDelegate.opacity != opacity;
@@ -20012,39 +20168,14 @@ class _DividerBlockContent extends StatelessWidget {
                 vertical: selected ? 8 : 0,
               ),
               child: SizedBox(
-                height: _kDividerDotSize,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: <Widget>[
-                    PositionedDirectional(
-                      start: 0,
-                      end: 0,
-                      top: (_kDividerDotSize - 1) / 2,
-                      child: SizedBox(
-                        height: 1,
-                        child: DecoratedBox(
-                          key: ValueKey<String>(
-                            'wenz-richtext-divider-line-$blockId',
-                          ),
-                          decoration: BoxDecoration(
-                            color: _dividerLineColor(theme),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox.square(
-                      dimension: _kDividerDotSize,
-                      child: DecoratedBox(
-                        key: ValueKey<String>(
-                          'wenz-richtext-divider-dot-$blockId',
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  ],
+                height: 1,
+                child: DecoratedBox(
+                  key: ValueKey<String>(
+                    'wenz-richtext-divider-line-$blockId',
+                  ),
+                  decoration: BoxDecoration(
+                    color: _dividerLineColor(theme),
+                  ),
                 ),
               ),
             ),

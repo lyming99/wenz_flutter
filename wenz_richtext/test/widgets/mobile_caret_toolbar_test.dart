@@ -211,6 +211,116 @@ void main() {
     });
   });
 
+  testWidgets('selection toolbar is a popup outside a clipped editor card', (
+    tester,
+  ) async {
+    const text = 'Popup selection remains interactive';
+    final controller = _caretController(text: text);
+    await _runOnMobile(tester, controller, () async {
+      const cardKey = ValueKey<String>('clipped-editor-card');
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Stack(
+              children: <Widget>[
+                Positioned(
+                  left: 40,
+                  top: 240,
+                  width: 240,
+                  height: 96,
+                  child: ClipRRect(
+                    key: cardKey,
+                    borderRadius: BorderRadius.circular(16),
+                    child: WenzRichTextEditor(
+                      controller: controller,
+                      padding: const EdgeInsets.all(8),
+                      enableIme: false,
+                      readOnly: true,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      controller.setSelection(textSelection('mobile-caret', 0, 0, 5));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 16));
+
+      final cardRect = tester.getRect(find.byKey(cardKey));
+      final popupRect = tester.getRect(
+        find.byKey(
+          const ValueKey<String>('wenz.mobile-selection-toolbar-popup'),
+        ),
+      );
+      expect(popupRect.bottom, lessThan(cardRect.top));
+      expect(popupRect.width, greaterThan(cardRect.width));
+
+      // Hit testing must work in the escaped area as well; selecting all proves
+      // the card's clip no longer owns the toolbar interaction surface.
+      await tester.tap(_caretToolbarButton('select-all'));
+      await tester.pump();
+      expect(
+        controller.selection,
+        textSelection('mobile-caret', 0, 0, text.length),
+      );
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  testWidgets('selection popup follows an ancestor scrollable', (tester) async {
+    const text = 'Popup follows its selected text';
+    final controller = _caretController(text: text);
+    final scrollController = ScrollController();
+    addTearDown(scrollController.dispose);
+    await _runOnMobile(tester, controller, () async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ListView(
+              controller: scrollController,
+              children: <Widget>[
+                const SizedBox(height: 240),
+                Center(
+                  child: SizedBox(
+                    width: 240,
+                    height: 96,
+                    child: WenzRichTextEditor(
+                      controller: controller,
+                      padding: const EdgeInsets.all(8),
+                      enableIme: false,
+                      readOnly: true,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 560),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      controller.setSelection(textSelection('mobile-caret', 0, 0, 5));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 16));
+      await tester.pump(const Duration(milliseconds: 16));
+
+      final popup = find.byKey(
+        const ValueKey<String>('wenz.mobile-selection-toolbar-popup'),
+      );
+      final before = tester.getRect(popup);
+      scrollController.jumpTo(40);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 16));
+      final after = tester.getRect(popup);
+
+      expect(after.top, moreOrLessEquals(before.top - 40, epsilon: 0.5));
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   testWidgets('narrow desktop does not show the mobile caret menu', (
     tester,
   ) async {

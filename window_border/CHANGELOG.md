@@ -1,5 +1,17 @@
 ## 0.0.1
 
+* Uses explicit native resize hits, cursors, and forwarding from the Flutter
+  child to the top-level Windows sizing loop instead of HTTRANSPARENT.
+  Adds a minimum 12dp top target and Chromium-style 16dp corner zones.
+
+* Fixes resize hit testing over the Windows Flutter child view so the expanded
+  top edge and corner targets reach the native host instead of Flutter content.
+  The child subclass is removed when disabled or destroyed.
+
+* Expands Windows edge and corner resize hit targets by 2 logical pixels,
+  scaled with window DPI, without changing visible borders or content layout.
+  Maximized, fullscreen, and non-resizable windows do not expose resize targets.
+
 * Adds native frameless-window setup for Windows, Linux, and macOS.
 * Fixes the Windows Flutter view geometry during maximize, restore, and DPI
   changes. A maximized view now fills the client area without reserving native

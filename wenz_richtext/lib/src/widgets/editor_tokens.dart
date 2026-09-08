@@ -52,7 +52,7 @@ class EditorTokens {
     codeBlockFontSize: 13.5,
     blockChromeStartMargin: 4.0,
     blockChromeGap: 4.0,
-    blockChromeGapToContent: 8.0,
+    blockChromeGapToContent: 4.0,
     reserveFullOutlineChromeRail: true,
     isMobile: false,
   );

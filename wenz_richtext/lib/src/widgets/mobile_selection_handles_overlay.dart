@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../controller/wenz_rich_text_controller.dart';
 import '../core/position/document_position.dart';
@@ -16,6 +17,8 @@ const double _kHandleHitExtent = 36.0;
 const double _kSelectionToolbarGap = 8.0;
 const double _kEstimatedToolbarHeight = 56.0;
 const double _kEstimatedCaretToolbarWidth = 168.0;
+const double _kEstimatedSelectionToolbarWidth = 320.0;
+const double _kToolbarScreenMargin = 8.0;
 
 /// Builds the action content for the mobile toolbar shown beside a collapsed
 /// caret. The editor owns eligibility and close state; this overlay owns only
@@ -33,7 +36,7 @@ typedef MobileSelectionToolbarBuilder = Widget Function(
   WenzRichTextController controller,
 );
 
-/// Touch selection handles for a non-capsed [DocumentSelection].
+/// Touch selection handles for a non-collapsed [DocumentSelection].
 ///
 /// Draws a draggable round handle at each end of the current selection (the
 /// start handle above the start caret, the end handle below the end caret).
@@ -98,13 +101,16 @@ class _MobileSelectionHandlesOverlayState
   // while the dragged edge follows the pointer. Cleared on pan end/cancel.
   DocumentPosition? _fixedEdge;
 
-  // Selection toolbar measurement (post-frame) for accurate placement.
-  final GlobalKey _toolbarKey = GlobalKey();
-  Size? _toolbarSize;
-  bool _toolbarMeasureScheduled = false;
-  final GlobalKey _caretToolbarKey = GlobalKey();
-  Size? _caretToolbarSize;
-  bool _caretToolbarMeasureScheduled = false;
+  // Toolbars are route-level popups. Selection handles remain in the editor's
+  // local Stack because their drag hit targets belong to the document surface.
+  OverlayEntry? _toolbarOverlayEntry;
+  OverlayState? _toolbarOverlay;
+  _MobileSelectionToolbarAnchor? _toolbarAnchor;
+  Rect? _toolbarVisibleRect;
+  Rect? _toolbarSourceRect;
+  ScrollPosition? _ancestorScrollPosition;
+  bool _overlaySyncScheduled = false;
+  bool _overlayShouldShow = false;
 
   @override
   void initState() {
@@ -127,14 +133,28 @@ class _MobileSelectionHandlesOverlayState
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncAncestorScrollPosition(Scrollable.maybeOf(context)?.position);
+  }
+
+  @override
   void dispose() {
     widget.controller.removeListener(_handleChanged);
     widget.scrollController.removeListener(_handleChanged);
+    _ancestorScrollPosition?.removeListener(_handleChanged);
+    _removeToolbarOverlay();
     super.dispose();
   }
 
   void _handleChanged() {
     if (mounted) {
+      final shouldShow = _refreshToolbarSnapshot();
+      _overlayShouldShow = shouldShow;
+      if (SchedulerBinding.instance.schedulerPhase !=
+          SchedulerPhase.persistentCallbacks) {
+        _toolbarOverlayEntry?.markNeedsBuild();
+      }
       setState(() {});
     }
   }
@@ -142,6 +162,22 @@ class _MobileSelectionHandlesOverlayState
   RenderBox? get _containerBox {
     final object = widget.containerKey.currentContext?.findRenderObject();
     return object is RenderBox ? object : null;
+  }
+
+  RenderBox? get _overlayBox {
+    final object = Overlay.maybeOf(context)?.context.findRenderObject();
+    return object is RenderBox && object.attached && object.hasSize
+        ? object
+        : null;
+  }
+
+  void _syncAncestorScrollPosition(ScrollPosition? position) {
+    if (identical(_ancestorScrollPosition, position)) {
+      return;
+    }
+    _ancestorScrollPosition?.removeListener(_handleChanged);
+    _ancestorScrollPosition = position;
+    _ancestorScrollPosition?.addListener(_handleChanged);
   }
 
   void _onHandlePanStart(bool isStart) {
@@ -189,256 +225,213 @@ class _MobileSelectionHandlesOverlayState
 
   @override
   Widget build(BuildContext context) {
+    final shouldShow = _refreshToolbarSnapshot();
+    _scheduleOverlaySync(shouldShow);
+    return _buildInlineHandles(widget.controller.selection, _containerBox);
+  }
+
+  bool _refreshToolbarSnapshot() {
     final selection = widget.controller.selection;
-    if (selection == null) {
-      return const SizedBox.shrink();
-    }
     final containerBox = _containerBox;
-    if (containerBox == null || !containerBox.hasSize) {
-      return const SizedBox.shrink();
+    final overlayBox = _overlayBox;
+    final anchor = selection == null || overlayBox == null
+        ? null
+        : _toolbarAnchorFor(selection, overlayBox);
+    final visibleRect =
+        overlayBox == null ? null : _popupVisibleRect(overlayBox);
+    final sourceRect = containerBox == null ||
+            !containerBox.hasSize ||
+            overlayBox == null
+        ? null
+        : Rect.fromPoints(
+            overlayBox.globalToLocal(containerBox.localToGlobal(Offset.zero)),
+            overlayBox.globalToLocal(
+              containerBox.localToGlobal(
+                (Offset.zero & containerBox.size).bottomRight,
+              ),
+            ),
+          );
+    _toolbarAnchor = anchor;
+    _toolbarVisibleRect = visibleRect;
+    _toolbarSourceRect = sourceRect;
+    return anchor != null && visibleRect != null && sourceRect != null;
+  }
+
+  Rect? _popupVisibleRect(RenderBox overlayObject) {
+    final overlayOrigin = overlayObject.localToGlobal(Offset.zero);
+    final overlayRect = overlayOrigin & overlayObject.size;
+    final media = MediaQuery.maybeOf(context);
+    final mediaSize = media?.size ?? overlayObject.size;
+    final padding = media?.padding ?? EdgeInsets.zero;
+    final viewInsets = media?.viewInsets ?? EdgeInsets.zero;
+    final screenRect = Rect.fromLTRB(
+      padding.left + _kToolbarScreenMargin,
+      padding.top + _kToolbarScreenMargin,
+      math.max(
+        padding.left + _kToolbarScreenMargin,
+        mediaSize.width - padding.right - _kToolbarScreenMargin,
+      ),
+      math.max(
+        padding.top + _kToolbarScreenMargin,
+        math.min(
+          mediaSize.height - padding.bottom - _kToolbarScreenMargin,
+          mediaSize.height - viewInsets.bottom - _kToolbarScreenMargin,
+        ),
+      ),
+    );
+    final visibleGlobalRect = overlayRect.intersect(screenRect);
+    if (visibleGlobalRect.isEmpty) {
+      return null;
     }
+    return Rect.fromPoints(
+      overlayObject.globalToLocal(visibleGlobalRect.topLeft),
+      overlayObject.globalToLocal(visibleGlobalRect.bottomRight),
+    );
+  }
+
+  _MobileSelectionToolbarAnchor? _toolbarAnchorFor(
+    DocumentSelection selection,
+    RenderBox overlayBox,
+  ) {
     if (selection.isCollapsed) {
-      return _buildCollapsedCaretToolbar(selection, containerBox);
+      final caretPosition = widget.caretToolbarPosition;
+      final builder = widget.caretToolbarBuilder;
+      if (caretPosition == null ||
+          builder == null ||
+          selection.extent != caretPosition) {
+        return null;
+      }
+      final caretRect = widget.registry.caretRectForPosition(caretPosition);
+      if (caretRect == null) {
+        return null;
+      }
+      return _MobileSelectionToolbarAnchor(
+        kind: _MobileSelectionToolbarKind.caret,
+        start: overlayBox.globalToLocal(caretRect.topLeft),
+        end: overlayBox.globalToLocal(caretRect.bottomRight),
+        toolbarBuilder: (context) => builder(context, widget.controller),
+      );
+    }
+
+    // Suppress the popup while a handle is moving. Its route-level coordinate
+    // space intentionally differs from the handle's editor-local drag space,
+    // so keeping it mounted during the drag would create a distracting jump.
+    if (_fixedEdge != null) {
+      return null;
     }
     final startCaret = widget.registry.caretRectForPosition(selection.start);
     final endCaret = widget.registry.caretRectForPosition(selection.end);
     if (startCaret == null || endCaret == null) {
-      return const SizedBox.shrink();
+      return null;
+    }
+    return _MobileSelectionToolbarAnchor(
+      kind: _MobileSelectionToolbarKind.selection,
+      start: overlayBox.globalToLocal(
+        Offset(startCaret.left, startCaret.top),
+      ),
+      end: overlayBox.globalToLocal(
+        Offset(endCaret.left, endCaret.bottom),
+      ),
+      toolbarBuilder: (context) =>
+          widget.selectionToolbarBuilder?.call(context, widget.controller) ??
+          WenzMobileSelectionToolbar(controller: widget.controller),
+    );
+  }
+
+  Widget _buildInlineHandles(
+    DocumentSelection? selection,
+    RenderBox? containerBox,
+  ) {
+    if (selection == null ||
+        selection.isCollapsed ||
+        containerBox == null ||
+        !containerBox.hasSize) {
+      return const SizedBox.expand();
+    }
+    final startCaret = widget.registry.caretRectForPosition(selection.start);
+    final endCaret = widget.registry.caretRectForPosition(selection.end);
+    if (startCaret == null || endCaret == null) {
+      return const SizedBox.expand();
     }
     final handleColor = Theme.of(context).colorScheme.primary;
-    // Caret rects are global; map them into the container Stack's local space.
     final startTip = containerBox.globalToLocal(
       Offset(startCaret.left, startCaret.top),
     );
     final endTip = containerBox.globalToLocal(
       Offset(endCaret.left, endCaret.bottom),
     );
-    // Hide the toolbar while a handle is being dragged so it does not jump
-    // around or overlap the moving selection edge.
-    final showToolbar = _fixedEdge == null;
-    if (showToolbar) {
-      _scheduleToolbarMeasure();
-    }
     return Stack(
       clipBehavior: Clip.none,
       children: <Widget>[
         _buildHandle(tip: startTip, isStart: true, color: handleColor),
         _buildHandle(tip: endTip, isStart: false, color: handleColor),
-        if (showToolbar) _buildSelectionToolbar(startTip, endTip, containerBox),
       ],
     );
   }
 
-  Widget _buildCollapsedCaretToolbar(
-    DocumentSelection selection,
-    RenderBox containerBox,
-  ) {
-    final caretPosition = widget.caretToolbarPosition;
-    final builder = widget.caretToolbarBuilder;
-    if (caretPosition == null ||
-        builder == null ||
-        selection.extent != caretPosition) {
-      return const SizedBox.shrink();
-    }
-    final caretRect = widget.registry.caretRectForPosition(caretPosition);
-    if (caretRect == null) {
-      return const SizedBox.shrink();
-    }
-    final caretTop = containerBox.globalToLocal(
-      Offset(caretRect.left, caretRect.top),
-    );
-    final caretBottom = containerBox.globalToLocal(
-      Offset(caretRect.right, caretRect.bottom),
-    );
-    final media = MediaQuery.maybeOf(context);
-    final keyboardTop = media == null
-        ? containerBox.size.height
-        : containerBox
-            .globalToLocal(
-              Offset(0, media.size.height - media.viewInsets.bottom),
-            )
-            .dy;
-    const visibleTop = 0.0;
-    final visibleBottom = math.min(containerBox.size.height, keyboardTop);
-    if (!visibleBottom.isFinite ||
-        visibleBottom <= visibleTop ||
-        caretBottom.dy < visibleTop ||
-        caretTop.dy > visibleBottom) {
-      return const SizedBox.shrink();
-    }
-
-    _scheduleCaretToolbarMeasure();
-    final measuredSize = _caretToolbarSize;
-    if (measuredSize != null && measuredSize.width > containerBox.size.width) {
-      return const SizedBox.shrink();
-    }
-    final toolbarHeight = measuredSize?.height ?? _kEstimatedToolbarHeight;
-    final toolbarWidth = measuredSize?.width ??
-        math.min(_kEstimatedCaretToolbarWidth, containerBox.size.width);
-    final aboveSpace = caretTop.dy - visibleTop - _kSelectionToolbarGap;
-    final belowSpace = visibleBottom - caretBottom.dy - _kSelectionToolbarGap;
-    final double top;
-    if (aboveSpace >= toolbarHeight) {
-      top = caretTop.dy - _kSelectionToolbarGap - toolbarHeight;
-    } else if (belowSpace >= toolbarHeight) {
-      top = caretBottom.dy + _kSelectionToolbarGap;
-    } else {
-      // Do not cover the tap target when neither side can fit the toolbar.
-      return const SizedBox.shrink();
-    }
-    final maxLeft = math.max(0.0, containerBox.size.width - toolbarWidth);
-    final left = (caretTop.dx + caretBottom.dx - toolbarWidth) / 2;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: <Widget>[
-        Positioned(
-          left: left.clamp(0.0, maxLeft).toDouble(),
-          top: top,
-          child: Listener(
-            // This overlay is above SelectionGestureOverlay in the editor
-            // Stack. An opaque listener prevents toolbar taps from reaching
-            // document selection/focus/IME gesture handling underneath.
-            behavior: HitTestBehavior.opaque,
-            child: KeyedSubtree(
-              key: _caretToolbarKey,
-              child: builder(context, widget.controller),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Measures the selection toolbar after layout so its placement (computed in
-  /// [build]) is exact on the next frame. Mirrors the link-hover / table
-  /// toolbar measure-then-place pattern.
-  void _scheduleToolbarMeasure() {
-    if (_toolbarMeasureScheduled) {
+  void _scheduleOverlaySync(bool shouldShow) {
+    _overlayShouldShow = shouldShow;
+    if (_overlaySyncScheduled) {
       return;
     }
-    _toolbarMeasureScheduled = true;
+    _overlaySyncScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _toolbarMeasureScheduled = false;
+      _overlaySyncScheduled = false;
       if (!mounted) {
         return;
       }
-      final render = _toolbarKey.currentContext?.findRenderObject();
-      if (render is! RenderBox || !render.hasSize) {
-        return;
+      _overlayShouldShow = _refreshToolbarSnapshot();
+      if (_overlayShouldShow) {
+        final overlay = Overlay.maybeOf(context);
+        if (overlay == null) {
+          _removeToolbarOverlay();
+          return;
+        }
+        if (!identical(_toolbarOverlay, overlay)) {
+          _removeToolbarOverlay();
+        }
+        if (_toolbarOverlayEntry == null) {
+          final entry = OverlayEntry(builder: _buildToolbarOverlay);
+          _toolbarOverlay = overlay;
+          _toolbarOverlayEntry = entry;
+          overlay.insert(entry);
+        } else {
+          _toolbarOverlayEntry!.markNeedsBuild();
+        }
+      } else {
+        _removeToolbarOverlay();
       }
-      final next = render.size;
-      final current = _toolbarSize;
-      if (current != null &&
-          (current.width - next.width).abs() < 0.5 &&
-          (current.height - next.height).abs() < 0.5) {
-        return;
-      }
-      setState(() {
-        _toolbarSize = next;
-      });
     });
   }
 
-  void _scheduleCaretToolbarMeasure() {
-    if (_caretToolbarMeasureScheduled) {
-      return;
-    }
-    _caretToolbarMeasureScheduled = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _caretToolbarMeasureScheduled = false;
-      if (!mounted) {
-        return;
-      }
-      final render = _caretToolbarKey.currentContext?.findRenderObject();
-      if (render is! RenderBox || !render.hasSize) {
-        return;
-      }
-      final next = render.size;
-      final current = _caretToolbarSize;
-      if (current != null &&
-          (current.width - next.width).abs() < 0.5 &&
-          (current.height - next.height).abs() < 0.5) {
-        return;
-      }
-      setState(() {
-        _caretToolbarSize = next;
-      });
-    });
-  }
-
-  /// Builds the compact selection toolbar positioned above the selection
-  /// (clear of the handles), flipping below when there is no room above.
-  Widget _buildSelectionToolbar(
-    Offset startTip,
-    Offset endTip,
-    RenderBox containerBox,
-  ) {
-    final size = _toolbarSize;
-    final toolbarHeight = size?.height ?? _kEstimatedToolbarHeight;
-    final toolbarWidth = size?.width ?? 0.0;
-    final containerWidth = containerBox.size.width;
-    final media = MediaQuery.maybeOf(context);
-    final keyboardTop = media == null
-        ? containerBox.size.height
-        : containerBox
-            .globalToLocal(
-              Offset(0, media.size.height - media.viewInsets.bottom),
-            )
-            .dy;
-    const visibleTop = 0.0;
-    final visibleBottom = math.min(containerBox.size.height, keyboardTop);
-    if (!visibleBottom.isFinite ||
-        visibleBottom <= visibleTop ||
-        startTip.dy > visibleBottom ||
-        endTip.dy < visibleTop) {
+  Widget _buildToolbarOverlay(BuildContext context) {
+    final anchor = _toolbarAnchor;
+    final visibleRect = _toolbarVisibleRect;
+    final sourceRect = _toolbarSourceRect;
+    if (anchor == null || visibleRect == null || sourceRect == null) {
       return const SizedBox.shrink();
     }
-    // Prefer above the start handle; flip below the end handle if no room.
-    final aboveBottom = startTip.dy - _kHandleDiameter - _kSelectionToolbarGap;
-    final aboveTop = aboveBottom - toolbarHeight;
-    final belowTop = endTip.dy + _kHandleDiameter + _kSelectionToolbarGap;
-    final belowBottom = belowTop + toolbarHeight;
-    final double top;
-    if (aboveTop >= visibleTop && aboveBottom <= visibleBottom) {
-      top = aboveTop;
-    } else if (belowTop >= visibleTop && belowBottom <= visibleBottom) {
-      top = belowTop;
-    } else {
-      // A short viewport (for example while the keyboard animates) cannot fit
-      // the full toolbar on either side. Keep it visible and horizontally
-      // bounded instead of letting it escape under the keyboard.
-      final maxTop = visibleBottom - toolbarHeight;
-      if (maxTop < visibleTop) {
-        return const SizedBox.shrink();
-      }
-      top = aboveTop.clamp(visibleTop, maxTop).toDouble();
-    }
-    // Centre on the selection midpoint and clamp into the container so long
-    // selections near an edge do not overflow the editor.
-    final center = (startTip.dx + endTip.dx) / 2;
-    final maxLeft = math.max(0.0, containerWidth - toolbarWidth);
-    final left = (center - toolbarWidth / 2).clamp(0.0, maxLeft).toDouble();
-    return Positioned(
-      left: left,
-      top: top,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: containerWidth),
-        child: Listener(
-          // This overlay is above SelectionGestureOverlay in the editor Stack.
-          // Keeping the whole toolbar opaque prevents its taps and horizontal
-          // scrolling gestures from reaching document selection underneath.
-          behavior: HitTestBehavior.opaque,
-          child: KeyedSubtree(
-            key: _toolbarKey,
-            child: widget.selectionToolbarBuilder?.call(
-                  context,
-                  widget.controller,
-                ) ??
-                WenzMobileSelectionToolbar(controller: widget.controller),
-          ),
-        ),
-      ),
+    final popup = _MobileSelectionToolbarPopup(
+      key: ValueKey<_MobileSelectionToolbarKind>(anchor.kind),
+      kind: anchor.kind,
+      startAnchor: anchor.start,
+      endAnchor: anchor.end,
+      sourceRect: sourceRect,
+      visibleRect: visibleRect,
+      toolbarBuilder: anchor.toolbarBuilder,
     );
+    return InheritedTheme.captureAll(this.context, popup);
+  }
+
+  void _removeToolbarOverlay() {
+    final entry = _toolbarOverlayEntry;
+    _toolbarOverlayEntry = null;
+    _toolbarOverlay = null;
+    if (entry == null) {
+      return;
+    }
+    entry.remove();
+    entry.dispose();
   }
 
   /// Builds one draggable handle. The circle sits one radius away from [tip]
@@ -484,5 +477,174 @@ class _MobileSelectionHandlesOverlayState
         ),
       ),
     );
+  }
+}
+
+enum _MobileSelectionToolbarKind { caret, selection }
+
+class _MobileSelectionToolbarAnchor {
+  const _MobileSelectionToolbarAnchor({
+    required this.kind,
+    required this.start,
+    required this.end,
+    required this.toolbarBuilder,
+  });
+
+  final _MobileSelectionToolbarKind kind;
+  final Offset start;
+  final Offset end;
+  final WidgetBuilder toolbarBuilder;
+}
+
+/// Route-overlay popup for the mobile caret/selection actions.
+///
+/// The anchor, source and visible-route coordinates use the route Overlay's
+/// space, so the popup can use the whole route instead of the editor/card's
+/// bounds. This lets a toolbar near the top of a chat bubble sit above it
+/// instead of covering text.
+class _MobileSelectionToolbarPopup extends StatefulWidget {
+  const _MobileSelectionToolbarPopup({
+    super.key,
+    required this.kind,
+    required this.startAnchor,
+    required this.endAnchor,
+    required this.sourceRect,
+    required this.visibleRect,
+    required this.toolbarBuilder,
+  });
+
+  final _MobileSelectionToolbarKind kind;
+  final Offset startAnchor;
+  final Offset endAnchor;
+  final Rect sourceRect;
+  final Rect visibleRect;
+  final WidgetBuilder toolbarBuilder;
+
+  @override
+  State<_MobileSelectionToolbarPopup> createState() =>
+      _MobileSelectionToolbarPopupState();
+}
+
+class _MobileSelectionToolbarPopupState
+    extends State<_MobileSelectionToolbarPopup> {
+  final GlobalKey _toolbarKey = GlobalKey();
+  Size? _toolbarSize;
+  bool _measureScheduled = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleLeft = widget.visibleRect.left;
+    final visibleRight = widget.visibleRect.right;
+    final visibleTop = widget.visibleRect.top;
+    final visibleBottom = widget.visibleRect.bottom;
+
+    final selectionTop = math.min(
+      widget.startAnchor.dy,
+      widget.endAnchor.dy,
+    );
+    final selectionBottom = math.max(
+      widget.startAnchor.dy,
+      widget.endAnchor.dy,
+    );
+    final sourceVisibleTop = math.max(visibleTop, widget.sourceRect.top);
+    final sourceVisibleBottom =
+        math.min(visibleBottom, widget.sourceRect.bottom);
+    if (!selectionTop.isFinite ||
+        !selectionBottom.isFinite ||
+        sourceVisibleBottom <= sourceVisibleTop ||
+        selectionBottom < sourceVisibleTop ||
+        selectionTop > sourceVisibleBottom) {
+      return const SizedBox.shrink();
+    }
+
+    _scheduleMeasure();
+    final availableWidth = math.max(0.0, visibleRight - visibleLeft);
+    if (availableWidth <= 0 || visibleBottom <= visibleTop) {
+      return const SizedBox.shrink();
+    }
+    final estimatedWidth = widget.kind == _MobileSelectionToolbarKind.caret
+        ? _kEstimatedCaretToolbarWidth
+        : _kEstimatedSelectionToolbarWidth;
+    final toolbarWidth = (_toolbarSize?.width ?? estimatedWidth)
+        .clamp(0.0, availableWidth)
+        .toDouble();
+    final toolbarHeight = _toolbarSize?.height ?? _kEstimatedToolbarHeight;
+    if (toolbarHeight > visibleBottom - visibleTop) {
+      return const SizedBox.shrink();
+    }
+
+    final handleClearance = widget.kind == _MobileSelectionToolbarKind.selection
+        ? _kHandleDiameter
+        : 0.0;
+    final aboveBottom =
+        widget.startAnchor.dy - handleClearance - _kSelectionToolbarGap;
+    final aboveTop = aboveBottom - toolbarHeight;
+    final belowTop =
+        widget.endAnchor.dy + handleClearance + _kSelectionToolbarGap;
+    final belowBottom = belowTop + toolbarHeight;
+    final double top;
+    if (aboveTop >= visibleTop && aboveBottom <= visibleBottom) {
+      top = aboveTop;
+    } else if (belowTop >= visibleTop && belowBottom <= visibleBottom) {
+      top = belowTop;
+    } else {
+      // During keyboard animation or near a screen edge, keep the popup inside
+      // the visible route. Prefer the side with more free space so it obscures
+      // as little selected content as possible.
+      final aboveSpace = math.max(0.0, aboveBottom - visibleTop);
+      final belowSpace = math.max(0.0, visibleBottom - belowTop);
+      top = (aboveSpace >= belowSpace ? aboveTop : belowTop)
+          .clamp(visibleTop, visibleBottom - toolbarHeight)
+          .toDouble();
+    }
+
+    final anchorCenter = (widget.startAnchor.dx + widget.endAnchor.dx) / 2;
+    final maxLeft = visibleRight - toolbarWidth;
+    final left = (anchorCenter - toolbarWidth / 2)
+        .clamp(visibleLeft, maxLeft)
+        .toDouble();
+    return Positioned(
+      left: left,
+      top: top,
+      child: ConstrainedBox(
+        key: _toolbarKey,
+        constraints: BoxConstraints(maxWidth: availableWidth),
+        child: Listener(
+          key: const ValueKey<String>('wenz.mobile-selection-toolbar-popup'),
+          // The popup is in the route Overlay, above the document gesture
+          // surface. Opaque hit testing keeps taps and horizontal scrolling on
+          // the toolbar from moving the selection underneath.
+          behavior: HitTestBehavior.opaque,
+          child: widget.toolbarBuilder(context),
+        ),
+      ),
+    );
+  }
+
+  void _scheduleMeasure() {
+    if (_measureScheduled) {
+      return;
+    }
+    _measureScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _measureScheduled = false;
+      if (!mounted) {
+        return;
+      }
+      final renderObject = _toolbarKey.currentContext?.findRenderObject();
+      if (renderObject is! RenderBox || !renderObject.hasSize) {
+        return;
+      }
+      final next = renderObject.size;
+      final current = _toolbarSize;
+      if (current != null &&
+          (current.width - next.width).abs() < 0.5 &&
+          (current.height - next.height).abs() < 0.5) {
+        return;
+      }
+      setState(() {
+        _toolbarSize = next;
+      });
+    });
   }
 }

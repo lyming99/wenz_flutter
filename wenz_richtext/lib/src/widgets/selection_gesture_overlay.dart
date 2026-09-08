@@ -252,7 +252,11 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   double _autoScrollVelocity = 0;
 
   static const Duration _multiClickWindow = Duration(milliseconds: 300);
-  static const double _dragSlop = 18.0; // kTouchSlop-ish; generous for mouse.
+  // Tap/multi-click tolerance and the coarse drag threshold used by touch
+  // scrolling and selected-text moves. A fresh mouse/stylus text selection
+  // may start earlier when its hit-tested caret crosses a glyph midpoint; see
+  // [_crossedCaretBoundary].
+  static const double _dragSlop = 18.0;
   static const double _autoScrollEdge = 48.0;
   static const double _maxAutoScrollPerFrame = 24.0;
 
@@ -267,6 +271,7 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   /// text cursor. Toggled only on gutter crossings to avoid rebuilding on
   /// every hover move.
   bool _overScrollbar = false;
+  bool _overLink = false;
 
   @override
   void initState() {
@@ -342,23 +347,24 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
   }
 
   void _reportLinkHover(Offset? global) {
-    final probe = widget.linkProbe;
-    final report = widget.onLinkHover;
-    if (probe == null || report == null) {
-      return;
+    final link = global == null ? null : widget.linkProbe?.call(global);
+    final overLink = link != null;
+    if (_overLink != overLink) {
+      setState(() => _overLink = overLink);
     }
-    report(global == null ? null : probe(global));
+    widget.onLinkHover?.call(link);
   }
 
   /// The cursor for the current hover region. Over the scrollbar gutter we
   /// show a click cursor (so the thumb does not inherit the editing cursor);
-  /// elsewhere selectable text shows the text (I-beam) cursor in both editable
-  /// and read-only documents.
+  /// directly openable links in read-only documents also show a click cursor.
+  /// Other selectable text retains the text (I-beam) cursor.
   MouseCursor _resolvedCursor() {
     if (_isMovingSelection) {
       return SystemMouseCursors.grabbing;
     }
-    if (_overScrollbar) {
+    if (_overScrollbar ||
+        (_overLink && widget.readOnly && widget.onLinkOpen != null)) {
       return SystemMouseCursors.click;
     }
     return widget.cursor;
@@ -606,7 +612,16 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     final position = event.position;
     if (!_isDragging) {
       final moved = (position - _dragOrigin!).distance;
-      if (moved < _dragSlop) {
+      // A fixed 18px threshold is wider than a typical CJK glyph. Requiring
+      // that much movement means a user cannot select one character by
+      // dragging just past its visual midpoint: the pointer has already left
+      // the glyph before the selection gesture starts. For a precise pointer,
+      // begin as soon as layout resolves a different caret boundary. This
+      // naturally uses each glyph's real width (including variable-width,
+      // bidi, and multi-code-unit graphemes) and gives the expected
+      // "past half selects it" behaviour.
+      final crossedCaretBoundary = _crossedCaretBoundary(event, position);
+      if (moved < _dragSlop && !crossedCaretBoundary) {
         return;
       }
       // A normal finger drag belongs to the editor's Scrollable. Do not turn
@@ -637,6 +652,26 @@ class _SelectionGestureOverlayState extends State<SelectionGestureOverlay> {
     _updateActiveDrag(position);
     _syncScrollToEdge(position);
     _maybeStartAutoScroll(position);
+  }
+
+  bool _crossedCaretBoundary(PointerMoveEvent event, Offset globalPosition) {
+    // Keep the coarse threshold when moving an existing range, otherwise a
+    // tiny click wobble inside selected text could unexpectedly reorder it.
+    if (_selectionMoveSource != null || !_isPrecisePointer(event.kind)) {
+      return false;
+    }
+    final base = _dragBase;
+    if (base == null) {
+      return false;
+    }
+    final current = widget.registry.positionFromGlobalOffset(globalPosition);
+    return current != null && current != base;
+  }
+
+  bool _isPrecisePointer(PointerDeviceKind kind) {
+    return kind == PointerDeviceKind.mouse ||
+        kind == PointerDeviceKind.stylus ||
+        kind == PointerDeviceKind.invertedStylus;
   }
 
   void _onPointerUp(PointerUpEvent event) {

@@ -79,14 +79,25 @@ class TextLayoutService {
   }
 
   /// Caret top-left for [offset].
-  Offset caretOffset(TextPainter painter, int offset) {
-    return painter.getOffsetForCaret(TextPosition(offset: offset), Rect.zero);
+  Offset caretOffset(
+    TextPainter painter,
+    int offset, {
+    TextAffinity affinity = TextAffinity.downstream,
+  }) {
+    return painter.getOffsetForCaret(
+      TextPosition(offset: offset, affinity: affinity),
+      Rect.zero,
+    );
   }
 
   /// Caret height for [offset], or `null` when unavailable.
-  double? caretHeight(TextPainter painter, int offset) {
+  double? caretHeight(
+    TextPainter painter,
+    int offset, {
+    TextAffinity affinity = TextAffinity.downstream,
+  }) {
     return painter.getFullHeightForCaret(
-      TextPosition(offset: offset),
+      TextPosition(offset: offset, affinity: affinity),
       Rect.zero,
     );
   }
@@ -138,6 +149,47 @@ class TextLayoutService {
   /// selects the whole block.
   TextRange paragraphRange(TextPainter painter) {
     return TextRange(start: 0, end: _textLength(painter));
+  }
+
+  /// Returns the start ([forward] = false) or end ([forward] = true) of the
+  /// visual line containing [offset]. Soft-wrapped lines are therefore treated
+  /// as independent lines, matching the platform Home/End behaviour.
+  int visualLineBoundaryOffset(
+    TextPainter painter,
+    int offset,
+    bool forward, {
+    TextAffinity affinity = TextAffinity.downstream,
+  }) {
+    final textLength = _textLength(painter);
+    final clamped = offset.clamp(0, textLength).toInt();
+    final position = TextPosition(offset: clamped, affinity: affinity);
+    final metrics = painter.computeLineMetrics();
+    if (metrics.isEmpty) {
+      final boundary = painter.getLineBoundary(position);
+      return (forward ? boundary.end : boundary.start)
+          .clamp(0, textLength)
+          .toInt();
+    }
+
+    // A soft-wrap offset belongs to both the previous line's end and the next
+    // line's start. DocumentPosition does not carry TextAffinity, so asking
+    // getLineBoundary for the offset alone can choose a different line from
+    // the one where the caret is actually painted. Resolve the visual line
+    // from the painted caret's Y coordinate instead.
+    final caret = painter.getOffsetForCaret(position, Rect.zero);
+    final height = painter.getFullHeightForCaret(position, Rect.zero);
+    final line = _lineForY(metrics, caret.dy + height / 2);
+    final logicalBoundaryIsRight = switch (painter.textDirection) {
+      TextDirection.rtl => !forward,
+      _ => forward,
+    };
+    final target = painter.getPositionForOffset(
+      Offset(
+        logicalBoundaryIsRight ? 100000 : -100000,
+        _lineCenterY(line),
+      ),
+    );
+    return target.offset.clamp(0, textLength).toInt();
   }
 
   /// Resolves the caret offset one visual line up ([forward] = false) or down

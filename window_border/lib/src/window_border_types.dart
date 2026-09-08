@@ -85,6 +85,12 @@ class WindowBorderStyle {
   final bool shadowEnabled;
 
   /// Width of the native resize hit-test zone, in logical pixels.
+  ///
+  /// Windows adds 2 logical pixels to the larger of this and [borderWidth]
+  /// for easier edge/corner dragging, without changing the visible border.
+  /// The Windows top target is at least 12 logical pixels deep; the first
+  /// and last 16 logical pixels of horizontal edges select diagonal resizing.
+  /// Edge resizing is disabled while maximized or fullscreen.
   final double resizeBorderWidth;
 
   /// Whether native edge and corner resizing is enabled.

@@ -153,21 +153,21 @@ abstract final class BlockDragHandleSpec {
   ///
   /// Desktop editable rows that reserve the heading-collapse slot use this
   /// full rail:
-  /// [startMargin] (4 dp) + [hitSize].width (28 dp) + [chromeGap] (4 dp) +
-  /// the compact heading collapse hit target (24 dp) + [gapToContent] (8 dp).
+  /// [startMargin] (4 dp) + [hitSize].width (24 dp) + [chromeGap] (4 dp) +
+  /// the compact heading collapse hit target (24 dp) + [gapToContent] (4 dp).
   /// Desktop non-heading rows reserve the same width while outline chrome is
   /// attached so renderer content stays aligned across headings, paragraphs,
   /// code blocks, and other top-level blocks. The operation hit target remains
   /// at [startMargin]; compact phones omit the unused collapse slot.
   /// Compact phone rails are resolved from `EditorTokens.mobile`; this remains
   /// the desktop/public compatibility value.
-  static const double railWidth = 68.0;
+  static const double railWidth = 60.0;
 
   /// Desktop collapse-only affordance plus the standard content gap: compact
-  /// heading collapse hit target (24 dp) + [gapToContent] (8 dp). This
+  /// heading collapse hit target (24 dp) + [gapToContent] (4 dp). This
   /// intentionally omits [startMargin] and the drag handle slot for read-only
   /// rows.
-  static const double collapseChromeOverflow = 32.0;
+  static const double collapseChromeOverflow = 28.0;
 
   /// Desktop leading inset before the editable row operation hit target.
   /// This keeps a 4dp breathing room ahead of the full-size hit target.
@@ -180,13 +180,22 @@ abstract final class BlockDragHandleSpec {
   /// Desktop gap between editable row chrome and the renderer content edge.
   /// Compact read-only heading collapse rows keep their no-drag slot instead
   /// of reserving the editable rail.
-  static const double gapToContent = 8.0;
+  static const double gapToContent = 4.0;
+
+  /// Shared row-chrome button size for drag and heading-collapse controls.
+  static const double buttonSize = 24.0;
 
   /// Minimum pointer/focus hit target for mouse, touch, and keyboard traversal.
-  static const Size hitSize = Size.square(28.0);
+  static const Size hitSize = Size.square(buttonSize);
 
-  /// Visual glyph size inside [hitSize].
-  static const Size visualSize = Size.square(18.0);
+  /// Shared visual glyph size inside [hitSize].
+  static const double iconSize = 18.0;
+
+  /// Visual glyph bounds shared by both row-chrome buttons.
+  static const Size visualSize = Size.square(iconSize);
+
+  /// Shared corner radius for row-chrome hover, focus, and pressed surfaces.
+  static const double buttonRadius = 6.0;
 
   /// Top inset from the block row to the handle hit target. Renderers with tall
   /// content still anchor the handle near the first visual line/control row.

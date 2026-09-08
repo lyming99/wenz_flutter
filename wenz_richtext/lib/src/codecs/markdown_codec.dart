@@ -701,8 +701,11 @@ class MarkdownCodec {
 
     var pos = 0;
     while (pos < text.length) {
-      // Escaped character: `\x` → literal `x`.
-      if (text[pos] == '\\' && pos + 1 < text.length) {
+      // CommonMark §2.4: only ASCII punctuation can be backslash-escaped.
+      // In particular, Windows path separators before letters stay literal.
+      if (text[pos] == '\\' &&
+          pos + 1 < text.length &&
+          _isEscapablePunctuation(text.codeUnitAt(pos + 1))) {
         buffer.write(text[pos + 1]);
         pos += 2;
         continue;
@@ -846,6 +849,12 @@ class MarkdownCodec {
     flush();
     return runs;
   }
+
+  static bool _isEscapablePunctuation(int codeUnit) =>
+      (codeUnit >= 0x21 && codeUnit <= 0x2f) ||
+      (codeUnit >= 0x3a && codeUnit <= 0x40) ||
+      (codeUnit >= 0x5b && codeUnit <= 0x60) ||
+      (codeUnit >= 0x7b && codeUnit <= 0x7e);
 
   bool _looksLikeTableRow(String line) {
     final trimmed = line.trim();

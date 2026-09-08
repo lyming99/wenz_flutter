@@ -32,6 +32,38 @@ class BlockGeometryRegistry {
       <String, BlockRowGeometryEntry>{};
 
   final Set<GlobalKey> _selectionExclusionKeys = <GlobalKey>{};
+  DocumentPosition? _upstreamCaretPosition;
+
+  /// Uses upstream affinity when painting/resolving [position]. This preserves
+  /// the visual side of an ambiguous soft-wrap offset after End is pressed.
+  void useUpstreamCaretAffinityFor(DocumentPosition position) {
+    _upstreamCaretPosition = position;
+  }
+
+  void clearCaretAffinity() {
+    _upstreamCaretPosition = null;
+  }
+
+  /// Clears a stale affinity override after an unrelated selection change.
+  void retainCaretAffinityFor(DocumentPosition? position) {
+    if (_upstreamCaretPosition != position) {
+      clearCaretAffinity();
+    }
+  }
+
+  TextAffinity caretAffinityFor(
+    String blockId,
+    PositionPath path,
+    int offset,
+  ) {
+    final position = _upstreamCaretPosition;
+    return position != null &&
+            position.blockId == blockId &&
+            position.path == path &&
+            position.offset == offset
+        ? TextAffinity.upstream
+        : TextAffinity.downstream;
+  }
 
   /// Registers a block/path surface. Replaces any prior entry with the same
   /// [blockId] and [BlockEntry.path].
@@ -536,6 +568,23 @@ class BlockGeometryRegistry {
     return entry.caretRectAt(position.offset);
   }
 
+  /// Resolves Home/End within the visual line containing [position]. Returns
+  /// `null` when the owning text surface is not currently mounted, allowing
+  /// the caller to fall back to a model-only block-boundary move.
+  DocumentPosition? visualLineBoundaryForPosition(
+    DocumentPosition position,
+    bool forward,
+  ) {
+    final entry = _entry(position.blockId, position.path);
+    final boundaryAt = entry?.visualLineBoundaryAt;
+    if (entry == null || boundaryAt == null) {
+      return null;
+    }
+    return position.copyWith(
+      offset: boundaryAt(position.offset, forward),
+    );
+  }
+
   /// Returns TextInput geometry for the editable surface that owns [position].
   ///
   /// The platform API mirrors [EditableText]: it expects the full editable
@@ -680,6 +729,7 @@ class BlockEntry {
     required this.localCaretRectAt,
     required this.localComposingRectForRange,
     required this.verticalMoveAt,
+    this.visualLineBoundaryAt,
     this.hitTestKey,
     Offset Function(Offset)? hitLocalToTextLocal,
   }) : _hitLocalToTextLocal = hitLocalToTextLocal;
@@ -719,6 +769,9 @@ class BlockEntry {
   /// Returns the composing text rect in the text surface's local coordinate
   /// space for [start, end), or `null` when the layout cannot resolve it.
   final Rect? Function(int start, int end) localComposingRectForRange;
+
+  /// Returns the start/end offset of the visual line containing [offset].
+  final int Function(int offset, bool forward)? visualLineBoundaryAt;
 
   /// Moves [offset] one visual line down ([forward]=true) or up within this
   /// block, keeping the horizontal column at [preferX] (in the block's LOCAL

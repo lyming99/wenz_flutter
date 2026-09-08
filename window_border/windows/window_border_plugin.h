@@ -35,6 +35,8 @@ class WindowBorderPlugin : public flutter::Plugin {
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
  private:
+  friend class WindowBorderPluginTestPeer;
+
   WindowBorderPlugin(flutter::PluginRegistrarWindows* registrar,
                      flutter::BinaryMessenger* messenger,
                      HWND flutter_view);
@@ -43,6 +45,11 @@ class WindowBorderPlugin : public flutter::Plugin {
                                           UINT message,
                                           WPARAM wparam,
                                           LPARAM lparam);
+  static LRESULT CALLBACK FlutterViewSubclassProc(
+      HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam,
+      UINT_PTR subclass_id, DWORD_PTR reference_data);
+  bool InstallFlutterViewSubclass();
+  void RemoveFlutterViewSubclass();
   bool EnsureWindow(std::string* error);
   bool UpdateStyle(const flutter::EncodableMap& arguments,
                    std::string* error);
