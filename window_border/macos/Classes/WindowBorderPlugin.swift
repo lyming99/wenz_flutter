@@ -25,6 +25,7 @@ public class WindowBorderPlugin: NSObject, FlutterPlugin {
   private var originalLayerBackgroundColor: CGColor?
   private var originalLayerCornerRadius: CGFloat = 0
   private var originalLayerMasksToBounds = false
+  private var originalWindowIsOpaque = true
   private var originalWindowHasShadow = true
   private var originalWindowBackgroundColor: NSColor?
   private var notificationTokens: [NSObjectProtocol] = []
@@ -243,6 +244,7 @@ public class WindowBorderPlugin: NSObject, FlutterPlugin {
       originalTitleVisibility = window.titleVisibility
       originalTitlebarAppearsTransparent = window.titlebarAppearsTransparent
       originalMovableByBackground = window.isMovableByWindowBackground
+      originalWindowIsOpaque = window.isOpaque
       originalWindowHasShadow = window.hasShadow
       originalWindowBackgroundColor = window.backgroundColor
       originalButtonVisibility.removeAll()
@@ -272,6 +274,7 @@ public class WindowBorderPlugin: NSObject, FlutterPlugin {
       window.titleVisibility = originalTitleVisibility
       window.titlebarAppearsTransparent = originalTitlebarAppearsTransparent
       window.isMovableByWindowBackground = originalMovableByBackground
+      window.isOpaque = originalWindowIsOpaque
       window.hasShadow = originalWindowHasShadow
       if let color = originalWindowBackgroundColor {
         window.backgroundColor = color
@@ -287,6 +290,7 @@ public class WindowBorderPlugin: NSObject, FlutterPlugin {
         contentView.layer?.masksToBounds = originalLayerMasksToBounds
         contentView.wantsLayer = originalWantsLayer
       }
+      window.invalidateShadow()
       originalStyleMask = nil
       originalWindowBackgroundColor = nil
       originalButtonVisibility.removeAll()
@@ -305,20 +309,27 @@ public class WindowBorderPlugin: NSObject, FlutterPlugin {
     }
     window.isMovableByWindowBackground = false
     window.hasShadow = shadowEnabled
-    window.backgroundColor = nsColor(fromARGB: backgroundColor)
+    // The window backing must stay transparent outside the rounded content.
+    // Painting the NSWindow itself leaves rectangular wedges behind its layer.
+    window.isOpaque = false
+    window.backgroundColor = .clear
     for type in buttonTypes {
       window.standardWindowButton(type)?.isHidden = true
     }
   }
 
   private func applyBorderLayer() {
-    guard let contentView = window?.contentView else { return }
+    guard let window = window, let contentView = window.contentView else { return }
     contentView.wantsLayer = true
     contentView.layer?.borderWidth = borderWidth
     contentView.layer?.borderColor = nsColor(fromARGB: borderColor).cgColor
     contentView.layer?.backgroundColor = nsColor(fromARGB: backgroundColor).cgColor
-    contentView.layer?.cornerRadius = cornerRadius
-    contentView.layer?.masksToBounds = cornerRadius > 0
+    // Fullscreen must cover the screen; zoomed macOS windows remain floating.
+    let radius: CGFloat = window.styleMask.contains(.fullScreen) ? 0 : cornerRadius
+    contentView.layer?.cornerRadius = radius
+    contentView.layer?.masksToBounds = radius > 0
+    // Use the compositor's window shadow, not a clipped content-layer shadow.
+    window.invalidateShadow()
   }
 
   private func nsColor(fromARGB color: UInt32) -> NSColor {
@@ -342,6 +353,7 @@ public class WindowBorderPlugin: NSObject, FlutterPlugin {
     notificationTokens = names.map { name in
       NotificationCenter.default.addObserver(
         forName: name, object: window, queue: .main) { [weak self] _ in
+          self?.applyBorderLayer()
           self?.notifyState()
         }
     }
