@@ -40,13 +40,9 @@ dependencies:
   file_picker: ^10.3.2
   screenshot: ^3.0.0
   wenz_editor:
-    git:
-      url: https://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@github.com/lyming99/wenz_flutter.git
-      path: wenz_editor
+    path: ../wenz_editor
   wenz_ui:
-    git:
-      url: https://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@github.com/lyming99/wenz_flutter.git
-      path: wenz_ui
+    path: ../wenz_ui
 
 dev_dependencies:
   flutter_test:
